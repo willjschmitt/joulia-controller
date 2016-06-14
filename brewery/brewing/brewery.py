@@ -41,6 +41,7 @@ class brewery(object):
         self.dataStreamer.register('systemEnergyCost')
         self.dataStreamer.register('state__id','state')
         self.dataStreamer.register('timer')
+        self.dataStreamer.register('requestPermission')
         
         #state machine initialization
         self.state = stateMachine(self)
@@ -84,6 +85,7 @@ class brewery(object):
         #permission variables
         self.requestPermission = False
         self.grantPermission   = False
+        self.grantPermissionWatcher = subscribableVariable(self, 'grantPermission', 'grantPermission',self.recipeInstance) #subscribes to remote var
         
         #schedule task 1 execution
         self.tm1Rate = 1. #seconds
@@ -137,6 +139,8 @@ def statePrestart(breweryInstance):
     breweryInstance.mashTun.turnOff()
 
     if breweryInstance.grantPermission:
+        breweryInstance.grantPermission = False
+        breweryInstance.requestPermission = False
         breweryInstance.state.changeState('statePremash')
     else:
         breweryInstance.requestPermission = True
@@ -157,9 +161,9 @@ def statePremash(breweryInstance):
     breweryInstance.boilKettle.setTemperature(breweryInstance.strikeTemperature)
 
     if breweryInstance.boilKettle.temperature > breweryInstance.strikeTemperature:
-        breweryInstance.requestPermission = True
         if breweryInstance.grantPermission:
             breweryInstance.grantPermission = False
+            breweryInstance.requestPermission = False
             breweryInstance.state.changeState('stateStrike')
         else:
             breweryInstance.requestPermission = True
@@ -178,6 +182,7 @@ def stateStrike(breweryInstance):
     
     if breweryInstance.grantPermission:
         breweryInstance.grantPermission = False
+        breweryInstance.requestPermission = False
         breweryInstance.state.changeState('statePostStrike')
     else:
         breweryInstance.requestPermission = True
@@ -200,6 +205,7 @@ def statePostStrike(breweryInstance):
     if breweryInstance.boilKettle.temperature > breweryInstance.mashTun.temperatureSetPoint:
         if breweryInstance.grantPermission:
             breweryInstance.grantPermission = False
+            breweryInstance.requestPermission = False
             breweryInstance.state.changeState('stateMash')
         else:    
             breweryInstance.requestPermission = True
@@ -261,6 +267,7 @@ def stateMashout2(breweryInstance):
     if breweryInstance.timer <= 0.:
         if breweryInstance.grantPermission:
             breweryInstance.grantPermission = False
+            breweryInstance.requestPermission = False
             breweryInstance.state.changeState('stateSpargePrep')
 
 def stateSpargePrep(breweryInstance):
@@ -277,6 +284,7 @@ def stateSpargePrep(breweryInstance):
 
     if breweryInstance.grantPermission:
         breweryInstance.grantPermission = False
+        breweryInstance.requestPermission = False
         breweryInstance.state.changeState('stateSparge')
     else:
         breweryInstance.requestPermission = True
@@ -296,6 +304,7 @@ def stateSparge(breweryInstance):
 
     if breweryInstance.grantPermission:
         breweryInstance.grantPermission = False
+        breweryInstance.requestPermission = False
         breweryInstance.state.changeState('statePreBoil')
     else:
         breweryInstance.requestPermission = True
@@ -315,6 +324,7 @@ def statePreBoil(breweryInstance):
     
     if breweryInstance.grantPermission:
         breweryInstance.grantPermission = False
+        breweryInstance.requestPermission = False
         breweryInstance.state.changeState('stateMashToBoil')
     else:
         breweryInstance.requestPermission = True
@@ -334,6 +344,7 @@ def stateMashToBoil(breweryInstance):
     
     if breweryInstance.grantPermission:
         breweryInstance.grantPermission = False
+        breweryInstance.requestPermission = False
         breweryInstance.state.changeState('stateBoilPreheat')
     else:
         breweryInstance.requestPermission = True
@@ -375,6 +386,7 @@ def stateBoil(breweryInstance):
     if breweryInstance.timer <= 0.:
         if breweryInstance.grantPermission:
             breweryInstance.grantPermission = False
+            breweryInstance.requestPermission = False
             breweryInstance.state.changeState('stateCool')
         else:
             breweryInstance.requestPermission = True
@@ -394,6 +406,7 @@ def stateCool(breweryInstance):
     if breweryInstance.boilKettle.temperature < breweryInstance.coolTemperature:
         if breweryInstance.grantPermission:
             breweryInstance.grantPermission = False
+            breweryInstance.requestPermission = False
             breweryInstance.state.changeState('statePumpout')
         else:
             breweryInstance.requestPermission = True
@@ -412,6 +425,7 @@ def statePumpout(breweryInstance):
 
     if breweryInstance.grantPermission:
         breweryInstance.grantPermission = False
+        breweryInstance.requestPermission = False
         breweryInstance.state.changeState()
     else:
         breweryInstance.requestPermission = True
