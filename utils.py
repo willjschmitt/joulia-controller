@@ -35,13 +35,12 @@ class subscribableVariable(object):
     '''
     dataIdentifyService = "http:" + host + "/live/timeseries/identify/"
 
-    def __init__(self, instance, varName, sensorName,recipeInstance, callback = None):
+    def __init__(self, instance, varName, sensorName,recipeInstance):
         '''
         Constructor
         '''
         self.instance = instance
         self.varName = varName
-        self.callback = callback
         
         #add new subscription to class vars
         self.subscribe(sensorName, recipeInstance, 'value')
@@ -51,9 +50,6 @@ class subscribableVariable(object):
     @value.setter
     def value(self,value):
         setattr(self.instance,self.varName,value)
-        if self.callback is not None:
-            callback = self.callback
-            callback(value)
     
     @gen.coroutine #allows the websocket to be yielded    
     def subscribe(self,name,recipeInstance,var_type='value'):
@@ -177,12 +173,9 @@ class dataStreamer(object):
                 #send the data
                 try:
                     value = rgetattr(self.streamingClass,sensor['attr'])
-                    if value is None: value = 0. #TODO: make server accept None
-                    if value is True: value = 'true'
-                    if value is False: value = 'false'
                     r = requests.post(self.dataPostService,
                         data={'time':sampleTime,'recipe_instance':self.recipeInstance,
-                            'value': value,
+                            'value': value if value is not None else 0., #TODO: make server accept None
                             'sensor':sensor['id']
                         }
                     )
