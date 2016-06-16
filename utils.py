@@ -35,12 +35,13 @@ class subscribableVariable(object):
     '''
     dataIdentifyService = "http:" + host + "/live/timeseries/identify/"
 
-    def __init__(self, instance, varName, sensorName,recipeInstance):
+    def __init__(self, instance, varName, sensorName,recipeInstance, callback = None):
         '''
         Constructor
         '''
         self.instance = instance
         self.varName = varName
+        self.callback = callback
         
         #add new subscription to class vars
         self.subscribe(sensorName, recipeInstance, 'value')
@@ -50,6 +51,9 @@ class subscribableVariable(object):
     @value.setter
     def value(self,value):
         setattr(self.instance,self.varName,value)
+        if self.callback is not None:
+            callback = self.callback
+            callback(value)
     
     @gen.coroutine #allows the websocket to be yielded    
     def subscribe(self,name,recipeInstance,var_type='value'):
