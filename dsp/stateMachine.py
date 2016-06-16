@@ -38,4 +38,8 @@ class stateMachine(object):
     @property
     def id(self): return self.states.index(self.state)
     @id.setter
-    def id(self,value): self.state = self.states[value]
+    def id(self,value):
+        if self.state != self.states[value]:
+            self.parent.requestPermission = False
+            self.parent.grantPermission = False
+            self.state = self.states[value]
