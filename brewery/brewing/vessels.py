@@ -63,7 +63,7 @@ class heatedVessel(temperatureMonitoredVessel):
     classdocs
     '''
 
-    elementStatus =  overridable_variable('boilKettle__heatingElementStatus') #subscribes to remote var
+    elementStatus =  overridable_variable('boilKettle__elementStatus') #subscribes to remote var
 
     def __init__(self, rating, volume, rtdParams, pin, **kwargs):
         '''
@@ -71,7 +71,9 @@ class heatedVessel(temperatureMonitoredVessel):
         '''
         self.rating = rating # in Watts (of heating element)
         self.elementStatus = False # element defaults to off
-        heatedVessel.elementStatus.subscribe(self,recipe_instance,callback=None)
+        def printval(val):
+            print val, self.elementStatus, heatedVessel.elementStatus.overridden[self]
+        heatedVessel.elementStatus.subscribe(self,recipe_instance,callback=printval)
         
         self.temperatureSetPoint = 0.
         
@@ -120,7 +122,7 @@ class heatedVessel(temperatureMonitoredVessel):
             return super(heatedVessel,self).measureTemperature()
         
     @property
-    def power(self): return self.dutyCycle * self.rating
+    def power(self): return self.dutyCycle * self.rating * self.elementStatus
     
     @property #returns degF/sec rate of change of liquid
     def temperature_ramp(self):

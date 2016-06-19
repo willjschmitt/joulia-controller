@@ -98,7 +98,9 @@ class subscribable_variable(object):
                     callback = subscriber['descriptor'].callback[subscriber['instance']]
                     callback(data['value'])
             elif subscriber['var_type'] == 'override':
-                subscriber['descriptor'].override[subscriber['instance']] = bool(data['value'])
+                logger.debug('got override ({}) for {}'.format(data['value'],subscriber['descriptor'].sensor_name))
+                logger.debug("Current: {}".format(subscriber['descriptor'].overridden[subscriber['instance']]))
+                subscriber['descriptor'].overridden[subscriber['instance']] = bool(data['value'])
         else:
             logger.warning('websocket closed')
             
@@ -117,11 +119,13 @@ class overridable_variable(subscribable_variable):
     
     #override the subscribe method so we can add another subscription to the override time series
     def subscribe(self,instance,recipe_instance,callback=None):
+        self.overridden[instance] = False
         super(overridable_variable,self).subscribe(instance,recipe_instance,callback=callback)
-        self._subscribe(instance,self.sensor_name + "Override",recipe_instance,'value')
+        self._subscribe(instance,self.sensor_name + "Override",recipe_instance,'override')
     
     #override the __set__ function to check if an override is not in place on the variable before allowing to go to the normal __set__
     def __set__(self,obj,value):
+        print self.overridden.get(obj)
         if not self.overridden.get(obj): 
             super(overridable_variable,self).__set__(obj,value)
                 

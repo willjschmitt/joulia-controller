@@ -36,6 +36,7 @@ class brewery(object):
         self.dataStreamer = dataStreamer(self,recipe_instance)
         self.dataStreamer.register('boilKettle__temperature')
         self.dataStreamer.register('boilKettle__temperatureSetPoint')
+        self.dataStreamer.register('boilKettle__elementStatus')
         self.dataStreamer.register('mashTun__temperature')
         self.dataStreamer.register('mashTun__temperatureSetPoint')
         self.dataStreamer.register('boilKettle__dutyCycle')
