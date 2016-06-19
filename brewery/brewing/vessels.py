@@ -95,11 +95,15 @@ class heatedVessel(temperatureMonitoredVessel):
         self.temperatureSetPoint = value
         
     def turnOff(self):
+        logger.debug('Request heated vessel turn off.')
         self.elementStatus = self.pin.value = False
         self.regulator.disable()
-    def turnOn(self):  
+        logger.debug('Element is on: {}'.format(self.elementStatus))
+    def turnOn(self): 
+        logger.debug('Request heated vessel turn on.') 
         self.elementStatus = self.pin.value = True
         self.regulator.enable()
+        logger.debug('Element is on: {}'.format(self.elementStatus))
     
     def setLiquidLevel(self,volume):
         self.volume = volume

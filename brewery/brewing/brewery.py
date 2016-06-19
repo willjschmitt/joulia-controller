@@ -7,7 +7,7 @@ Created on Apr 3, 2016
 import sched,time
 from tornado import ioloop
 
-from utils import dataStreamer, subscribable_variable
+from utils import dataStreamer, subscribable_variable,streaming_variable
 from dsp import stateMachine
 
 from vessels import heatedVessel,heatExchangedVessel
@@ -23,6 +23,8 @@ class brewery(object):
     classdocs
     '''
     grantPermission = subscribable_variable('grantPermission') #subscribes to remote var
+    
+    timer = streaming_variable('timer')
 
     def __init__(self):
         '''
@@ -44,7 +46,8 @@ class brewery(object):
         self.dataStreamer.register('systemEnergy')
         self.dataStreamer.register('systemEnergyCost')
         self.dataStreamer.register('state__id','state')
-        self.dataStreamer.register('timer')
+#         self.dataStreamer.register('timer')
+        brewery.timer.register(self,recipe_instance)
         self.dataStreamer.register('requestPermission')
         
         #state machine initialization
