@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 import time
 
 from gpiocrust import OutputPin
-from utils import gpio_mock_api_active, overridable_variable
+from utils import gpio_mock_api_active, overridable_variable,streaming_variable
 
 from measurement import rtdSensor
 
@@ -35,6 +35,7 @@ class temperatureMonitoredVessel(simpleVessel):
     '''
     classdocs
     '''
+    
     def __init__(self, volume, rtdParams):
         '''
         Constructor
@@ -62,8 +63,10 @@ class heatedVessel(temperatureMonitoredVessel):
     '''
     classdocs
     '''
-
+    
+    temperatureSetPoint = streaming_variable('boilKettle__temperatureSetPoint')
     elementStatus =  overridable_variable('boilKettle__elementStatus') #subscribes to remote var
+    dutyCycle = streaming_variable('boilKettle__dutyCycle')
 
     def __init__(self, rating, volume, rtdParams, pin, **kwargs):
         '''
@@ -75,12 +78,12 @@ class heatedVessel(temperatureMonitoredVessel):
             print val, self.elementStatus, heatedVessel.elementStatus.overridden[self]
         heatedVessel.elementStatus.subscribe(self,recipe_instance,callback=printval)
         
+        heatedVessel.temperatureSetPoint.register(self,recipe_instance)
         self.temperatureSetPoint = 0.
-        
-        
                 
         self.regulator = kwargs.get('regulatorClass',regulator)(maxQ=1.,minQ=0.)
         
+        heatedVessel.dutyCycle.register(self,recipe_instance)
         self.dutyCycle = 0.
         self.dutyPeriod = 1. #seconds
         
@@ -138,6 +141,8 @@ class heatExchangedVessel(temperatureMonitoredVessel):
     '''
     classdocs
     '''
+    
+    temperatureSetPoint = streaming_variable('mashTun__temperatureSetPoint')
 
     def __init__(self, volume, rtdParams,heatExchangerConductivity=1., **kwargs):
         '''
@@ -145,6 +150,7 @@ class heatExchangedVessel(temperatureMonitoredVessel):
         '''
         self.volume = volume
         
+        heatExchangedVessel.temperatureSetPoint.register(self,recipe_instance)
         self.temperatureSetPoint = 0.
         
         self.heatExchangerConductivity = heatExchangerConductivity

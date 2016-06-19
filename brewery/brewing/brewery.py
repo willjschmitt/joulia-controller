@@ -23,8 +23,10 @@ class brewery(object):
     classdocs
     '''
     grantPermission = subscribable_variable('grantPermission') #subscribes to remote var
-    
+
     timer = streaming_variable('timer')
+    systemEnergy = streaming_variable('systemEnergy')
+    requestPermission = streaming_variable('requestPermission')
 
     def __init__(self):
         '''
@@ -35,20 +37,14 @@ class brewery(object):
         
         self.recipeInstance = 1
         
+        #variables that are @properties and need to be streamed periodically still
         self.dataStreamer = dataStreamer(self,recipe_instance)
         self.dataStreamer.register('boilKettle__temperature')
-        self.dataStreamer.register('boilKettle__temperatureSetPoint')
         self.dataStreamer.register('boilKettle__elementStatus')
         self.dataStreamer.register('mashTun__temperature')
-        self.dataStreamer.register('mashTun__temperatureSetPoint')
-        self.dataStreamer.register('boilKettle__dutyCycle')
         self.dataStreamer.register('boilKettle__power')
-        self.dataStreamer.register('systemEnergy')
         self.dataStreamer.register('systemEnergyCost')
         self.dataStreamer.register('state__id','state')
-#         self.dataStreamer.register('timer')
-        brewery.timer.register(self,recipe_instance)
-        self.dataStreamer.register('requestPermission')
         
         #state machine initialization
         self.state = stateMachine(self)
@@ -80,6 +76,7 @@ class brewery(object):
             [15.*60.,155.0], #at 45min step up to 155
         ]
         
+        brewery.systemEnergy.register(self,recipe_instance)
         self.systemEnergy = 0.
         self.energyUnitCost = 0.15 #$/kWh
         
@@ -89,6 +86,7 @@ class brewery(object):
         self.mainPump = simplePump(pin=2)        
     
         #permission variables
+        brewery.requestPermission.register(self,recipe_instance)
         self.requestPermission = False
         self.grantPermission   = False
         def permissionGranted(value): 
@@ -98,7 +96,8 @@ class brewery(object):
         
         #schedule task 1 execution
         self.tm1Rate = 1. #seconds
-        self.tm1_tz1 = time.time() 
+        self.tm1_tz1 = time.time()
+        brewery.timer.register(self,recipe_instance)
         self.timer = None
         self.task00()
         
