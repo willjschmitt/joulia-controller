@@ -123,7 +123,6 @@ class overridable_variable(subscribable_variable):
     
     #override the __set__ function to check if an override is not in place on the variable before allowing to go to the normal __set__
     def __set__(self,obj,value):
-        print self.overridden.get(obj)
         if not self.overridden.get(obj): 
             super(overridable_variable,self).__set__(obj,value)
 

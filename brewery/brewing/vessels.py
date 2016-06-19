@@ -74,9 +74,7 @@ class heatedVessel(temperatureMonitoredVessel):
         '''
         self.rating = rating # in Watts (of heating element)
         self.elementStatus = False # element defaults to off
-        def printval(val):
-            print val, self.elementStatus, heatedVessel.elementStatus.overridden[self]
-        heatedVessel.elementStatus.subscribe(self,recipe_instance,callback=printval)
+        heatedVessel.elementStatus.subscribe(self,recipe_instance)
         
         heatedVessel.temperatureSetPoint.register(self,recipe_instance)
         self.temperatureSetPoint = 0.
