@@ -46,9 +46,9 @@ class subscribable_variable(object):
         self.callback = WeakKeyDictionary()
         
     def subscribe(self,instance,recipe_instance,callback=None):
-        self.callback[instance] = instance
+        self.callback[instance] = callback
         self.recipe_instance = recipe_instance
-        self._subscribe(self,instance,self.sensor_name,recipe_instance,'value')
+        self._subscribe(instance,self.sensor_name,recipe_instance,var_type='value')
     
     def __get__(self,obj,objtype):
         if obj is None:
@@ -68,8 +68,9 @@ class subscribable_variable(object):
         
         #if we dont have a subscription setup yet, sent a subscribe request through the websocket
         if ((sensor_name,recipe_instance)) not in self.subscribers:
-            logger.info('Subscribing to {}'.format(sensor_name))
-            r = requests.post(self.dataIdentifyService,data={'recipe_instance':recipe_instance,'sensor_name':sensor_name})
+            logger.info('Subscribing to {}, instance {}'.format(sensor_name,recipe_instance))
+            r = requests.post(self.dataIdentifyService,data={'recipe_instance':recipe_instance,'name':sensor_name})
+            logger.debug(r.text)
             idSensor = r.json()['sensor']
             
             self.idSensor = idSensor
@@ -78,8 +79,8 @@ class subscribable_variable(object):
             
             logger.debug('Id is {}'.format(idSensor))
             
-            logger.debug("Subscribing with {}".format(self.websocket))
-            self.websocket.write_message(json.dumps({'recipe_instance':self.recipeInstance,'sensor':self.idSensor,'subscribe':True}))
+            logger.debug("Subscribing with {} using {}".format(self.websocket,{'recipe_instance':recipe_instance,'sensor':self.idSensor,'subscribe':True}))
+            self.websocket.write_message(json.dumps({'recipe_instance':recipe_instance,'sensor':self.idSensor,'subscribe':True}))
                         
             logger.debug('Subscribed')
     
@@ -99,7 +100,9 @@ class subscribable_variable(object):
             elif subscriber['var_type'] == 'override':
                 subscriber['descriptor'].override[subscriber['instance']] = bool(data['value'])
         else:
-            logger.debug('websocket closed')
+            logger.warning('websocket closed')
+            
+        logger.debug('Finished processing data.')
 
     websocket = None
     subscribers = {}
@@ -113,9 +116,9 @@ class overridable_variable(subscribable_variable):
         self.overridden = WeakKeyDictionary()
     
     #override the subscribe method so we can add another subscription to the override time series
-    def subscribe(self,instance,recipe_instance):
-        super(overridable_variable,self).subscribe(self,instance,recipe_instance)
-        self._subscribe(self,instance,self.sensor_name + "Override",recipe_instance,'value')
+    def subscribe(self,instance,recipe_instance,callback=None):
+        super(overridable_variable,self).subscribe(instance,recipe_instance,callback=callback)
+        self._subscribe(instance,self.sensor_name + "Override",recipe_instance,'value')
     
     #override the __set__ function to check if an override is not in place on the variable before allowing to go to the normal __set__
     def __set__(self,obj,value):

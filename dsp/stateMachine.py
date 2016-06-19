@@ -25,7 +25,7 @@ class stateMachine(object):
         self.parent = parent
         
         self._id = 0
-        stateMachine._id.subscribe(self,recipe_instance)
+        stateMachine._id.subscribe(self,recipe_instance,callback=None)
     
     def evaluate(self):
         if self.state is not None: self.state(self.parent)
