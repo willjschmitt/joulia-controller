@@ -10,11 +10,13 @@ logger = logging.getLogger(__name__)
 import time
 
 from gpiocrust import OutputPin
-from utils import gpio_mock_api_active
+from utils import gpio_mock_api_active, overridable_variable,streaming_variable
 
 from measurement import rtdSensor
 
 from dsp import regulator, integrator
+
+from settings import recipe_instance
 
 class simpleVessel(object):
     '''
@@ -33,6 +35,7 @@ class temperatureMonitoredVessel(simpleVessel):
     '''
     classdocs
     '''
+    
     def __init__(self, volume, rtdParams):
         '''
         Constructor
@@ -60,6 +63,10 @@ class heatedVessel(temperatureMonitoredVessel):
     '''
     classdocs
     '''
+    
+    temperatureSetPoint = streaming_variable('boilKettle__temperatureSetPoint')
+    elementStatus =  overridable_variable('boilKettle__elementStatus') #subscribes to remote var
+    dutyCycle = streaming_variable('boilKettle__dutyCycle')
 
     def __init__(self, rating, volume, rtdParams, pin, **kwargs):
         '''
@@ -67,11 +74,14 @@ class heatedVessel(temperatureMonitoredVessel):
         '''
         self.rating = rating # in Watts (of heating element)
         self.elementStatus = False # element defaults to off
+        heatedVessel.elementStatus.subscribe(self,recipe_instance)
         
+        heatedVessel.temperatureSetPoint.register(self,recipe_instance)
         self.temperatureSetPoint = 0.
                 
         self.regulator = kwargs.get('regulatorClass',regulator)(maxQ=1.,minQ=0.)
         
+        heatedVessel.dutyCycle.register(self,recipe_instance)
         self.dutyCycle = 0.
         self.dutyPeriod = 1. #seconds
         
@@ -86,11 +96,15 @@ class heatedVessel(temperatureMonitoredVessel):
         self.temperatureSetPoint = value
         
     def turnOff(self):
+        logger.debug('Request heated vessel turn off.')
         self.elementStatus = self.pin.value = False
         self.regulator.disable()
-    def turnOn(self):  
+        logger.debug('Element is on: {}'.format(self.elementStatus))
+    def turnOn(self): 
+        logger.debug('Request heated vessel turn on.') 
         self.elementStatus = self.pin.value = True
         self.regulator.enable()
+        logger.debug('Element is on: {}'.format(self.elementStatus))
     
     def setLiquidLevel(self,volume):
         self.volume = volume
@@ -113,7 +127,7 @@ class heatedVessel(temperatureMonitoredVessel):
             return super(heatedVessel,self).measureTemperature()
         
     @property
-    def power(self): return self.dutyCycle * self.rating
+    def power(self): return self.dutyCycle * self.rating * self.elementStatus
     
     @property #returns degF/sec rate of change of liquid
     def temperature_ramp(self):
@@ -125,6 +139,8 @@ class heatExchangedVessel(temperatureMonitoredVessel):
     '''
     classdocs
     '''
+    
+    temperatureSetPoint = streaming_variable('mashTun__temperatureSetPoint')
 
     def __init__(self, volume, rtdParams,heatExchangerConductivity=1., **kwargs):
         '''
@@ -132,6 +148,7 @@ class heatExchangedVessel(temperatureMonitoredVessel):
         '''
         self.volume = volume
         
+        heatExchangedVessel.temperatureSetPoint.register(self,recipe_instance)
         self.temperatureSetPoint = 0.
         
         self.heatExchangerConductivity = heatExchangerConductivity
