@@ -30,33 +30,40 @@ def rsetattr(obj, attr, val):
 def rgetattr(obj, attr):
     return functools.reduce(getattr, [obj]+attr.split('__'))
 
-class subscribable_variable(object):
+class managed_variable(object):
+    def __init__(self,sensor_name, default = None):
+        self.default = default        
+        
+        self.sensor_name = sensor_name
+        self.data = WeakKeyDictionary()
+        
+    def __get__(self,obj,objtype):
+        if obj is None:
+            return self
+        if obj not in self.data: self.data[obj] = self.default
+        return self.data.get(obj)
+    
+    def __set__(self,obj,value):
+        self.data[obj] = value
+
+class subscribable_variable(managed_variable):
     '''
     classdocs
     '''
     dataIdentifyService = "http:" + host + "/live/timeseries/identify/"
 
-    def __init__(self, sensor_name):
+    def __init__(self, sensor_name, default = None):
         '''
         Constructor
         '''
-        self.sensor_name = sensor_name
+        super(subscribable_variable,self).__init__(sensor_name,default=default)
         
-        self.data = WeakKeyDictionary()
         self.callback = WeakKeyDictionary()
         
     def subscribe(self,instance,recipe_instance,callback=None):
         self.callback[instance] = callback
         self.recipe_instance = recipe_instance
         self._subscribe(instance,self.sensor_name,recipe_instance,var_type='value')
-    
-    def __get__(self,obj,objtype):
-        if obj is None:
-            return self
-        return self.data.get(obj)
-    
-    def __set__(self,obj,value):
-        self.data[obj] = value
     
     @gen.coroutine #allows the websocket to be yielded    
     def _subscribe(self,instance,sensor_name,recipe_instance,var_type='value'):
@@ -107,59 +114,25 @@ class subscribable_variable(object):
     websocket = None
     subscribers = {}
 
-class overridable_variable(subscribable_variable):
-    def __init__(self, sensor_name):
-        '''
-        Constructor
-        '''
-        super(overridable_variable,self).__init__(sensor_name)
-        self.overridden = WeakKeyDictionary()
-    
-    #override the subscribe method so we can add another subscription to the override time series
-    def subscribe(self,instance,recipe_instance,callback=None):
-        self.overridden[instance] = False
-        super(overridable_variable,self).subscribe(instance,recipe_instance,callback=callback)
-        self._subscribe(instance,self.sensor_name + "Override",recipe_instance,'override')
-    
-    #override the __set__ function to check if an override is not in place on the variable before allowing to go to the normal __set__
-    def __set__(self,obj,value):
-        if not self.overridden.get(obj): 
-            super(overridable_variable,self).__set__(obj,value)
-
-class streaming_variable(object):
+class streaming_variable(managed_variable):
     timeOutWait = 10
     
     dataPostService = "http:" + host + "/live/timeseries/new/"
     dataIdentifyService = "http:" + host + "/live/timeseries/identify/"
     
-    def __init__(self, sensor_name):
-        self.sensor_name = sensor_name
+    def __init__(self, sensor_name, default = None):
+        super(streaming_variable,self).__init__(sensor_name,default=default)
         
-        self.data = WeakKeyDictionary()
         self.ids = WeakKeyDictionary()
-        
         self.recipe_instances = WeakKeyDictionary()
-        
         self.timeOutCounter = 0
     
-    def __get__(self,obj,objtype):
-        if obj is None:
-            return self
-        return self.data[obj]
-    
     def __set__(self,obj,val):
-        self.data[obj] = val
-    
-        if self.timeOutCounter > 0:
-            self.timeOutCounter -= 1
-        else:
-            logger.debug('Data streamer {} sending data.'.format(self))            
-            #get the sensor ID if we dont have it already
-            if obj not in self.ids:
-                self.get_sensor_id(obj)     
-            self.send_sensor_value(obj)
+        super(streaming_variable,self).__set__(obj,val)
+        self.send_sensor_value(obj)
             
     def register(self,obj,recipe_instance):
+        logger.debug('Registering {}'.format(self.sensor_name))
         self.recipe_instances[obj] = recipe_instance
         self.get_sensor_id(obj)
         
@@ -177,26 +150,60 @@ class streaming_variable(object):
         self.ids[obj] = r.json()['sensor']
         
     def send_sensor_value(self,obj):
-        #send the data     
-        sampleTime = datetime.datetime.now(tz=pytz.utc).isoformat()
-        try:
-            value = self.data[obj]
-            if value is None: value = 0. #TODO: make server accept None
-            if value is True: value = 'true'
-            if value is False: value = 'false'
-            r = requests.post(self.dataPostService,
-                data={'time':sampleTime,'recipe_instance':self.recipe_instances[obj],
-                    'value': value,
-                    'sensor':self.ids[obj]
-                }
-            )
-            r.raise_for_status()
-        except requests.exceptions.ConnectionError:
-            logger.info("Server not there. Will retry later.")
-            self.timeOutCounter = self.timeOutWait
-        except requests.exceptions.HTTPError:
-            logger.info("Server returned error status. Will retry later.")
-            self.timeOutCounter = self.timeOutWait
+        if self.timeOutCounter > 0:
+            self.timeOutCounter -= 1
+        else:
+            logger.debug('Data streamer {} sending data for {}.'.format(self,self.sensor_name))            
+            #get the sensor ID if we dont have it already
+            if obj not in self.ids:
+                self.get_sensor_id(obj) 
+        
+            #send the data     
+            sampleTime = datetime.datetime.now(tz=pytz.utc).isoformat()
+            try:
+                value = self.data[obj]
+                if value is None: value = 0. #TODO: make server accept None
+                if value is True: value = 'true'
+                if value is False: value = 'false'
+                r = requests.post(self.dataPostService,
+                    data={'time':sampleTime,'recipe_instance':self.recipe_instances[obj],
+                        'value': value,
+                        'sensor':self.ids[obj]
+                    }
+                )
+                r.raise_for_status()
+            except requests.exceptions.ConnectionError:
+                logger.info("Server not there. Will retry later.")
+                self.timeOutCounter = self.timeOutWait
+            except requests.exceptions.HTTPError:
+                logger.info("Server returned error status. Will retry later.")
+                self.timeOutCounter = self.timeOutWait
+            
+class overridable_variable(streaming_variable,subscribable_variable):
+    def __init__(self, sensor_name,default=None):
+        '''
+        Constructor
+        '''
+        streaming_variable.__init__(self,sensor_name,default=default)
+        subscribable_variable.__init__(self,sensor_name,default=default)
+        
+        super(overridable_variable,self).__init__(sensor_name)
+        self.overridden = WeakKeyDictionary()
+    
+    #override the subscribe method so we can add another subscription to the override time series
+    def subscribe(self,instance,recipe_instance,callback=None):
+        self.overridden[instance] = False
+        super(overridable_variable,self).subscribe(instance,recipe_instance,callback=callback)
+        
+        self._subscribe(instance,self.sensor_name + "Override",recipe_instance,'override')
+        
+        self.register(instance,recipe_instance)
+    
+    #override the __set__ function to check if an override is not in place on the variable before allowing to go to the normal __set__
+    def __set__(self,obj,value):
+        if not self.overridden.get(obj): 
+            super(overridable_variable,self).__set__(obj,value)
+            self.send_sensor_value(obj)
 
 class dataStreamer(object):
     timeOutWait = 10

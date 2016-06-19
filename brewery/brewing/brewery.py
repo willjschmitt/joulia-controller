@@ -40,7 +40,6 @@ class brewery(object):
         #variables that are @properties and need to be streamed periodically still
         self.dataStreamer = dataStreamer(self,recipe_instance)
         self.dataStreamer.register('boilKettle__temperature')
-        self.dataStreamer.register('boilKettle__elementStatus')
         self.dataStreamer.register('mashTun__temperature')
         self.dataStreamer.register('boilKettle__power')
         self.dataStreamer.register('systemEnergyCost')
