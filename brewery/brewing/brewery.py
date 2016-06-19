@@ -7,7 +7,7 @@ Created on Apr 3, 2016
 import sched,time
 from tornado import ioloop
 
-from utils import dataStreamer, subscribableVariable
+from utils import dataStreamer, subscribable_variable
 from dsp import stateMachine
 
 from vessels import heatedVessel,heatExchangedVessel
@@ -16,10 +16,13 @@ from simplePump import simplePump
 import logging
 logger = logging.getLogger(__name__)
 
+from settings import recipe_instance
+
 class brewery(object):
     '''
     classdocs
     '''
+    grantPermission = subscribable_variable('grantPermission') #subscribes to remote var
 
     def __init__(self):
         '''
@@ -30,7 +33,7 @@ class brewery(object):
         
         self.recipeInstance = 1
         
-        self.dataStreamer = dataStreamer(self,self.recipeInstance)
+        self.dataStreamer = dataStreamer(self,recipe_instance)
         self.dataStreamer.register('boilKettle__temperature')
         self.dataStreamer.register('boilKettle__temperatureSetPoint')
         self.dataStreamer.register('mashTun__temperature')
@@ -61,7 +64,6 @@ class brewery(object):
         self.state.addState(stateCool)
         self.state.addState(statePumpout)
         self.state.changeState('statePrestart')
-        self.stateWatcher = subscribableVariable(self.state, 'id', 'state',self.recipeInstance) #subscribes to remote var
     
         #initialize everything
         self.strikeTemperature = 162.
@@ -88,7 +90,7 @@ class brewery(object):
         def permissionGranted(value): 
             if value:
                 self.state.id += 1
-        self.grantPermissionWatcher = subscribableVariable(self, 'grantPermission', 'grantPermission',self.recipeInstance, callback=permissionGranted) #subscribes to remote var
+        brewery.grantPermission.subscribe(self,recipe_instance,callback=permissionGranted)
         
         #schedule task 1 execution
         self.tm1Rate = 1. #seconds

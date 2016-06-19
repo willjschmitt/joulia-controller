@@ -6,7 +6,14 @@ Created on Apr 8, 2016
 
 import time
 
+from utils import subscribable_variable
+
+from settings import recipe_instance
+
 class stateMachine(object):
+    
+    _id = subscribable_variable('state')
+    
     '''
     classdocs
     '''
@@ -15,8 +22,10 @@ class stateMachine(object):
         Constructor
         '''
         self.states = []
-        self.state = None
         self.parent = parent
+        
+        self._id = 0
+        stateMachine._id.subscribe(self,recipe_instance)
     
     def evaluate(self):
         if self.state is not None: self.state(self.parent)
@@ -27,19 +36,25 @@ class stateMachine(object):
     def changeState(self,stateRequested):
         self.parent.state_t0 = time.time()
         if stateRequested is None:
-            self.state = None
+            self.id = 0
         else:
-            for state in self.states:
-                if isinstance(stateRequested, basestring):
-                    if state.__name__ == stateRequested: self.state = state
-                else:
-                    if state == stateRequested: self.state = state
+            for i,state in enumerate(self.states):
+                if ((isinstance(stateRequested, basestring) and state.__name__ == stateRequested)
+                    or ( state == stateRequested )):
+                    self.id = i
+                    break
     
     @property
-    def id(self): return self.states.index(self.state)
+    def state(self): return self.states[self.id]
+    @state.setter
+    def state(self,val): self.id = self.states.index(val)
+    
+    
+    @property
+    def id(self): return self._id
     @id.setter
     def id(self,value):
-        if self.state != self.states[value]:
+        if self.id != value:
             self.parent.requestPermission = False
             self.parent.grantPermission = False
-            self.state = self.states[value]
+        self._id = value

@@ -13,6 +13,7 @@ import requests
 import datetime
 import functools
 import pytz
+from weakref import WeakKeyDictionary
 
 import gpiocrust
 
@@ -29,47 +30,51 @@ def rsetattr(obj, attr, val):
 def rgetattr(obj, attr):
     return functools.reduce(getattr, [obj]+attr.split('__'))
 
-class subscribableVariable(object):
+class subscribable_variable(object):
     '''
     classdocs
     '''
     dataIdentifyService = "http:" + host + "/live/timeseries/identify/"
 
-    def __init__(self, instance, varName, sensorName,recipeInstance, callback = None):
+    def __init__(self, sensor_name):
         '''
         Constructor
         '''
-        self.instance = instance
-        self.varName = varName
-        self.callback = callback
+        self.sensor_name = sensor_name
         
-        #add new subscription to class vars
-        self.subscribe(sensorName, recipeInstance, 'value')
+        self.data = WeakKeyDictionary()
+        self.callback = WeakKeyDictionary()
         
-    @property
-    def value(self): return getattr(self.instance,self.varName)
-    @value.setter
-    def value(self,value):
-        setattr(self.instance,self.varName,value)
-        if self.callback is not None:
-            callback = self.callback
-            callback(value)
+    def subscribe(self,instance,recipe_instance,callback=None):
+        self.callback[instance] = instance
+        self.recipe_instance = recipe_instance
+        self._subscribe(self,instance,self.sensor_name,recipe_instance,'value')
+    
+    def __get__(self,obj,objtype):
+        if obj is None:
+            return self
+        return self.data.get(obj)
+    
+    def __set__(self,obj,value):
+        self.data[obj] = value
     
     @gen.coroutine #allows the websocket to be yielded    
-    def subscribe(self,name,recipeInstance,var_type='value'):
+    def _subscribe(self,instance,sensor_name,recipe_instance,var_type='value'):
+        #make sure we have a websocket established
         if self.websocket is None:
             websocket_address = "ws:" + host + "/live/timeseries/socket/"
             logger.info('No websocket established. Establishing at {}'.format(websocket_address))
-            self.websocket = yield websocket_connect(websocket_address,on_message_callback=subscribableVariable.on_message)        
+            self.websocket = yield websocket_connect(websocket_address,on_message_callback=subscribable_variable.on_message)        
         
-        if ((name,recipeInstance)) not in self.subscribers:
-            logger.info('Subscribing to {}'.format(name))
-            r = requests.post(self.dataIdentifyService,data={'recipe_instance':recipeInstance,'name':name})
+        #if we dont have a subscription setup yet, sent a subscribe request through the websocket
+        if ((sensor_name,recipe_instance)) not in self.subscribers:
+            logger.info('Subscribing to {}'.format(sensor_name))
+            r = requests.post(self.dataIdentifyService,data={'recipe_instance':recipe_instance,'sensor_name':sensor_name})
             idSensor = r.json()['sensor']
             
             self.idSensor = idSensor
-            self.recipeInstance = recipeInstance
-            self.subscribers[(idSensor,recipeInstance)] = (self,var_type)
+            self.recipeInstance = recipe_instance
+            self.subscribers[(idSensor,recipe_instance)] = {'descriptor':self,'instance':instance,'var_type':var_type}
             
             logger.debug('Id is {}'.format(idSensor))
             
@@ -83,51 +88,40 @@ class subscribableVariable(object):
         if response is not None:
             data = json.loads(response)
             logger.debug('websocket sent: {}'.format(data))
-            subscriber = subscribableVariable.subscribers[(data['sensor'],data['recipe_instance'])]
-            subscriber[0].value = type(subscriber[0].value)(data['value'])            
+            subscriber = subscribable_variable.subscribers[(data['sensor'],data['recipe_instance'])]
+            if subscriber['var_type'] == 'value':
+                current_value = subscriber['descriptor'].data[subscriber['instance']]
+                current_type = type(current_value)
+                subscriber['descriptor'].data[subscriber['instance']] = current_type(data['value'])
+                if subscriber['instance'] in subscriber['descriptor'].callback and subscriber['descriptor'].callback[subscriber['instance']] is not None:
+                    callback = subscriber['descriptor'].callback[subscriber['instance']]
+                    callback(data['value'])
+            elif subscriber['var_type'] == 'override':
+                subscriber['descriptor'].override[subscriber['instance']] = bool(data['value'])
         else:
             logger.debug('websocket closed')
 
     websocket = None
     subscribers = {}
 
-# @gen.coroutine #allows the websocket to be yielded
-# class overridableVariable(object):
-#     '''
-#     classdocs
-#     '''
-#     dataIdentifyService = "http:" + host + "/live/timeseries/identify/"
-#     def __init__(self, sensorName,recipeInstance):
-#         '''
-#         Constructor
-#         '''
-#         self.value = None
-#         self.overridden = False
-#         
-#         #add new subscription to class vars
-#         self.subscribe(sensorName, recipeInstance, 'value')
-#         self.subscribe(sensorName+"Override", recipeInstance, 'override')
-#     
-#     def subscribe(self,name,recipeInstance,type='value'):
-#         if ((name,recipeInstance)) not in self.subscribers:
-#             r = requests.post(self.dataIdentifyService,data={'recipe_instance':recipeInstance,'name':name})
-#             idSensor = r.json()['sensor']
-#             self.subscribers[(idSensor,recipeInstance)] = (self,type)
-#             self.websocket.write_message(json.dumps({'recipe_instance':recipeInstance,'sensor':idSensor,'subscribe':True}))
-#         
-#     @classmethod
-#     def on_message(cls,response):
-#         data = json.loads(response)
-#         logger.debug('websocket sent: {}'.format(data))
-#         subscriber = cls.subscribers((data['sensor'],data['recipeInstance']))
-#         if subscriber[1] == 'value':
-#             subscriber[0].value = data['value']
-#         elif subscriber[1] == 'override':
-#             subscriber[0].overridden = data['value']
-#     websocket = websocket_connect("ws:" + host + "/live/timeseries/socket/",on_message_callback=on_message)
-#     
-#     subscribers = {}
-#     
+class overridable_variable(subscribable_variable):
+    def __init__(self, sensor_name):
+        '''
+        Constructor
+        '''
+        super(overridable_variable,self).__init__(sensor_name)
+        self.overridden = WeakKeyDictionary()
+    
+    #override the subscribe method so we can add another subscription to the override time series
+    def subscribe(self,instance,recipe_instance):
+        super(overridable_variable,self).subscribe(self,instance,recipe_instance)
+        self._subscribe(self,instance,self.sensor_name + "Override",recipe_instance,'value')
+    
+    #override the __set__ function to check if an override is not in place on the variable before allowing to go to the normal __set__
+    def __set__(self,obj,value):
+        if not self.overridden.get(obj): 
+            super(overridable_variable,self).__set__(obj,value)
+                
 class dataStreamer(object):
     timeOutWait = 10
     

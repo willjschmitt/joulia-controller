@@ -10,11 +10,13 @@ logger = logging.getLogger(__name__)
 import time
 
 from gpiocrust import OutputPin
-from utils import gpio_mock_api_active
+from utils import gpio_mock_api_active, overridable_variable
 
 from measurement import rtdSensor
 
 from dsp import regulator, integrator
+
+from settings import recipe_instance
 
 class simpleVessel(object):
     '''
@@ -61,14 +63,19 @@ class heatedVessel(temperatureMonitoredVessel):
     classdocs
     '''
 
+    elementStatus =  overridable_variable('boilKettle__heatingElementStatus') #subscribes to remote var
+
     def __init__(self, rating, volume, rtdParams, pin, **kwargs):
         '''
         Constructor
         '''
         self.rating = rating # in Watts (of heating element)
         self.elementStatus = False # element defaults to off
+        heatedVessel.elementStatus.subscribe(self,recipe_instance)
         
         self.temperatureSetPoint = 0.
+        
+        
                 
         self.regulator = kwargs.get('regulatorClass',regulator)(maxQ=1.,minQ=0.)
         

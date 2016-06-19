@@ -33,3 +33,5 @@ LOGGING_CONFIG = {
         },
     },
 }
+
+recipe_instance = 1
