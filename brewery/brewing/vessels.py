@@ -65,7 +65,7 @@ class heatedVessel(temperatureMonitoredVessel):
     '''
     
     temperatureSetPoint = streaming_variable('boilKettle__temperatureSetPoint')
-    elementStatus =  overridable_variable('boilKettle__elementStatus') #subscribes to remote var
+    elementStatus =  overridable_variable('boilKettle__elementStatus',default=False) #subscribes to remote var
     dutyCycle = streaming_variable('boilKettle__dutyCycle')
 
     def __init__(self, rating, volume, rtdParams, pin, **kwargs):
@@ -73,7 +73,6 @@ class heatedVessel(temperatureMonitoredVessel):
         Constructor
         '''
         self.rating = rating # in Watts (of heating element)
-        self.elementStatus = False # element defaults to off
         heatedVessel.elementStatus.subscribe(self,recipe_instance)
         
         heatedVessel.temperatureSetPoint.register(self,recipe_instance)
