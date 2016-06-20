@@ -64,7 +64,7 @@ class heatedVessel(temperatureMonitoredVessel):
     classdocs
     '''
     
-    temperatureSetPoint = streaming_variable('boilKettle__temperatureSetPoint')
+    temperatureSetPoint = overridable_variable('boilKettle__temperatureSetPoint',default=0.)
     elementStatus =  overridable_variable('boilKettle__elementStatus',default=False) #subscribes to remote var
     dutyCycle = streaming_variable('boilKettle__dutyCycle')
 
@@ -75,7 +75,7 @@ class heatedVessel(temperatureMonitoredVessel):
         self.rating = rating # in Watts (of heating element)
         heatedVessel.elementStatus.subscribe(self,recipe_instance)
         
-        heatedVessel.temperatureSetPoint.register(self,recipe_instance)
+        heatedVessel.temperatureSetPoint.subscribe(self,recipe_instance)
         self.temperatureSetPoint = 0.
                 
         self.regulator = kwargs.get('regulatorClass',regulator)(maxQ=1.,minQ=0.)
@@ -139,7 +139,7 @@ class heatExchangedVessel(temperatureMonitoredVessel):
     classdocs
     '''
     
-    temperatureSetPoint = streaming_variable('mashTun__temperatureSetPoint')
+    temperatureSetPoint = overridable_variable('mashTun__temperatureSetPoint')
 
     def __init__(self, volume, rtdParams,heatExchangerConductivity=1., **kwargs):
         '''
@@ -147,7 +147,7 @@ class heatExchangedVessel(temperatureMonitoredVessel):
         '''
         self.volume = volume
         
-        heatExchangedVessel.temperatureSetPoint.register(self,recipe_instance)
+        heatExchangedVessel.temperatureSetPoint.subscribe(self,recipe_instance)
         self.temperatureSetPoint = 0.
         
         self.heatExchangerConductivity = heatExchangerConductivity
