@@ -140,14 +140,13 @@ class streaming_variable(managed_variable):
         try:
             r = requests.post(self.dataIdentifyService,data={'recipe_instance':self.recipe_instances[obj],'name':self.sensor_name})
             r.raise_for_status()
+            self.ids[obj] = r.json()['sensor']
         except requests.exceptions.ConnectionError:
             logger.info("Server not there. Will retry later.")
             self.timeOutCounter = self.timeOutWait
         except requests.exceptions.HTTPError:
             logger.info("Server returned error status. Will retry later.")
             self.timeOutCounter = self.timeOutWait
-        
-        self.ids[obj] = r.json()['sensor']
         
     def send_sensor_value(self,obj):
         if self.timeOutCounter > 0:
