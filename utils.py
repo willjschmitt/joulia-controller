@@ -145,7 +145,7 @@ class streaming_variable(managed_variable):
             logger.info("Server not there. Will retry later.")
             self.timeOutCounter = self.timeOutWait
         except requests.exceptions.HTTPError:
-            logger.info("Server returned error status. Will retry later.")
+            logger.info("Server returned error status. Will retry later. ({})".format(r.text))
             self.timeOutCounter = self.timeOutWait
         
     def send_sensor_value(self,obj):
@@ -162,20 +162,22 @@ class streaming_variable(managed_variable):
             try:
                 value = self.data[obj]
                 if value is None: value = 0. #TODO: make server accept None
-                if value is True: value = 'true'
-                if value is False: value = 'false'
+                if value is True: value = 1
+                if value is False: value = 0
+                data={
+                    'time':sampleTime,'recipe_instance':self.recipe_instances[obj],
+                    'value': value,
+                    'sensor':self.ids[obj]
+                }
                 r = requests.post(self.dataPostService,
-                    data={'time':sampleTime,'recipe_instance':self.recipe_instances[obj],
-                        'value': value,
-                        'sensor':self.ids[obj]
-                    }
+                    data=data
                 )
                 r.raise_for_status()
             except requests.exceptions.ConnectionError:
                 logger.info("Server not there. Will retry later.")
                 self.timeOutCounter = self.timeOutWait
             except requests.exceptions.HTTPError:
-                logger.info("Server returned error status. Will retry later.")
+                logger.info("Server returned error status. Will retry later. ({}). Request data:{}".format(r.text,data))
                 self.timeOutCounter = self.timeOutWait
             
 class overridable_variable(streaming_variable,subscribable_variable):
@@ -244,7 +246,7 @@ class dataStreamer(object):
                         self.timeOutCounter = self.timeOutWait
                         break
                     except requests.exceptions.HTTPError:
-                        logger.info("Server returned error status. Will retry later.")
+                        logger.info("Server returned error status. Will retry later. ({})".format(r.text))
                         self.timeOutCounter = self.timeOutWait
                         break
                     
@@ -268,7 +270,7 @@ class dataStreamer(object):
                     self.timeOutCounter = self.timeOutWait
                     break
                 except requests.exceptions.HTTPError:
-                    logger.info("Server returned error status. Will retry later.")
+                    logger.info("Server returned error status. Will retry later. ({})".format(r.text))
                     self.timeOutCounter = self.timeOutWait
                     break
                     
