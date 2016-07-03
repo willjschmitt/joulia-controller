@@ -16,8 +16,6 @@ from measurement import rtdSensor
 
 from dsp import regulator, integrator
 
-from settings import recipe_instance
-
 class simpleVessel(object):
     '''
     classdocs
@@ -48,6 +46,9 @@ class temperatureMonitoredVessel(simpleVessel):
         if gpio_mock_api_active:
             self.liquid_temperature_simulator = integrator(init=68.)
             
+    def register(self,recipe_instance):
+        pass
+            
     @property
     def temperature(self):
         if gpio_mock_api_active:
@@ -73,14 +74,10 @@ class heatedVessel(temperatureMonitoredVessel):
         Constructor
         '''
         self.rating = rating # in Watts (of heating element)
-        heatedVessel.elementStatus.subscribe(self,recipe_instance)
-        
-        heatedVessel.temperatureSetPoint.subscribe(self,recipe_instance)
         self.temperatureSetPoint = 0.
                 
         self.regulator = kwargs.get('regulatorClass',regulator)(maxQ=1.,minQ=0.)
         
-        heatedVessel.dutyCycle.register(self,recipe_instance)
         self.dutyCycle = 0.
         self.dutyPeriod = 1. #seconds
         
@@ -89,6 +86,12 @@ class heatedVessel(temperatureMonitoredVessel):
         super(heatedVessel,self).__init__(volume,rtdParams)
         
         self.recalculateGains()
+        
+    def register(self,recipe_instance):
+        heatedVessel.elementStatus.subscribe(self,recipe_instance)
+        heatedVessel.temperatureSetPoint.subscribe(self,recipe_instance)
+        heatedVessel.dutyCycle.register(self,recipe_instance)
+        super(heatedVessel,self).register(recipe_instance)
         
     def setTemperature(self,value): 
         logger.debug("Setting temperature {}".format(value))
@@ -147,7 +150,7 @@ class heatExchangedVessel(temperatureMonitoredVessel):
         '''
         self.volume = volume
         
-        heatExchangedVessel.temperatureSetPoint.subscribe(self,recipe_instance)
+        
         self.temperatureSetPoint = 0.
         
         self.heatExchangerConductivity = heatExchangerConductivity
@@ -160,6 +163,10 @@ class heatExchangedVessel(temperatureMonitoredVessel):
  
         self.temperature_source = kwargs.get('temperature_source',None)
         self.temperature_profile = kwargs.get('temperature_profile',None)
+        
+    def register(self,recipe_instance):
+        heatExchangedVessel.temperatureSetPoint.subscribe(self,recipe_instance)
+        super(heatExchangedVessel,self).register(recipe_instance)
         
     def turnOff(self):
         self.enabled = False

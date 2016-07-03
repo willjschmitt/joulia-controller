@@ -155,7 +155,11 @@ class streaming_variable(managed_variable):
             logger.debug('Data streamer {} sending data for {}.'.format(self,self.sensor_name))            
             #get the sensor ID if we dont have it already
             if obj not in self.ids:
-                self.get_sensor_id(obj) 
+                try:
+                    self.get_sensor_id(obj)
+                except KeyError:
+                    logger.critical("Variable not yet registered. Cannot send data to server until the data source is registered. ({})".format(self.sensor_name))
+                    return
         
             #send the data     
             sampleTime = datetime.datetime.now(tz=pytz.utc).isoformat()

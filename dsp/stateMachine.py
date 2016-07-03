@@ -8,8 +8,6 @@ import time
 
 from utils import subscribable_variable
 
-from settings import recipe_instance
-
 class stateMachine(object):
     
     _id = subscribable_variable('state')
@@ -25,6 +23,8 @@ class stateMachine(object):
         self.parent = parent
         
         self._id = 0
+        
+    def register(self,recipe_instance):
         stateMachine._id.subscribe(self,recipe_instance,callback=None)
     
     def evaluate(self):
