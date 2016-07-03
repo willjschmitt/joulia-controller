@@ -4,8 +4,11 @@ Created on Apr 3, 2016
 @author: William
 '''
 
-import sched,time
+import time
 from tornado import ioloop
+from tornado.httpclient import AsyncHTTPClient,HTTPRequest
+
+import urllib
 
 from utils import dataStreamer, subscribable_variable,streaming_variable
 from dsp import stateMachine
@@ -16,6 +19,8 @@ from simplePump import simplePump
 import logging
 logger = logging.getLogger(__name__)
 
+import settings
+from settings import host
 from settings import recipe_instance
 
 class brewery(object):
@@ -32,10 +37,42 @@ class brewery(object):
         '''
         Constructor
         '''
-        logger.info('Initializing Brewery object')
-        self.scheduler = sched.scheduler(time.time,time.sleep)
+        logger.info('Initializing Brewery object')   
         
-        self.recipeInstance = 1
+        self.watch_for_start() 
+        
+    def watch_for_start(self):
+        def handle_start_request(response):
+            if response.error:
+                logging.error(response)
+                self.watch_for_start()
+            else:
+                logger.info("Got command to start")
+                self.recipeInstance = recipe_instance
+                self.start_brewing()
+                self.watch_for_end()
+        
+        http_client = AsyncHTTPClient()
+        post_data = {'brewery': settings.brewery_id}
+        http_client.fetch("http:" + host + "/live/recipeInstance/start/", handle_start_request,
+                          method="POST",
+                          body=urllib.urlencode(post_data))
+    
+    def watch_for_end(self):
+        def handle_end_request(response):
+            if response.error:
+                self.watch_for_end()
+            else:
+                self.end_brewing()
+        
+        http_client = AsyncHTTPClient()
+        post_data = {'brewery': settings.brewery_id}
+        http_client.fetch("http:" + host + "/live/recipeInstance/end/", handle_end_request,
+                          method="POST",
+                          body=urllib.urlencode(post_data)) 
+    
+    def start_brewing(self):
+        logger.info('Beginning brewing instance.')
         
         #variables that are @properties and need to be streamed periodically still
         self.dataStreamer = dataStreamer(self,recipe_instance)
@@ -80,8 +117,12 @@ class brewery(object):
         self.energyUnitCost = 0.15 #$/kWh
         
         
-        self.boilKettle = heatedVessel(rating=5000.,volume=5.,rtdParams=[0,0.385,100.0,5.0,0.94,-16.0,10.],pin=0)
-        self.mashTun = heatExchangedVessel(volume=5.,rtdParams=[1,0.385,100.0,5.0,0.94,-9.0,10.],temperature_source = self.boilKettle,temperature_profile=self.mashTemperatureProfile)
+        self.boilKettle = heatedVessel(rating=5000.,volume=5.,
+                                       rtdParams=[0,0.385,100.0,5.0,0.94,-16.0,10.],pin=0)
+        self.mashTun = heatExchangedVessel(volume=5.,
+                                           rtdParams=[1,0.385,100.0,5.0,0.94,-9.0,10.],
+                                           temperature_source = self.boilKettle,
+                                           temperature_profile=self.mashTemperatureProfile)
         self.mainPump = simplePump(pin=2)        
     
         #permission variables
@@ -100,9 +141,22 @@ class brewery(object):
         self.timer = None
         self.task00()
         
-        a = ioloop.PeriodicCallback(self.task00,self.tm1Rate*1000)
-        a.start()
+        self.start_timer()
+           
+    def end_brewing(self):
+        logger.info('Ending brewing instance.')
+        self.end_timer()
+        return
+    
+    def start_timer(self):
+        self.timers = {}
+        self.timers['task00'] = ioloop.PeriodicCallback(self.task00,self.tm1Rate*1000)
+        self.timers['task00'].start()
         
+    def end_timer(self):
+        for timer in self.timers.itervalues():
+            timer.stop()
+         
     def task00(self):
         logger.debug('Evaluating task 00')
         self.wtime = time.time()

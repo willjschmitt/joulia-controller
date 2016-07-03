@@ -4,6 +4,8 @@ Created on Apr 30, 2016
 @author: William
 '''
 
+brewery_id = 1
+
 host = "//localhost:8888"
 
 datastream_frequency = 1000. #mS
@@ -34,4 +36,4 @@ LOGGING_CONFIG = {
     },
 }
 
-recipe_instance = 1
+recipe_instance = 3

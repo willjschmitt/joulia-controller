@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @gen.coroutine
 def main():
-    brewery = brewing.brewery()
+    brewing.brewery()
     logger.info('Brewery initialized.')
     ioloop.IOLoop.current().start()
     
