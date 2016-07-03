@@ -146,6 +146,7 @@ class brewery(object):
     def end_brewing(self):
         logger.info('Ending brewing instance.')
         self.end_timer()
+        self.watch_for_start()
         return
     
     def start_timer(self):
