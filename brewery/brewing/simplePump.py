@@ -22,3 +22,6 @@ class simplePump(object):
     def turnOn(self):
         self.enabled = True
         self.pin.value = self.enabled
+        
+    def register(self,recipe_instance):
+        pass

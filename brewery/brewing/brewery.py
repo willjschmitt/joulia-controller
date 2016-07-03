@@ -7,6 +7,7 @@ Created on Apr 3, 2016
 import time
 from tornado import ioloop
 from tornado.httpclient import AsyncHTTPClient,HTTPRequest
+from tornado.escape import json_decode
 
 import urllib
 
@@ -21,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 import settings
 from settings import host
-from settings import recipe_instance
 
 class brewery(object):
     '''
@@ -39,6 +39,33 @@ class brewery(object):
         '''
         logger.info('Initializing Brewery object')   
         
+        #state machine initialization
+        self.state = stateMachine(self)
+        self.state.addState(statePrestart)
+        self.state.addState(statePremash)
+        self.state.addState(stateStrike)
+        self.state.addState(statePostStrike)
+        self.state.addState(stateMash)
+        self.state.addState(stateMashout)
+        self.state.addState(stateMashout2)
+        self.state.addState(stateSpargePrep)
+        self.state.addState(stateSparge)
+        self.state.addState(statePreBoil)
+        self.state.addState(stateMashToBoil)
+        self.state.addState(stateBoilPreheat)
+        self.state.addState(stateBoil)
+        self.state.addState(stateCool)
+        self.state.addState(statePumpout)
+        self.state.changeState('statePrestart')
+
+        #create all the physical subelements
+        self.boilKettle = heatedVessel(rating=5000.,volume=5.,
+                                       rtdParams=[0,0.385,100.0,5.0,0.94,-16.0,10.],pin=0)
+        self.mashTun = heatExchangedVessel(volume=5.,
+                                           rtdParams=[1,0.385,100.0,5.0,0.94,-9.0,10.],
+                                           temperature_source = self.boilKettle)
+        self.mainPump = simplePump(pin=2)        
+        
         self.watch_for_start() 
         
     def watch_for_start(self):
@@ -48,7 +75,7 @@ class brewery(object):
                 self.watch_for_start()
             else:
                 logger.info("Got command to start")
-                self.recipeInstance = recipe_instance
+                self.recipe_instance = json_decode(response.body)['messages']['recipe_instance']
                 self.start_brewing()
                 self.watch_for_end()
         
@@ -74,33 +101,39 @@ class brewery(object):
     def start_brewing(self):
         logger.info('Beginning brewing instance.')
         
+        #set state machine appropriately
+        self.state.register(self.recipe_instance)
+        self.state.changeState('statePrestart')
+        
         #variables that are @properties and need to be streamed periodically still
-        self.dataStreamer = dataStreamer(self,recipe_instance)
+        self.dataStreamer = dataStreamer(self,self.recipe_instance)
         self.dataStreamer.register('boilKettle__temperature')
         self.dataStreamer.register('mashTun__temperature')
         self.dataStreamer.register('boilKettle__power')
         self.dataStreamer.register('systemEnergyCost')
         self.dataStreamer.register('state__id','state')
         
-        #state machine initialization
-        self.state = stateMachine(self)
-        self.state.addState(statePrestart)
-        self.state.addState(statePremash)
-        self.state.addState(stateStrike)
-        self.state.addState(statePostStrike)
-        self.state.addState(stateMash)
-        self.state.addState(stateMashout)
-        self.state.addState(stateMashout2)
-        self.state.addState(stateSpargePrep)
-        self.state.addState(stateSparge)
-        self.state.addState(statePreBoil)
-        self.state.addState(stateMashToBoil)
-        self.state.addState(stateBoilPreheat)
-        self.state.addState(stateBoil)
-        self.state.addState(stateCool)
-        self.state.addState(statePumpout)
-        self.state.changeState('statePrestart')
-    
+        #register normal time series streaming
+        brewery.systemEnergy.register(self,self.recipe_instance)
+        brewery.timer.register(self,self.recipe_instance)
+        
+        #register sub elements
+        self.boilKettle.register(self.recipe_instance)
+        self.mashTun.register(self.recipe_instance)
+        self.mainPump.register(self.recipe_instance)
+        
+        #permission variables
+        brewery.requestPermission.register(self,self.recipe_instance)
+        self.requestPermission = False
+        self.grantPermission   = False
+        def permissionGranted(value): 
+            if value:
+                self.state.id += 1
+        brewery.grantPermission.subscribe(self,self.recipe_instance,callback=permissionGranted)
+        
+        self.systemEnergy = 0.
+        self.energyUnitCost = 0.15 #$/kWh
+        
         #initialize everything
         self.strikeTemperature = 162.
         self.mashoutTemperature = 170.
@@ -111,33 +144,11 @@ class brewery(object):
             [45.*60., 152.0], #start at 152
             [15.*60.,155.0], #at 45min step up to 155
         ]
-        
-        brewery.systemEnergy.register(self,recipe_instance)
-        self.systemEnergy = 0.
-        self.energyUnitCost = 0.15 #$/kWh
-        
-        
-        self.boilKettle = heatedVessel(rating=5000.,volume=5.,
-                                       rtdParams=[0,0.385,100.0,5.0,0.94,-16.0,10.],pin=0)
-        self.mashTun = heatExchangedVessel(volume=5.,
-                                           rtdParams=[1,0.385,100.0,5.0,0.94,-9.0,10.],
-                                           temperature_source = self.boilKettle,
-                                           temperature_profile=self.mashTemperatureProfile)
-        self.mainPump = simplePump(pin=2)        
-    
-        #permission variables
-        brewery.requestPermission.register(self,recipe_instance)
-        self.requestPermission = False
-        self.grantPermission   = False
-        def permissionGranted(value): 
-            if value:
-                self.state.id += 1
-        brewery.grantPermission.subscribe(self,recipe_instance,callback=permissionGranted)
+        self.mashTun.temperature_profile=self.mashTemperatureProfile
         
         #schedule task 1 execution
         self.tm1Rate = 1. #seconds
         self.tm1_tz1 = time.time()
-        brewery.timer.register(self,recipe_instance)
         self.timer = None
         self.task00()
         
@@ -146,6 +157,7 @@ class brewery(object):
     def end_brewing(self):
         logger.info('Ending brewing instance.')
         self.end_timer()
+        
         self.watch_for_start()
         return
     
