@@ -227,6 +227,7 @@ def statePremash(breweryInstance):
     breweryInstance.boilKettle.turnOn()
     breweryInstance.mashTun.turnOff()
 
+    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
     breweryInstance.boilKettle.setTemperature(breweryInstance.strikeTemperature)
 
     if breweryInstance.boilKettle.temperature > breweryInstance.strikeTemperature:
@@ -242,6 +243,7 @@ def stateStrike(breweryInstance):
     breweryInstance.boilKettle.turnOn()
     breweryInstance.mashTun.turnOff()
 
+    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
     breweryInstance.boilKettle.setTemperature(breweryInstance.mashTun.temperature_profile[0][1])
     
 
@@ -260,6 +262,7 @@ def statePostStrike(breweryInstance):
     breweryInstance.boilKettle.turnOn()
     breweryInstance.mashTun.turnOff()
 
+    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
     breweryInstance.boilKettle.setTemperature(breweryInstance.mashTun.temperature_profile[0][1])
 
     if breweryInstance.boilKettle.temperature > breweryInstance.mashTun.temperatureSetPoint:
@@ -279,6 +282,7 @@ def stateMash(breweryInstance):
     breweryInstance.mashTun.turnOn()
 
     breweryInstance.mashTun.setTemperatureProfile(breweryInstance.state_t0)
+    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
     breweryInstance.timeT0 = time.time()
 
     if breweryInstance.timer <= 0.:
@@ -319,6 +323,7 @@ def stateMashout2(breweryInstance):
     breweryInstance.mashTun.turnOff()
 
     breweryInstance.mashTun.setTemperature(breweryInstance.mashoutTemperature)
+    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
     if breweryInstance.timer <= 0.:
         breweryInstance.requestPermission = True
 
@@ -333,6 +338,9 @@ def stateSpargePrep(breweryInstance):
     breweryInstance.mainPump.turnOff()
     breweryInstance.boilKettle.turnOff()
     breweryInstance.mashTun.turnOff()
+
+    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
+    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
 
     breweryInstance.requestPermission = True
 
@@ -349,6 +357,9 @@ def stateSparge(breweryInstance):
 
     breweryInstance.timer = None
 
+    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
+    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
+
     breweryInstance.requestPermission = True
 
 def statePreBoil(breweryInstance):
@@ -363,6 +374,9 @@ def statePreBoil(breweryInstance):
     breweryInstance.mashTun.turnOff()
     
     breweryInstance.timer = None
+    
+    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
+    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
     
     breweryInstance.requestPermission = True
 
@@ -379,6 +393,9 @@ def stateMashToBoil(breweryInstance):
     breweryInstance.boilKettle.turnOff()
     breweryInstance.mashTun.turnOff()
     
+    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
+    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
+    
     breweryInstance.requestPermission = True
 
 def stateBoilPreheat(breweryInstance):
@@ -394,6 +411,7 @@ def stateBoilPreheat(breweryInstance):
     breweryInstance.boilKettle.turnOn()
     breweryInstance.mashTun.turnOff()
 
+    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
     breweryInstance.boilKettle.setTemperature(breweryInstance.boilTemperature)
     
     if breweryInstance.boilKettle.temperature >  breweryInstance.boilKettle.temperatureSetPoint - 10.0:
@@ -412,6 +430,7 @@ def stateBoil(breweryInstance):
     
     breweryInstance.timer = (breweryInstance.state_t0 + breweryInstance.BOILTIME) - breweryInstance.wtime
 
+    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
     breweryInstance.boilKettle.setTemperature(breweryInstance.boilTemperature)
     breweryInstance.timeT0 = time.time()
 
@@ -430,6 +449,9 @@ def stateCool(breweryInstance):
     breweryInstance.boilKettle.turnOff()
     breweryInstance.mashTun.turnOff()
 
+    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
+    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
+    
     if breweryInstance.boilKettle.temperature < breweryInstance.coolTemperature:
         breweryInstance.requestPermission = True
 
@@ -444,5 +466,8 @@ def statePumpout(breweryInstance):
     breweryInstance.mainPump.turnOn()
     breweryInstance.boilKettle.turnOff()
     breweryInstance.mashTun.turnOff()
+
+    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
+    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
 
     breweryInstance.requestPermission = True
