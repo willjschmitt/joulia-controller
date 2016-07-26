@@ -4,7 +4,7 @@ Created on Apr 30, 2016
 @author: William
 '''
 
-brewery_id = 1
+brewhouse_id = 1
 
 host = "//localhost:8888"
 
