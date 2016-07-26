@@ -80,7 +80,7 @@ class brewery(object):
                 self.watch_for_end()
         
         http_client = AsyncHTTPClient()
-        post_data = {'brewery': settings.brewery_id}
+        post_data = {'brewhouse': settings.brewhouse_id}
         http_client.fetch("http:" + host + "/live/recipeInstance/start/", handle_start_request,
                           method="POST",
                           body=urllib.urlencode(post_data))
@@ -93,7 +93,7 @@ class brewery(object):
                 self.end_brewing()
         
         http_client = AsyncHTTPClient()
-        post_data = {'brewery': settings.brewery_id}
+        post_data = {'brewhouse': settings.brewhouse_id}
         http_client.fetch("http:" + host + "/live/recipeInstance/end/", handle_end_request,
                           method="POST",
                           body=urllib.urlencode(post_data)) 
