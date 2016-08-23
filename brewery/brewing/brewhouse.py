@@ -6,13 +6,13 @@ Created on Apr 3, 2016
 
 import time
 from tornado import ioloop
-from tornado.httpclient import AsyncHTTPClient,HTTPRequest
+from tornado.httpclient import AsyncHTTPClient
 from tornado.escape import json_decode
 
 import urllib
 
 from utils import dataStreamer, subscribable_variable,streaming_variable
-from dsp import stateMachine
+from dsp.state_machine import StateMachine
 
 from vessels import heatedVessel,heatExchangedVessel
 from simplePump import simplePump
@@ -21,11 +21,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 import settings
-from settings import host
+from settings import host,http_prefix
 
-class brewery(object):
-    '''
-    classdocs
+class Brewhouse(object):
+    '''A top-level class object for operating a brewhouse. Initializes
+    communication with the joulia-webserver instance, and manages
+    all the equipment associated with the brewhouse system.
     '''
     grantPermission = subscribable_variable('grantPermission') #subscribes to remote var
 
@@ -33,32 +34,40 @@ class brewery(object):
     systemEnergy = streaming_variable('systemEnergy')
     requestPermission = streaming_variable('requestPermission')
 
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        logger.info('Initializing Brewery object')   
+    def __init__(self,authtoken):
+        '''Creates the `Brewhouse` instance and waits for a command
+        from the webserver to start a new instance.
         
-        #state machine initialization
-        self.state = stateMachine(self)
-        self.state.addState(statePrestart)
-        self.state.addState(statePremash)
-        self.state.addState(stateStrike)
-        self.state.addState(statePostStrike)
-        self.state.addState(stateMash)
-        self.state.addState(stateMashout)
-        self.state.addState(stateMashout2)
-        self.state.addState(stateSpargePrep)
-        self.state.addState(stateSparge)
-        self.state.addState(statePreBoil)
-        self.state.addState(stateMashToBoil)
-        self.state.addState(stateBoilPreheat)
-        self.state.addState(stateBoil)
-        self.state.addState(stateCool)
-        self.state.addState(statePumpout)
-        self.state.changeState('statePrestart')
+        Args:
+            authtoken: Token string stored on joulia-webserver which
+                has permission to act on behalf of this `Brewhouse` in
+                order to communicate.
+        '''
+        logger.info('Initializing Brewery object')
+        self.authtoken=authtoken
+        
+        self.initialize_process_state_machine()
+        self.initialize_equipment()
+        
+        self.watch_for_start()
+        
+    def initialize_process_state_machine(self):
+        '''Initializes the main process state machine with all of the
+        serial states for conducting a recipe instance on this
+        `Brewhouse`.
+        '''
+        states = [statePrestart,statePremash,stateStrike,
+                  statePostStrike,stateMash,stateMashout,
+                  stateMashout2,stateSpargePrep,stateSparge,
+                  statePreBoil,stateMashToBoil,stateBoilPreheat,
+                  stateBoil,stateCool,statePumpout]
+        self.state = StateMachine(self,states)
+        self.state.change_state('statePrestart')
 
-        #create all the physical subelements
+    def initialize_equipment(self):
+        '''Creates all the physical subelements for this `Brewhouse`
+        system
+        '''
         self.boilKettle = heatedVessel(rating=5000.,volume=5.,
                                        rtdParams=[0,0.385,100.0,5.0,0.94,-16.0,10.],pin=0)
         self.mashTun = heatExchangedVessel(volume=5.,
@@ -66,27 +75,52 @@ class brewery(object):
                                            temperature_source = self.boilKettle)
         self.mainPump = simplePump(pin=2)        
         
-        self.watch_for_start() 
-        
     def watch_for_start(self):
+        '''Makes a long-polling request to joulia-webserver to check
+        if the server received a request to start a brewing session.
+        
+        Once the request completes, the internal method
+        handle_start_request is executed.
+        '''
         def handle_start_request(response):
+            '''Handles the return from the long-poll request. If the
+            request had an error (like timeout), it launches a new
+            request. If the request succeeds, it fires the startup
+            logic for this Brewhouse
+            '''
             if response.error:
                 logging.error(response)
                 self.watch_for_start()
             else:
                 logger.info("Got command to start")
-                self.recipe_instance = json_decode(response.body)['messages']['recipe_instance']
+                response = json_decode(response.body)
+                messages = response['messages']
+                self.recipe_instance = messages['recipe_instance']
                 self.start_brewing()
                 self.watch_for_end()
         
         http_client = AsyncHTTPClient()
         post_data = {'brewhouse': settings.brewhouse_id}
-        http_client.fetch("http:" + host + "/live/recipeInstance/start/", handle_start_request,
+        uri = http_prefix + ":" + host + "/live/recipeInstance/start/"
+        headers = {'Authorization':'Token ' + self.authtoken}
+        http_client.fetch(uri, handle_start_request,
+                          headers=headers,
                           method="POST",
                           body=urllib.urlencode(post_data))
     
     def watch_for_end(self):
+        '''Makes a long-polling request to joulia-webserver to check
+        if the server received a request to end the brewing session.
+        
+        Once the request completes, the internal method
+        handle_end_request is executed.
+        '''
         def handle_end_request(response):
+            '''Handles the return from the long-poll request. If the
+            request had an error (like timeout), it launches a new
+            request. If the request succeeds, it fires the termination
+            logic for this Brewhouse
+            '''
             if response.error:
                 self.watch_for_end()
             else:
@@ -94,19 +128,54 @@ class brewery(object):
         
         http_client = AsyncHTTPClient()
         post_data = {'brewhouse': settings.brewhouse_id}
-        http_client.fetch("http:" + host + "/live/recipeInstance/end/", handle_end_request,
+        uri = http_prefix + ":" + host + "/live/recipeInstance/end/"
+        headers = {'Authorization':'Token ' + self.authtoken}
+        http_client.fetch(uri, handle_end_request,
+                          headers=headers,
                           method="POST",
                           body=urllib.urlencode(post_data)) 
     
     def start_brewing(self):
+        '''Initializes a new recipe instance on the `Brewhouse`. 
+        Registers tracked/managed variables with the recipe instance
+        assigned to the `Brewhouse`. Initializes all of the states for 
+        the `Brewhouse`. Schedules the periodic control tasks.
+        '''
         logger.info('Beginning brewing instance.')
         
+        self.register(self.recipe_instance)
+        
         #set state machine appropriately
-        self.state.register(self.recipe_instance)
-        self.state.changeState('statePrestart')
+        self.state.change_state('statePrestart')
+        
+        #permission variables
+        self.requestPermission = False
+        self.grantPermission   = False
+        
+        #reset energy integrator
+        self.systemEnergy = 0.
+        
+        self.initialize_recipe()
+        
+        #schedule task 1 execution
+        self.tm1Rate = 1. #seconds
+        self.tm1_tz1 = time.time()
+        self.timer = None
+        self.task00()
+        
+        self.start_timer()
+        
+    def register(self,recipe_instance):
+        '''Registers the tracked/managed variables with the recipe
+        instance. This allows for the variables to be changed as native
+        attributes of the `Brewhouse` and child elements, while
+        streaming changes as they happen locally, or receiving changes
+        as they happen remotely'''
+        
+        self.state.register(recipe_instance)
         
         #variables that are @properties and need to be streamed periodically still
-        self.dataStreamer = dataStreamer(self,self.recipe_instance)
+        self.dataStreamer = dataStreamer(self,recipe_instance)
         self.dataStreamer.register('boilKettle__temperature')
         self.dataStreamer.register('mashTun__temperature')
         self.dataStreamer.register('boilKettle__power')
@@ -114,24 +183,26 @@ class brewery(object):
         self.dataStreamer.register('state__id','state')
         
         #register normal time series streaming
-        brewery.systemEnergy.register(self,self.recipe_instance)
-        brewery.timer.register(self,self.recipe_instance)
+        Brewhouse.systemEnergy.register(self,recipe_instance)
+        Brewhouse.timer.register(self,recipe_instance)
         
         #register sub elements
-        self.boilKettle.register(self.recipe_instance)
-        self.mashTun.register(self.recipe_instance)
-        self.mainPump.register(self.recipe_instance)
+        self.boilKettle.register(recipe_instance)
+        self.mashTun.register(recipe_instance)
+        self.mainPump.register(recipe_instance)
         
-        #permission variables
-        brewery.requestPermission.register(self,self.recipe_instance)
-        self.requestPermission = False
-        self.grantPermission   = False
-        def permissionGranted(value): 
+        #permissions handling
+        def permission_granted(value): 
             if value:
                 self.state.id += 1
-        brewery.grantPermission.subscribe(self,self.recipe_instance,callback=permissionGranted)
+        Brewhouse.requestPermission.register(self,recipe_instance)
+        Brewhouse.grantPermission.subscribe(self,self.recipe_instance,
+                                            callback=permission_granted)
         
-        self.systemEnergy = 0.
+    def initialize_recipe(self):
+        '''Sets all the temperature profiles and basic recipe settings
+        for the current `Brewhouse` instance.
+        '''
         self.energyUnitCost = 0.15 #$/kWh
         
         #initialize everything
@@ -145,16 +216,12 @@ class brewery(object):
             [15.*60.,155.0], #at 45min step up to 155
         ]
         self.mashTun.temperature_profile=self.mashTemperatureProfile
-        
-        #schedule task 1 execution
-        self.tm1Rate = 1. #seconds
-        self.tm1_tz1 = time.time()
-        self.timer = None
-        self.task00()
-        
-        self.start_timer()
            
     def end_brewing(self):
+        '''Terminates a currently running recipe instance on this
+        `Brewhouse`. Cancels the task schedules and returns to waiting
+        for a new recipe instance to be requested
+        '''
         logger.info('Ending brewing instance.')
         self.end_timer()
         
@@ -162,11 +229,15 @@ class brewery(object):
         return
     
     def start_timer(self):
+        '''Schedules the control tasks for a new recipe instance on
+        this `Brewhouse`.
+        '''
         self.timers = {}
         self.timers['task00'] = ioloop.PeriodicCallback(self.task00,self.tm1Rate*1000)
         self.timers['task00'].start()
         
     def end_timer(self):
+        '''Stops all timers/scheduled control tasks.'''
         for timer in self.timers.itervalues():
             timer.stop()
          
@@ -190,8 +261,11 @@ class brewery(object):
         # Controls Calculations for Boil Kettle Element
         self.boilKettle.regulate()
 
-        self.systemEnergy += (self.boilKettle.dutyCycle*self.boilKettle.rating)*((self.wtime-self.tm1_tz1)/(60.*60.))
-        self.systemEnergyCost= self.systemEnergy/1000. * self.energyUnitCost
+        boil_power = self.boilKettle.dutyCycle*self.boilKettle.rating
+        delta_time_hours = (self.wtime-self.tm1_tz1)/(60.*60.)
+        self.systemEnergy += boil_power*delta_time_hours
+        self.systemEnergyCost = (self.systemEnergy/1000.
+                                 * self.energyUnitCost)
         
 #         self.dataStreamer.postData()
         
@@ -286,7 +360,7 @@ def stateMash(breweryInstance):
     breweryInstance.timeT0 = time.time()
 
     if breweryInstance.timer <= 0.:
-        breweryInstance.state.changeState('stateMashout')
+        breweryInstance.state.change_state('stateMashout')
 
 def stateMashout(breweryInstance):
     '''
@@ -305,7 +379,7 @@ def stateMashout(breweryInstance):
     breweryInstance.boilKettle.setTemperature(breweryInstance.mashoutTemperature+5.) #give a little extra push on boil set temp 
     
     if breweryInstance.boilKettle.temperature > breweryInstance.mashoutTemperature:
-        breweryInstance.state.changeState('stateMashout2')
+        breweryInstance.state.change_state('stateMashout2')
 
 def stateMashout2(breweryInstance):
     '''
@@ -415,7 +489,7 @@ def stateBoilPreheat(breweryInstance):
     breweryInstance.boilKettle.setTemperature(breweryInstance.boilTemperature)
     
     if breweryInstance.boilKettle.temperature >  breweryInstance.boilKettle.temperatureSetPoint - 10.0:
-        breweryInstance.state.changeState('stateBoil')
+        breweryInstance.state.change_state('stateBoil')
 
 def stateBoil(breweryInstance):
     '''

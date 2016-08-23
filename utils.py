@@ -36,6 +36,7 @@ class managed_variable(object):
         
         self.sensor_name = sensor_name
         self.data = WeakKeyDictionary()
+        self.authtokens = WeakKeyDictionary()
         
     def __get__(self,obj,objtype):
         if obj is None:
@@ -45,6 +46,12 @@ class managed_variable(object):
     
     def __set__(self,obj,value):
         self.data[obj] = value
+        
+    def register(self,instance,authtoken=None):
+        self.authtokens[instance] = authtoken
+        
+    def subscribe(self,instance,authtoken=None):
+        self.authtokens[instance] = authtoken
 
 class subscribable_variable(managed_variable):
     '''
@@ -56,38 +63,64 @@ class subscribable_variable(managed_variable):
         '''
         Constructor
         '''
-        super(subscribable_variable,self).__init__(sensor_name,default=default)
+        super(subscribable_variable,self).__init__(sensor_name,
+                                                   default=default)
         
         self.callback = WeakKeyDictionary()
         
-    def subscribe(self,instance,recipe_instance,callback=None):
+    def subscribe(self,instance,recipe_instance,
+                  authtoken=None,callback=None):
+        super(subscribable_variable,self).subscribe(instance,
+                                                    authtoken=authtoken)
+        
         self.callback[instance] = callback
         self.recipe_instance = recipe_instance
-        self._subscribe(instance,self.sensor_name,recipe_instance,var_type='value')
+        self._subscribe(instance,self.sensor_name,recipe_instance,
+                        var_type='value')
     
     @gen.coroutine #allows the websocket to be yielded    
-    def _subscribe(self,instance,sensor_name,recipe_instance,var_type='value'):
+    def _subscribe(self,instance,sensor_name,recipe_instance,
+                   var_type='value'):
         #make sure we have a websocket established
         if self.websocket is None:
             websocket_address = "ws:" + host + "/live/timeseries/socket/"
-            logger.info('No websocket established. Establishing at {}'.format(websocket_address))
-            self.websocket = yield websocket_connect(websocket_address,on_message_callback=subscribable_variable.on_message)        
+            logger.info('No websocket established. Establishing at {}'
+                        ''.format(websocket_address))
+            self.websocket = yield websocket_connect(websocket_address,
+                                                     on_message_callback=subscribable_variable.on_message)        
         
-        #if we dont have a subscription setup yet, sent a subscribe request through the websocket
+        """if we dont have a subscription setup yet, 
+        sent a subscribe request through the websocket
+        """
         if ((sensor_name,recipe_instance)) not in self.subscribers:
             logger.info('Subscribing to {}, instance {}'.format(sensor_name,recipe_instance))
-            r = requests.post(self.dataIdentifyService,data={'recipe_instance':recipe_instance,'name':sensor_name})
+            data = {'recipe_instance':recipe_instance,'name':sensor_name}
+            if self.authtokens[instance] is not None:
+                headers = {'Authorization':'Token ' + self.authtokens[instance]}
+            else:
+                headers = {}
+            r = requests.post(self.dataIdentifyService,
+                              data=data,headers=headers)
             logger.debug(r.text)
             idSensor = r.json()['sensor']
             
             self.idSensor = idSensor
             self.recipeInstance = recipe_instance
-            self.subscribers[(idSensor,recipe_instance)] = {'descriptor':self,'instance':instance,'var_type':var_type}
+            self.subscribers[(idSensor,recipe_instance)] = {'descriptor':self,
+                                                            'instance':instance,
+                                                            'var_type':var_type}
             
             logger.debug('Id is {}'.format(idSensor))
             
-            logger.debug("Subscribing with {} using {}".format(self.websocket,{'recipe_instance':recipe_instance,'sensor':self.idSensor,'subscribe':True}))
-            self.websocket.write_message(json.dumps({'recipe_instance':recipe_instance,'sensor':self.idSensor,'subscribe':True}))
+            logger.debug("Subscribing with {} using {}"
+                         "".format(self.websocket,
+                                   {'recipe_instance':recipe_instance,
+                                    'sensor':self.idSensor,
+                                    'subscribe':True}))
+            msg_string = json.dumps({'recipe_instance':recipe_instance,
+                                     'sensor':self.idSensor,
+                                     'subscribe':True})
+            self.websocket.write_message(msg_string)
                         
             logger.debug('Subscribed')
     
@@ -96,12 +129,14 @@ class subscribable_variable(managed_variable):
         if response is not None:
             data = json.loads(response)
             logger.debug('websocket sent: {}'.format(data))
-            subscriber = subscribable_variable.subscribers[(data['sensor'],data['recipe_instance'])]
+            subscriber = subscribable_variable.subscribers[(data['sensor'],
+                                                            data['recipe_instance'])]
             if subscriber['var_type'] == 'value':
                 current_value = subscriber['descriptor'].data[subscriber['instance']]
                 current_type = type(current_value)
                 subscriber['descriptor'].data[subscriber['instance']] = current_type(data['value'])
-                if subscriber['instance'] in subscriber['descriptor'].callback and subscriber['descriptor'].callback[subscriber['instance']] is not None:
+                if (subscriber['instance'] in subscriber['descriptor'].callback
+                    and subscriber['descriptor'].callback[subscriber['instance']] is not None):
                     callback = subscriber['descriptor'].callback[subscriber['instance']]
                     callback(data['value'])
             elif subscriber['var_type'] == 'override':
@@ -131,57 +166,78 @@ class streaming_variable(managed_variable):
         super(streaming_variable,self).__set__(obj,val)
         self.send_sensor_value(obj)
             
-    def register(self,obj,recipe_instance):
+    def register(self,instance,recipe_instance,authtoken=None):
         logger.debug('Registering {}'.format(self.sensor_name))
-        self.recipe_instances[obj] = recipe_instance
-        self.get_sensor_id(obj)
+        super(streaming_variable,self).register(instance,
+                                                authtoken=authtoken)
         
-    def get_sensor_id(self,obj):
+        self.recipe_instances[instance] = recipe_instance
+        self.get_sensor_id(instance)
+        
+    def get_sensor_id(self,instance):
         try:
-            r = requests.post(self.dataIdentifyService,data={'recipe_instance':self.recipe_instances[obj],'name':self.sensor_name})
+            data = {'recipe_instance':self.recipe_instances[instance],
+                    'name':self.sensor_name}
+            if self.authtokens[instance] is not None:
+                headers = {'Authorization':'Token ' + self.authtokens[instance]}
+            else:
+                headers = {}
+            r = requests.post(self.dataIdentifyService,
+                              data=data,headers=headers)
             r.raise_for_status()
-            self.ids[obj] = r.json()['sensor']
+            self.ids[instance] = r.json()['sensor']
         except requests.exceptions.ConnectionError:
             logger.info("Server not there. Will retry later.")
             self.timeOutCounter = self.timeOutWait
         except requests.exceptions.HTTPError:
-            logger.info("Server returned error status. Will retry later. ({})".format(r.text))
+            logger.info("Server returned error status. Will retry later. "
+                        "({})".format(r.text))
             self.timeOutCounter = self.timeOutWait
         
-    def send_sensor_value(self,obj):
+    def send_sensor_value(self,instance):
         if self.timeOutCounter > 0:
             self.timeOutCounter -= 1
         else:
-            logger.debug('Data streamer {} sending data for {}.'.format(self,self.sensor_name))            
+            logger.debug('Data streamer {} sending data for {}.'
+                         ''.format(self,self.sensor_name))
             #get the sensor ID if we dont have it already
-            if obj not in self.ids:
+            if instance not in self.ids:
                 try:
-                    self.get_sensor_id(obj)
+                    self.get_sensor_id(instance)
                 except KeyError:
-                    logger.critical("Variable not yet registered. Cannot send data to server until the data source is registered. ({})".format(self.sensor_name))
+                    logger.critical("Variable not yet registered. Cannot "
+                                    "send data to server until the data "
+                                    "source is registered. ({})"
+                                    "".format(self.sensor_name))
                     return
         
             #send the data     
             sampleTime = datetime.datetime.now(tz=pytz.utc).isoformat()
             try:
-                value = self.data[obj]
+                value = self.data[instance]
                 if value is None: value = 0. #TODO: make server accept None
                 if value is True: value = 1
                 if value is False: value = 0
                 data={
-                    'time':sampleTime,'recipe_instance':self.recipe_instances[obj],
+                    'time':sampleTime,'recipe_instance':self.recipe_instances[instance],
                     'value': value,
-                    'sensor':self.ids[obj]
+                    'sensor':self.ids[instance]
                 }
+                if self.authtokens[instance] is not None:
+                    headers = {'Authorization':'Token ' + self.authtokens[instance]}
+                else:
+                    headers = {}
                 r = requests.post(self.dataPostService,
-                    data=data
+                    data=data,
+                    headers = headers
                 )
                 r.raise_for_status()
             except requests.exceptions.ConnectionError:
                 logger.info("Server not there. Will retry later.")
                 self.timeOutCounter = self.timeOutWait
             except requests.exceptions.HTTPError:
-                logger.info("Server returned error status. Will retry later. ({}). Request data:{}".format(r.text,data))
+                logger.info("Server returned error status. Will retry later."
+                            " ({}). Request data:{}".format(r.text,data))
                 self.timeOutCounter = self.timeOutWait
             
 class overridable_variable(streaming_variable,subscribable_variable):
@@ -196,16 +252,24 @@ class overridable_variable(streaming_variable,subscribable_variable):
         self.overridden = WeakKeyDictionary()
     
     #override the subscribe method so we can add another subscription to the override time series
-    def subscribe(self,instance,recipe_instance,callback=None):
-        self.overridden[instance] = False
-        super(overridable_variable,self).subscribe(instance,recipe_instance,callback=callback)
+    def subscribe(self,instance,recipe_instance,
+                  authtoken=None,callback=None):
+        super(subscribable_variable,self).subscribe(instance,
+                                                    authtoken=authtoken)
         
-        self._subscribe(instance,self.sensor_name + "Override",recipe_instance,'override')
+        self.overridden[instance] = False
+        super(overridable_variable,self).subscribe(instance,recipe_instance,
+                                                   callback=callback)
+        
+        self._subscribe(instance,self.sensor_name + "Override",
+                        recipe_instance,'override')
         
         self.register(instance,recipe_instance)
     
-    #override the __set__ function to check if an override is not in place on the variable before allowing to go to the normal __set__
     def __set__(self,obj,value):
+        '''override the __set__ function to check if an override is not in 
+        place on the variable before allowing to go to the normal __set__
+        '''
         if not self.overridden.get(obj): 
             super(overridable_variable,self).__set__(obj,value)
             self.send_sensor_value(obj)
@@ -227,8 +291,12 @@ class dataStreamer(object):
         
     def register(self,attr,name=None):
         if name is None: name=attr #default to attribute as the name
-        if name in self.sensorMap: raise AttributeError('{} already exists in streaming service.'.format(name)) #this makes sure we arent overwriting anything
-        self.sensorMap[name] = {'attr':attr} #map the attribute to the server var name
+        if name in self.sensorMap:
+            #this makes sure we arent overwriting anything
+            raise AttributeError('{} already exists in streaming service.'
+                                 ''.format(name))
+        #map the attribute to the server var name
+        self.sensorMap[name] = {'attr':attr}
     
     def postData(self):
         if self.timeOutCounter > 0:
@@ -243,14 +311,25 @@ class dataStreamer(object):
                 #get the sensor ID if we dont have it already
                 if 'id' not in sensor:
                     try:
-                        r = requests.post(self.dataIdentifyService,data={'recipe_instance':self.recipeInstance,'name':sensorName})
+                        data = {'recipe_instance':self.recipeInstance,
+                                'name':sensorName}
+                        #TODO: add authorization
+#                         if self.authtokens[instance] is not None:
+#                             headers = {'Authorization':'Token ' + self.authtokens[instance]}
+#                         else:
+#                             headers = {}
+                        headers={}
+                        
+                        r = requests.post(self.dataIdentifyService,
+                                          data=data,headers=headers)
                         r.raise_for_status()
                     except requests.exceptions.ConnectionError:
                         logger.info("Server not there. Will retry later.")
                         self.timeOutCounter = self.timeOutWait
                         break
                     except requests.exceptions.HTTPError:
-                        logger.info("Server returned error status. Will retry later. ({})".format(r.text))
+                        logger.info("Server returned error status. Will "
+                                    "retry later. ({})".format(r.text))
                         self.timeOutCounter = self.timeOutWait
                         break
                     
@@ -262,22 +341,28 @@ class dataStreamer(object):
                     if value is None: value = 0. #TODO: make server accept None
                     if value is True: value = 'true'
                     if value is False: value = 'false'
+                    data={'time':sampleTime,
+                          'recipe_instance':self.recipeInstance,
+                          'value': value,
+                          'sensor':sensor['id']}
+                    #TODO: add authorization
+#                     if self.authtokens[instance] is not None:
+#                         headers = {'Authorization':'Token ' + self.authtokens[instance]}
+#                     else:
+#                         headers = {}
+                    headers={}
                     r = requests.post(self.dataPostService,
-                        data={'time':sampleTime,'recipe_instance':self.recipeInstance,
-                            'value': value,
-                            'sensor':sensor['id']
-                        }
-                    )
+                                      data=data,headers=headers)
                     r.raise_for_status()
                 except requests.exceptions.ConnectionError:
                     logger.info("Server not there. Will retry later.")
                     self.timeOutCounter = self.timeOutWait
                     break
                 except requests.exceptions.HTTPError:
-                    logger.info("Server returned error status. Will retry later. ({})".format(r.text))
+                    logger.info("Server returned error status. Will retry "
+                                "later. ({})".format(r.text))
                     self.timeOutCounter = self.timeOutWait
                     break
-                    
                 
 gpio_mock_api_active = 'gpio_mock' in dir(gpiocrust)
     
