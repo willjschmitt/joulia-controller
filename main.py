@@ -13,7 +13,7 @@ import settings
 import logging.config
 logging.basicConfig(level=logging.DEBUG)
 logging.config.dictConfig(settings.LOGGING_CONFIG)
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 @gen.coroutine
 def main():
@@ -21,7 +21,7 @@ def main():
     hardware. Loads settings from module and env vars, and launches a
     controller instance.'''
     brewing.Brewhouse(authtoken=settings.authtoken)
-    logger.info('Brewery initialized.')
+    LOGGER.info('Brewery initialized.')
     
     ioloop.IOLoop.instance().start()
     

@@ -6,7 +6,7 @@ Created on Apr 8, 2016
 
 import time
 
-from utils import subscribable_variable
+from utils import SubscribableVariable
 
 class StateMachine(object):
     '''A state machine implementation with a storage of states as
@@ -16,7 +16,7 @@ class StateMachine(object):
         state: The current state method the state machine is on.
         id: The current state index id the state machine is on.
     '''
-    _id = subscribable_variable('state')
+    _id = SubscribableVariable('state')
     
     def __init__(self, parent,states):
         '''Creates a state machine initialized at the first state
@@ -38,11 +38,11 @@ class StateMachine(object):
         self._id = 0
         
     def register(self,recipe_instance):
-        '''Registers all `subscribable_variable`'s.
+        '''Registers all `SubscribableVariable`'s.
         
         Args:
             recipe_instance: The recipe instance to watch the
-                `subscribable_variable`'s on.
+                `SubscribableVariable`'s on.
         '''
         StateMachine._id.subscribe(self,recipe_instance,callback=None)
     
@@ -97,6 +97,6 @@ class StateMachine(object):
     @id.setter
     def id(self,value):
         if self.id != value:
-            self.parent.requestPermission = False
-            self.parent.grantPermission = False
+            self.parent.request_permission = False
+            self.parent.grant_permission = False
         self._id = value

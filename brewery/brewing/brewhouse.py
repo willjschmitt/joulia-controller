@@ -4,81 +4,98 @@ Created on Apr 3, 2016
 @author: William
 '''
 
+import logging
 import time
-from tornado import ioloop
-from tornado.httpclient import AsyncHTTPClient
-from tornado.escape import json_decode
-
 import urllib
 
-from utils import dataStreamer, subscribable_variable,streaming_variable
+from tornado import ioloop
+from tornado.escape import json_decode
+from tornado.httpclient import AsyncHTTPClient
+
+from brewery.brewing.simplePump import simplePump
+from brewery.brewing.vessels import HeatedVessel, HeatExchangedVessel
 from dsp.state_machine import StateMachine
-
-from vessels import heatedVessel,heatExchangedVessel
-from simplePump import simplePump
-
-import logging
-logger = logging.getLogger(__name__)
-
+from settings import host, http_prefix
 import settings
-from settings import host,http_prefix
+from utils import DataStreamer, SubscribableVariable, StreamingVariable
+
+LOGGER = logging.getLogger(__name__)
 
 class Brewhouse(object):
     '''A top-level class object for operating a brewhouse. Initializes
     communication with the joulia-webserver instance, and manages
     all the equipment associated with the brewhouse system.
     '''
-    grantPermission = subscribable_variable('grantPermission') #subscribes to remote var
+    grant_permission = SubscribableVariable('grant_permission') #subscribes to remote var
 
-    timer = streaming_variable('timer')
-    systemEnergy = streaming_variable('systemEnergy')
-    requestPermission = streaming_variable('requestPermission')
+    timer = StreamingVariable('timer')
+    system_energy = StreamingVariable('system_energy')
+    request_permission = StreamingVariable('request_permission')
 
     def __init__(self,authtoken):
         '''Creates the `Brewhouse` instance and waits for a command
         from the webserver to start a new instance.
-        
+
         Args:
             authtoken: Token string stored on joulia-webserver which
                 has permission to act on behalf of this `Brewhouse` in
                 order to communicate.
         '''
-        logger.info('Initializing Brewery object')
+        LOGGER.info('Initializing Brewery object')
         self.authtoken=authtoken
-        
+
+        self.recipe_instance = None
+        self.data_streamer = None
+
+        self.energy_unit_cost = 0.15 #$/kWh
+
+        self.strike_temperature = 0.0
+        self.mashout_temperature = 0.0
+        self.mashout_time = 0.0 # in seconds
+        self.boil_temperature = 0.0
+        self.boil_time = 0.0 # seconds
+        self.cool_temperature = 0.0
+        self.mash_temperature_profile = []
+
+        self.working_time = None
+        self.timers = {}
+        self.task1_rate = 1.0 #seconds
+        self.task1_lasttime = time.time()
+
         self.initialize_process_state_machine()
         self.initialize_equipment()
-        
+
         self.watch_for_start()
-        
+
     def initialize_process_state_machine(self):
         '''Initializes the main process state machine with all of the
         serial states for conducting a recipe instance on this
         `Brewhouse`.
         '''
-        states = [statePrestart,statePremash,stateStrike,
-                  statePostStrike,stateMash,stateMashout,
-                  stateMashout2,stateSpargePrep,stateSparge,
-                  statePreBoil,stateMashToBoil,stateBoilPreheat,
-                  stateBoil,stateCool,statePumpout]
+        states = [state_prestart,state_premash,state_strike,
+                  state_post_strike,state_mash,state_mashout_ramp,
+                  state_mashout_recirculation,state_sparge_prep,state_sparge,
+                  state_pre_boil,state_mash_to_boil,state_boil_preheat,
+                  state_boil,state_cool,state_pumpout]
         self.state = StateMachine(self,states)
-        self.state.change_state('statePrestart')
+        self.state.change_state('state_prestart')
 
     def initialize_equipment(self):
         '''Creates all the physical subelements for this `Brewhouse`
         system
         '''
-        self.boilKettle = heatedVessel(rating=5000.,volume=5.,
-                                       rtdParams=[0,0.385,100.0,5.0,0.94,-16.0,10.],pin=0)
-        self.mashTun = heatExchangedVessel(volume=5.,
-                                           rtdParams=[1,0.385,100.0,5.0,0.94,-9.0,10.],
-                                           temperature_source = self.boilKettle)
-        self.mainPump = simplePump(pin=2)        
-        
+        self.boil_kettle = HeatedVessel(rating=5000.,volume=5.,
+                                        rtd_params=[0,0.385,100.0,5.0,0.94,-16.0,10.],
+                                        pin=0)
+        self.mash_tun = HeatExchangedVessel(volume=5.,
+                                           rtd_params=[1,0.385,100.0,5.0,0.94,-9.0,10.],
+                                           temperature_source = self.boil_kettle)
+        self.main_pump = simplePump(pin=2)
+
     def watch_for_start(self):
         '''Makes a long-polling request to joulia-webserver to check
         if the server received a request to start a brewing session.
-        
+
         Once the request completes, the internal method
         handle_start_request is executed.
         '''
@@ -92,13 +109,13 @@ class Brewhouse(object):
                 logging.error(response)
                 self.watch_for_start()
             else:
-                logger.info("Got command to start")
+                LOGGER.info("Got command to start")
                 response = json_decode(response.body)
                 messages = response['messages']
                 self.recipe_instance = messages['recipe_instance']
                 self.start_brewing()
                 self.watch_for_end()
-        
+
         http_client = AsyncHTTPClient()
         post_data = {'brewhouse': settings.brewhouse_id}
         uri = http_prefix + ":" + host + "/live/recipeInstance/start/"
@@ -107,11 +124,11 @@ class Brewhouse(object):
                           headers=headers,
                           method="POST",
                           body=urllib.urlencode(post_data))
-    
+
     def watch_for_end(self):
         '''Makes a long-polling request to joulia-webserver to check
         if the server received a request to end the brewing session.
-        
+
         Once the request completes, the internal method
         handle_end_request is executed.
         '''
@@ -125,7 +142,7 @@ class Brewhouse(object):
                 self.watch_for_end()
             else:
                 self.end_brewing()
-        
+
         http_client = AsyncHTTPClient()
         post_data = {'brewhouse': settings.brewhouse_id}
         uri = http_prefix + ":" + host + "/live/recipeInstance/end/"
@@ -133,415 +150,402 @@ class Brewhouse(object):
         http_client.fetch(uri, handle_end_request,
                           headers=headers,
                           method="POST",
-                          body=urllib.urlencode(post_data)) 
-    
+                          body=urllib.urlencode(post_data))
+
     def start_brewing(self):
-        '''Initializes a new recipe instance on the `Brewhouse`. 
+        '''Initializes a new recipe instance on the `Brewhouse`.
         Registers tracked/managed variables with the recipe instance
-        assigned to the `Brewhouse`. Initializes all of the states for 
+        assigned to the `Brewhouse`. Initializes all of the states for
         the `Brewhouse`. Schedules the periodic control tasks.
         '''
-        logger.info('Beginning brewing instance.')
-        
+        LOGGER.info('Beginning brewing instance.')
+
         self.register(self.recipe_instance)
-        
+
         #set state machine appropriately
-        self.state.change_state('statePrestart')
-        
+        self.state.change_state('state_prestart')
+
         #permission variables
-        self.requestPermission = False
-        self.grantPermission   = False
-        
+        self.request_permission = False
+        self.grant_permission   = False
+
         #reset energy integrator
-        self.systemEnergy = 0.
-        
+        self.system_energy = 0.0
+
         self.initialize_recipe()
-        
+
         #schedule task 1 execution
-        self.tm1Rate = 1. #seconds
-        self.tm1_tz1 = time.time()
+        self.task1_rate = 1.0 #seconds
+        self.task1_lasttime = time.time()
         self.timer = None
         self.task00()
-        
+
         self.start_timer()
-        
+
     def register(self,recipe_instance):
         '''Registers the tracked/managed variables with the recipe
         instance. This allows for the variables to be changed as native
         attributes of the `Brewhouse` and child elements, while
         streaming changes as they happen locally, or receiving changes
         as they happen remotely'''
-        
+
         self.state.register(recipe_instance)
-        
+
         #variables that are @properties and need to be streamed periodically still
-        self.dataStreamer = dataStreamer(self,recipe_instance)
-        self.dataStreamer.register('boilKettle__temperature')
-        self.dataStreamer.register('mashTun__temperature')
-        self.dataStreamer.register('boilKettle__power')
-        self.dataStreamer.register('systemEnergyCost')
-        self.dataStreamer.register('state__id','state')
-        
+        self.data_streamer = DataStreamer(self,recipe_instance)
+        self.data_streamer.register('boilKettle__temperature')
+        self.data_streamer.register('mashTun__temperature')
+        self.data_streamer.register('boilKettle__power')
+        self.data_streamer.register('system_energy_cost')
+        self.data_streamer.register('state__id','state')
+
         #register normal time series streaming
-        Brewhouse.systemEnergy.register(self,recipe_instance)
+        Brewhouse.system_energy.register(self,recipe_instance)
         Brewhouse.timer.register(self,recipe_instance)
-        
+
         #register sub elements
-        self.boilKettle.register(recipe_instance)
-        self.mashTun.register(recipe_instance)
-        self.mainPump.register(recipe_instance)
-        
-        #permissions handling
-        def permission_granted(value): 
+        self.boil_kettle.register(recipe_instance)
+        self.mash_tun.register(recipe_instance)
+        self.main_pump.register(recipe_instance)
+
+        def permission_granted(value):
+            """If permission is granted, increments the state"""
             if value:
                 self.state.id += 1
-        Brewhouse.requestPermission.register(self,recipe_instance)
-        Brewhouse.grantPermission.subscribe(self,self.recipe_instance,
+        Brewhouse.request_permission.register(self,recipe_instance)
+        Brewhouse.grant_permission.subscribe(self,self.recipe_instance,
                                             callback=permission_granted)
-        
+
     def initialize_recipe(self):
         '''Sets all the temperature profiles and basic recipe settings
         for the current `Brewhouse` instance.
         '''
-        self.energyUnitCost = 0.15 #$/kWh
-        
         #initialize everything
-        self.strikeTemperature = 162.
-        self.mashoutTemperature = 170.
-        self.mashoutTime = 10.*60. # in seconds
-        self.boilTemperature = 217.
-        self.coolTemperature = 70.
-        self.mashTemperatureProfile = [
+        self.strike_temperature = 162.
+        self.mashout_temperature = 170.
+        self.mashout_time = 10.*60. # in seconds
+        self.boil_temperature = 217.
+        self.boil_time = 60.*60. # seconds
+        self.cool_temperature = 70.
+        self.mash_temperature_profile = [
             [45.*60., 152.0], #start at 152
             [15.*60.,155.0], #at 45min step up to 155
         ]
-        self.mashTun.temperature_profile=self.mashTemperatureProfile
-           
+        self.mash_tun.temperature_profile=self.mash_temperature_profile
+
     def end_brewing(self):
         '''Terminates a currently running recipe instance on this
         `Brewhouse`. Cancels the task schedules and returns to waiting
         for a new recipe instance to be requested
         '''
-        logger.info('Ending brewing instance.')
+        LOGGER.info('Ending brewing instance.')
         self.end_timer()
-        
+
         self.watch_for_start()
         return
-    
+
     def start_timer(self):
         '''Schedules the control tasks for a new recipe instance on
         this `Brewhouse`.
         '''
-        self.timers = {}
-        self.timers['task00'] = ioloop.PeriodicCallback(self.task00,self.tm1Rate*1000)
+        self.timers['task00'] = ioloop.PeriodicCallback(self.task00,self.task1_rate*1000)
         self.timers['task00'].start()
-        
+
     def end_timer(self):
         '''Stops all timers/scheduled control tasks.'''
         for timer in self.timers.itervalues():
             timer.stop()
-         
+
     def task00(self):
-        logger.debug('Evaluating task 00')
-        self.wtime = time.time()
-    
+        """Fast task control execution for the brewhouse system"""
+        LOGGER.debug('Evaluating task 00')
+        self.working_time = time.time()
+
         # Evaluate state of controls (mash, pump, boil, etc)
         self.state.evaluate()
-    
+
         # Check Temperatures
-        self.boilKettle.measureTemperature()
-        self.mashTun.measureTemperature()
-    
+        self.boil_kettle.measure_temperature()
+        self.mash_tun.measure_temperature()
+
         # Controls Calculations for Mash Tun Element
-        self.mashTun.regulate()
-        #TODO: probably need to figure out better option rather than just checking if its regulator is enabled
-        if self.mashTun.regulator.enabled:
-            self.boilKettle.setTemperature(self.mashTun.sourceTemperature)
-    
+        self.mash_tun.regulate()
+        #TODO: (Will) probably need to figure out better option rather than
+        # just checking if its regulator is enabled
+        if self.mash_tun.regulator.enabled:
+            self.boil_kettle.set_temperature(self.mash_tun.source_temperature)
+
         # Controls Calculations for Boil Kettle Element
-        self.boilKettle.regulate()
+        self.boil_kettle.regulate()
 
-        boil_power = self.boilKettle.dutyCycle*self.boilKettle.rating
-        delta_time_hours = (self.wtime-self.tm1_tz1)/(60.*60.)
-        self.systemEnergy += boil_power*delta_time_hours
-        self.systemEnergyCost = (self.systemEnergy/1000.
-                                 * self.energyUnitCost)
-        
-#         self.dataStreamer.postData()
-        
+        boil_power = self.boil_kettle.duty_cycle*self.boil_kettle.rating
+        delta_time_hours = (self.working_time-self.task1_lasttime)/(60.*60.)
+        self.system_energy += boil_power*delta_time_hours
+
         #schedule next task 1 event
-        self.tm1_tz1 = self.wtime
-        
-    
-def statePrestart(breweryInstance):
+        self.task1_lasttime = self.working_time
+
+    @property
+    def system_energy_cost(self):
+        """The total energy cost from this recipe instance."""
+        return (self.system_energy/1000.) * self.energy_unit_cost
+
+
+def state_prestart(brewery_instance):
+    '''Everything is off. Waiting for user to initiate process after water
+    is filled in the boil kettle/HLT.
     '''
-    __STATE_PRESTART - state where everything is off. waiting for user to
-    okay start of process after water is filled in the boil kettle/HLT
+    LOGGER.debug('In state_prestart')
+
+    brewery_instance.timer = None
+
+    brewery_instance.main_pump.turn_off()
+    brewery_instance.boil_kettle.turn_off()
+    brewery_instance.mash_tun.turn_off()
+
+    brewery_instance.request_permission = True
+
+def state_premash(brewery_instance):
+    '''Boil element brings water up to strike temperature'''
+    LOGGER.debug('In state_premash')
+
+    brewery_instance.timer = None
+
+    brewery_instance.main_pump.turn_off()
+    brewery_instance.boil_kettle.turn_on()
+    brewery_instance.mash_tun.turn_off()
+
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mash_tun.temperature)
+    brewery_instance.boil_kettle.set_temperature(brewery_instance.strike_temperature)
+
+    if brewery_instance.boil_kettle.temperature > brewery_instance.strike_temperature:
+        brewery_instance.request_permission = True
+
+def state_strike(brewery_instance):
+    """The addition of hot water to the grain"""
+    LOGGER.debug('In state_strike')
+
+    brewery_instance.timer = None
+
+    brewery_instance.main_pump.turn_on()
+    brewery_instance.boil_kettle.turn_on()
+    brewery_instance.mash_tun.turn_off()
+
+
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mash_tun.temperature)
+
+    first_temperature = brewery_instance.mash_tun.temperature_profile[0][1]
+    brewery_instance.boil_kettle.set_temperature(first_temperature)
+
+    brewery_instance.request_permission = True
+
+def state_post_strike(brewery_instance):
+    '''Boil element brings water up to strike temperature'''
+    LOGGER.debug('In state_post_strike')
+
+    brewery_instance.timer = None
+
+    brewery_instance.main_pump.turn_off()
+    brewery_instance.boil_kettle.turn_on()
+    brewery_instance.mash_tun.turn_off()
+
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mash_tun.temperature)
+
+    first_temperature = brewery_instance.mash_tun.temperature_profile[0][1]
+    brewery_instance.boil_kettle.set_temperature(first_temperature)
+
+    if brewery_instance.boil_kettle.temperature > brewery_instance.mash_tun.temperature_set_point:
+        brewery_instance.request_permission = True
+
+def state_mash(brewery_instance):
+    '''Pump turns on and boil element adjusts HLT temp to maintain mash
+    temperature
     '''
-    logger.debug('In statePrestart')
-    
-    breweryInstance.timer = None
-    
-    breweryInstance.mainPump.turnOff()
-    breweryInstance.boilKettle.turnOff()
-    breweryInstance.mashTun.turnOff()
+    LOGGER.debug('In state_mash')
 
-    breweryInstance.requestPermission = True
-        
-def statePremash(breweryInstance): 
+    brewery_instance.timer = (brewery_instance.state_t0
+                              + brewery_instance.mash_tun.temperature_profile_length
+                              - brewery_instance.working_time)
+
+    brewery_instance.main_pump.turn_on()
+    brewery_instance.boil_kettle.turn_on()
+    brewery_instance.mash_tun.turn_on()
+
+    brewery_instance.mash_tun.set_temperature_profile(brewery_instance.state_t0)
+    brewery_instance.boil_kettle.set_temperature(brewery_instance.boil_kettle.temperature)
+    brewery_instance.timeT0 = time.time()
+
+    if brewery_instance.timer <= 0.:
+        brewery_instance.state.change_state('state_mashout_ramp')
+
+def state_mashout_ramp(brewery_instance):
+    '''Steps up boil temperature to 175degF and continues to circulate wort
+    to stop enzymatic processes and to prep sparge water
     '''
-    __STATE_PREMASH - state where the boil element brings water up to
-    strike temperature
+    LOGGER.debug('In state_mashout_ramp')
+
+    brewery_instance.timer = None
+
+    brewery_instance.main_pump.turn_on()
+    brewery_instance.boil_kettle.turn_on()
+    brewery_instance.mash_tun.turn_on()
+
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mashout_temperature)
+    # Give a little extra push on boil set temp
+    brewery_instance.boil_kettle.set_temperature(brewery_instance.mashout_temperature+5.)
+
+    if brewery_instance.boil_kettle.temperature > brewery_instance.mashout_temperature:
+        brewery_instance.state.change_state('state_mashout_recirculation')
+
+def state_mashout_recirculation(brewery_instance):
+    '''Steps up boil temperature to 175degF and continues to circulate wort
+    to stop enzymatic processes and to prep sparge water this continuation
+    just forces an amount of time of mashout at a higher temp of wort
     '''
-    logger.debug('In statePremash')
-    
-    breweryInstance.timer = None
-    
-    breweryInstance.mainPump.turnOff()
-    breweryInstance.boilKettle.turnOn()
-    breweryInstance.mashTun.turnOff()
+    LOGGER.debug('In state_mashout_recirculation')
 
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.strikeTemperature)
+    brewery_instance.timer = (brewery_instance.state_t0
+                              + brewery_instance.mashout_time
+                              - brewery_instance.working_time)
 
-    if breweryInstance.boilKettle.temperature > breweryInstance.strikeTemperature:
-        breweryInstance.requestPermission = True
+    brewery_instance.main_pump.turn_on()
+    brewery_instance.boil_kettle.turn_on()
+    brewery_instance.mash_tun.turn_off()
 
-def stateStrike(breweryInstance):
-    logger.debug('In stateStrike')
-    
-    breweryInstance.timer = None
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mashout_temperature)
+    brewery_instance.boil_kettle.set_temperature(brewery_instance.boil_kettle.temperature)
+    if brewery_instance.timer <= 0.:
+        brewery_instance.request_permission = True
 
-    
-    breweryInstance.mainPump.turnOn()
-    breweryInstance.boilKettle.turnOn()
-    breweryInstance.mashTun.turnOff()
+def state_sparge_prep(brewery_instance):
+    '''Prep hoses for sparge process'''
+    LOGGER.debug('In state_sparge_prep')
 
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.mashTun.temperature_profile[0][1])
-    
+    brewery_instance.timer = None
 
-    breweryInstance.requestPermission = True
+    brewery_instance.main_pump.turn_off()
+    brewery_instance.boil_kettle.turn_off()
+    brewery_instance.mash_tun.turn_off()
 
-def statePostStrike(breweryInstance):
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mash_tun.temperature)
+    brewery_instance.boil_kettle.set_temperature(brewery_instance.boil_kettle.temperature)
+
+    brewery_instance.request_permission = True
+
+def state_sparge(brewery_instance):
+    '''Slowly puts clean water onto grain bed as it is drained'''
+    LOGGER.debug('In state_sparge')
+
+    brewery_instance.main_pump.turn_on()
+    brewery_instance.boil_kettle.turn_off()
+    brewery_instance.mash_tun.turn_off()
+
+    brewery_instance.timer = None
+
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mash_tun.temperature)
+    brewery_instance.boil_kettle.set_temperature(brewery_instance.boil_kettle.temperature)
+
+    brewery_instance.request_permission = True
+
+def state_pre_boil(brewery_instance):
+    '''Turns off pump to allow switching of hoses for transfer to boil as
+    well as boil kettle draining
     '''
-    C_STATE_PREMASH - state where the boil element brings water up to
-    strike temperature
+    LOGGER.debug('In state_pre_boil')
+
+    brewery_instance.main_pump.turn_off()
+    brewery_instance.boil_kettle.turn_off()
+    brewery_instance.mash_tun.turn_off()
+
+    brewery_instance.timer = None
+
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mash_tun.temperature)
+    brewery_instance.boil_kettle.set_temperature(brewery_instance.boil_kettle.temperature)
+
+    brewery_instance.request_permission = True
+
+def state_mash_to_boil(brewery_instance):
+    '''Turns off boil element and pumps wort from mash tun to the boil kettle
     '''
-    logger.debug('In statePostStrike')
-    
-    breweryInstance.timer = None
-    
-    breweryInstance.mainPump.turnOff()
-    breweryInstance.boilKettle.turnOn()
-    breweryInstance.mashTun.turnOff()
+    LOGGER.debug('In state_mash_to_boil')
 
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.mashTun.temperature_profile[0][1])
+    brewery_instance.timer = None
 
-    if breweryInstance.boilKettle.temperature > breweryInstance.mashTun.temperatureSetPoint:
-        breweryInstance.requestPermission = True
+    brewery_instance.main_pump.turn_on()
+    brewery_instance.boil_kettle.turn_off()
+    brewery_instance.mash_tun.turn_off()
 
-def stateMash(breweryInstance):
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mash_tun.temperature)
+    brewery_instance.boil_kettle.set_temperature(brewery_instance.boil_kettle.temperature)
+
+    brewery_instance.request_permission = True
+
+def state_boil_preheat(brewery_instance):
+    '''Heat wort up to temperature before starting to countdown timer in boil.
     '''
-    C_STATE_MASH - state where pump turns on and boil element adjusts HLT temp
-    to maintain mash temperature
+    LOGGER.debug('In state_boil_preheat')
+
+    brewery_instance.timer = None
+
+    brewery_instance.main_pump.turn_off()
+    brewery_instance.boil_kettle.turn_on()
+    brewery_instance.mash_tun.turn_off()
+
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mash_tun.temperature)
+    brewery_instance.boil_kettle.set_temperature(brewery_instance.boil_temperature)
+
+    preheat_temperature = brewery_instance.boil_kettle.temperature_set_point - 10.0
+    if brewery_instance.boil_kettle.temperature >  preheat_temperature:
+        brewery_instance.state.change_state('state_boil')
+
+def state_boil(brewery_instance):
+    '''Boiling to bring temperature to boil temp and maintain temperature
+    for duration of boil
     '''
-    logger.debug('In stateMash')
-    
-    breweryInstance.timer = (breweryInstance.state_t0 + breweryInstance.mashTun.temperature_profile_length) - breweryInstance.wtime
+    LOGGER.debug('In state_boil')
 
-    breweryInstance.mainPump.turnOn()
-    breweryInstance.boilKettle.turnOn()
-    breweryInstance.mashTun.turnOn()
+    brewery_instance.main_pump.turn_off()
+    brewery_instance.boil_kettle.turn_on()
+    brewery_instance.mash_tun.turn_off()
 
-    breweryInstance.mashTun.setTemperatureProfile(breweryInstance.state_t0)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
-    breweryInstance.timeT0 = time.time()
+    brewery_instance.timer = (brewery_instance.state_t0
+                              + brewery_instance.boil_time
+                              - brewery_instance.working_time)
 
-    if breweryInstance.timer <= 0.:
-        breweryInstance.state.change_state('stateMashout')
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mash_tun.temperature)
+    brewery_instance.boil_kettle.set_temperature(brewery_instance.boil_temperature)
+    brewery_instance.timeT0 = time.time()
 
-def stateMashout(breweryInstance):
-    '''
-    C_STATE_MASHOUT - steps up boil temperature to 175degF and continues
-    to circulate wort to stop enzymatic processes and to prep sparge water
-    '''
-    logger.debug('In stateMashout')
-    
-    breweryInstance.timer = None
-    
-    breweryInstance.mainPump.turnOn()
-    breweryInstance.boilKettle.turnOn()
-    breweryInstance.mashTun.turnOn()
+    if brewery_instance.timer <= 0.:
+        brewery_instance.request_permission = True
 
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashoutTemperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.mashoutTemperature+5.) #give a little extra push on boil set temp 
-    
-    if breweryInstance.boilKettle.temperature > breweryInstance.mashoutTemperature:
-        breweryInstance.state.change_state('stateMashout2')
+def state_cool(brewery_instance):
+    '''Cooling boil down to pitching temperature'''
+    LOGGER.debug('In state_cool')
 
-def stateMashout2(breweryInstance):
-    '''
-    C_STATE_MASHOUT2 - steps up boil temperature to 175degF and continues
-    to circulate wort to stop enzymatic processes and to prep sparge water
-    this continuation just forces an amount of time of mashout at a higher
-    temp of wort
-    '''
-    logger.debug('In stateMashout2')
-    
-    breweryInstance.timer = (breweryInstance.state_t0 + breweryInstance.mashoutTime) - breweryInstance.wtime
-    
-    breweryInstance.mainPump.turnOn()
-    breweryInstance.boilKettle.turnOn()
-    breweryInstance.mashTun.turnOff()
+    brewery_instance.timer = None
 
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashoutTemperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
-    if breweryInstance.timer <= 0.:
-        breweryInstance.requestPermission = True
+    brewery_instance.main_pump.turn_off()
+    brewery_instance.boil_kettle.turn_off()
+    brewery_instance.mash_tun.turn_off()
 
-def stateSpargePrep(breweryInstance):
-    '''
-    C_STATE_SPARGEPREP - prep hoses for sparge process
-    '''
-    logger.debug('In stateSpargePrep')
-    
-    breweryInstance.timer = None
-    
-    breweryInstance.mainPump.turnOff()
-    breweryInstance.boilKettle.turnOff()
-    breweryInstance.mashTun.turnOff()
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mash_tun.temperature)
+    brewery_instance.boil_kettle.set_temperature(brewery_instance.boil_kettle.temperature)
 
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
+    if brewery_instance.boil_kettle.temperature < brewery_instance.cool_temperature:
+        brewery_instance.request_permission = True
 
-    breweryInstance.requestPermission = True
+def state_pumpout(brewery_instance):
+    '''Pumping wort out into fermenter'''
+    LOGGER.debug('In state_pumpout')
 
-def stateSparge(breweryInstance):
-    '''
-    C_STATE_SPARGE - slowly puts clean water onto grain bed as it is 
-    drained
-    '''
-    logger.debug('In stateSparge')
-    
-    breweryInstance.mainPump.turnOn()
-    breweryInstance.boilKettle.turnOff()
-    breweryInstance.mashTun.turnOff()
+    brewery_instance.timer = None
 
-    breweryInstance.timer = None
+    brewery_instance.main_pump.turn_on()
+    brewery_instance.boil_kettle.turn_off()
+    brewery_instance.mash_tun.turn_off()
 
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
+    brewery_instance.mash_tun.set_temperature(brewery_instance.mash_tun.temperature)
+    brewery_instance.boil_kettle.set_temperature(brewery_instance.boil_kettle.temperature)
 
-    breweryInstance.requestPermission = True
-
-def statePreBoil(breweryInstance):
-    '''
-    C_STATE_PREBOIL - turns of pump to allow switching of hoses for
-    transfer to boil as well as boil kettle draining
-    '''
-    logger.debug('In statePreBoil')
-    
-    breweryInstance.mainPump.turnOff()
-    breweryInstance.boilKettle.turnOff()
-    breweryInstance.mashTun.turnOff()
-    
-    breweryInstance.timer = None
-    
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
-    
-    breweryInstance.requestPermission = True
-
-def stateMashToBoil(breweryInstance):
-    '''
-    C_STATE_MASHTOBOIL - turns off boil element and pumps wort from
-    mash tun to the boil kettle
-    '''
-    logger.debug('In stateMashToBoil')
-    
-    breweryInstance.timer = None
-    
-    breweryInstance.mainPump.turnOn()
-    breweryInstance.boilKettle.turnOff()
-    breweryInstance.mashTun.turnOff()
-    
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
-    
-    breweryInstance.requestPermission = True
-
-def stateBoilPreheat(breweryInstance):
-    '''
-    C_STATE_BOILPREHEAT - heat wort up to temperature before starting to
-    countdown timer in boil.
-    '''
-    logger.debug('In stateBoilPreheat')
-    
-    breweryInstance.timer = None
-    
-    breweryInstance.mainPump.turnOff()
-    breweryInstance.boilKettle.turnOn()
-    breweryInstance.mashTun.turnOff()
-
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.boilTemperature)
-    
-    if breweryInstance.boilKettle.temperature >  breweryInstance.boilKettle.temperatureSetPoint - 10.0:
-        breweryInstance.state.change_state('stateBoil')
-
-def stateBoil(breweryInstance):
-    '''
-        C_STATE_BOIL - state of boiling to bring temperature to boil temp
-        and maintain temperature for duration of boil
-    '''
-    logger.debug('In stateBoil')
-    
-    breweryInstance.mainPump.turnOff()
-    breweryInstance.boilKettle.turnOn()
-    breweryInstance.mashTun.turnOff()
-    
-    breweryInstance.timer = (breweryInstance.state_t0 + breweryInstance.BOILTIME) - breweryInstance.wtime
-
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.boilTemperature)
-    breweryInstance.timeT0 = time.time()
-
-    if breweryInstance.timer <= 0.:
-        breweryInstance.requestPermission = True
-
-def stateCool(breweryInstance):
-    '''
-    C_STATE_COOL - state of cooling boil down to pitching temperature
-    '''
-    logger.debug('In stateCool')
-    
-    breweryInstance.timer = None
-    
-    breweryInstance.mainPump.turnOff()
-    breweryInstance.boilKettle.turnOff()
-    breweryInstance.mashTun.turnOff()
-
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
-    
-    if breweryInstance.boilKettle.temperature < breweryInstance.coolTemperature:
-        breweryInstance.requestPermission = True
-
-def statePumpout(breweryInstance):
-    '''
-    C_STATE_PUMPOUT - state of pumping wort out into fermenter
-    '''
-    logger.debug('In statePumpout')
-    
-    breweryInstance.timer = None
-    
-    breweryInstance.mainPump.turnOn()
-    breweryInstance.boilKettle.turnOff()
-    breweryInstance.mashTun.turnOff()
-
-    breweryInstance.mashTun.setTemperature(breweryInstance.mashTun.temperature)
-    breweryInstance.boilKettle.setTemperature(breweryInstance.boilKettle.temperature)
-
-    breweryInstance.requestPermission = True
+    brewery_instance.request_permission = True

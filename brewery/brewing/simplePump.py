@@ -16,10 +16,10 @@ class simplePump(object):
         self.enabled = False #default to off
         self.pin = OutputPin(pin, value=0)
         
-    def turnOff(self):
+    def turn_off(self):
         self.enabled = False
         self.pin.value = self.enabled
-    def turnOn(self):
+    def turn_on(self):
         self.enabled = True
         self.pin.value = self.enabled
         
