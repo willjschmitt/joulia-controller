@@ -12,7 +12,7 @@ from tornado import ioloop
 from tornado.escape import json_decode
 from tornado.httpclient import AsyncHTTPClient
 
-from brewery.brewing.simplePump import simplePump
+from brewery.brewing.simple_pump import SimplePump
 from brewery.brewing.vessels import HeatedVessel, HeatExchangedVessel
 from dsp.state_machine import StateMachine
 from settings import host, http_prefix
@@ -90,7 +90,7 @@ class Brewhouse(object):
         self.mash_tun = HeatExchangedVessel(volume=5.,
                                            rtd_params=[1,0.385,100.0,5.0,0.94,-9.0,10.],
                                            temperature_source = self.boil_kettle)
-        self.main_pump = simplePump(pin=2)
+        self.main_pump = SimplePump(pin=2)
 
     def watch_for_start(self):
         '''Makes a long-polling request to joulia-webserver to check
