@@ -7,8 +7,8 @@ Created on Apr 5, 2016
 import logging
 import time
 from gpiocrust import OutputPin
-from dsp import regulator, integrator
-from measurement import rtdSensor
+from dsp import Regulator, integrator
+from measurement import rtd_sensor
 from utils import GPIO_MOCK_API_ACTIVE, OverridableVariable, StreamingVariable
 
 LOGGER = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class TemperatureMonitoredVessel(SimpleVessel):
     def __init__(self, volume, rtdParams):
         super(TemperatureMonitoredVessel,self).__init__(volume)
 
-        self.temperature_sensor = rtdSensor(*rtdParams)
+        self.temperature_sensor = rtd_sensor(*rtdParams)
 
         # For simulation environment make an integrator to represent the
         # absorbtion of energy
@@ -64,7 +64,7 @@ class TemperatureMonitoredVessel(SimpleVessel):
         it will use a simulated value.
         """
         if GPIO_MOCK_API_ACTIVE:
-            return self.liquid_temperature_simulator.q
+            return self.liquid_temperature_simulator.integrated
         else:
             return self.temperature_sensor.temperature
 
@@ -83,7 +83,7 @@ class HeatedVessel(TemperatureMonitoredVessel):
         self.rating = rating # in Watts (of heating element)
         self.temperature_set_point = 0.
 
-        self.regulator = kwargs.get('regulatorClass',regulator)(maxQ=1.,minQ=0.)
+        self.Regulator = kwargs.get('regulatorClass',Regulator)(maxQ=1.,minQ=0.)
 
         self.duty_cycle = 0.
         self.duty_period = 1.0 #seconds
@@ -117,13 +117,13 @@ class HeatedVessel(TemperatureMonitoredVessel):
         """Disables the heating element on this vessel"""
         LOGGER.debug('Request heated vessel turn off.')
         self.element_status = self.pin.value = False
-        self.regulator.disable()
+        self.Regulator.disable()
 
     def turn_on(self):
         """Turns off the heating element on this vessel"""
         LOGGER.debug('Request heated vessel turn on.')
         self.element_status = self.pin.value = True
-        self.regulator.enable()
+        self.Regulator.enable()
 
     def set_liquid_level(self,volume):
         """Adjusts the liquid volume of the vessel, which then recalculates
@@ -136,15 +136,15 @@ class HeatedVessel(TemperatureMonitoredVessel):
         """Calculates control gains based on the amount of liquid and
         heating rating of the heating element
         """
-        self.regulator.KP = 10.*(self.volume/self.rating)
-        self.regulator.KI = 100.*(self.volume/self.rating)
+        self.Regulator.KP = 10.*(self.volume/self.rating)
+        self.Regulator.KI = 100.*(self.volume/self.rating)
 
     def regulate(self):
         """Executes regulation action to control the temperature of the
         vessel by adjusting the duty_cycle of the heating eleement
         """
         LOGGER.debug("Temp: %f, SP: %f",self.temperature,self.temperature_set_point)
-        self.duty_cycle = self.regulator.calculate(self.temperature,self.temperature_set_point)
+        self.duty_cycle = self.Regulator.calculate(self.temperature,self.temperature_set_point)
 
     def measure_temperature(self):
         """Samples the temperature from the measurement circuit. If GPIO
@@ -186,7 +186,7 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         self.source_temperature = self.temperature_set_point
 
         self.heat_exchanger_conductivity = heat_exchanger_conductivity
-        self.regulator = kwargs.get('regulatorClass',regulator)(maxQ=15.,minQ=-15.)
+        self.Regulator = kwargs.get('regulatorClass',Regulator)(maxQ=15.,minQ=-15.)
 
         super(HeatExchangedVessel,self).__init__(volume, rtd_params)
         self.recalculate_gains()
@@ -203,15 +203,15 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
     def turn_off(self):
         """Disables the pump on this vessel along with its controls"""
         self.enabled = False
-        self.regulator.disable()
+        self.Regulator.disable()
 
     def turn_on(self):
         """Turns on the pump for this vessel along with its controls"""
         self.enabled = True
-        self.regulator.enable()
+        self.Regulator.enable()
 
     def set_temperature(self,temp):
-        """Sets the temperatures setpoint for the regulator to control
+        """Sets the temperatures setpoint for the Regulator to control
         the vessel temperature.
         """
         self.temperature_set_point = temp
@@ -247,7 +247,7 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         vessel by adjusting the temperature set point of the vessel serving
         as the heat source.
         """
-        regulator_temperature = self.regulator.calculate(self.temperature,
+        regulator_temperature = self.Regulator.calculate(self.temperature,
                                                          self.temperature_set_point)
         self.source_temperature = self.temperature + regulator_temperature
 
@@ -255,8 +255,8 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         """Calculates control gains based on the amount of liquid and
         heating rating of the heating element
         """
-        self.regulator.KP = 2.E-1*(self.volume/self.heat_exchanger_conductivity)
-        self.regulator.KI = 2.E-3*(self.volume/self.heat_exchanger_conductivity)
+        self.Regulator.KP = 2.E-1*(self.volume/self.heat_exchanger_conductivity)
+        self.Regulator.KI = 2.E-3*(self.volume/self.heat_exchanger_conductivity)
 
     def measure_temperature(self):
         """Samples the temperature from the measurement circuit. If GPIO

@@ -98,23 +98,23 @@ class ManagedVariable(object):
         """Sets the current value for the object requested"""
         self.data[obj] = value
 
-    def register(self, instance, authtoken=None):
+    def register(self, instance, AUTHTOKEN=None):
         """Registers this instance with the appropriate authentication.
 
         Args:
             instance: The instance to register.
-            authtoken: The authentication token to authenticate with API
+            AUTHTOKEN: The authentication token to authenticate with API
         """
-        self.authtokens[instance] = authtoken
+        self.authtokens[instance] = AUTHTOKEN
 
-    def subscribe(self, instance, authtoken=None):
+    def subscribe(self, instance, AUTHTOKEN=None):
         """Subscribes this instance with the appropriate authentication.
 
         Args:
             instance: The instance to subscribe.
-            authtoken: The authentication token to authenticate with API
+            AUTHTOKEN: The authentication token to authenticate with API
         """
-        self.authtokens[instance] = authtoken
+        self.authtokens[instance] = AUTHTOKEN
 
     def authorization_headers(self, instance):
         """Generates authorization headers for the instance"""
@@ -179,7 +179,7 @@ class SubscribableVariable(ManagedVariable):
         self.callback = WeakKeyDictionary()
 
     def subscribe(self, instance, recipe_instance,
-                  authtoken=None, callback=None):
+                  AUTHTOKEN=None, callback=None):
         """Establishes the subscription information for the instance of
         this variable.
 
@@ -187,14 +187,14 @@ class SubscribableVariable(ManagedVariable):
             instance: The object this variable instance is a property of
             recipe_instance: The recipe_instance id from the server for the
                 current recipe execution.
-            authtoken: The authorization token used to authenticate activity
+            AUTHTOKEN: The authorization token used to authenticate activity
                 with the server.
             callback: Function that should be called when an update is
                 retreived. Useful if additional action should be taken
                 to validate the servers's feedback.
         """
         super(SubscribableVariable, self).subscribe(instance,
-                                                    authtoken=authtoken)
+                                                    AUTHTOKEN=AUTHTOKEN)
 
         self.callback[instance] = callback
         self.recipe_instance = recipe_instance
@@ -313,13 +313,13 @@ class StreamingVariable(ManagedVariable):
         super(StreamingVariable, self).__set__(instance, value)
         self.send_sensor_value(instance)
 
-    def register(self, instance, recipe_instance, authtoken=None):
+    def register(self, instance, recipe_instance, AUTHTOKEN=None):
         """Registers the sensor with the server and retrieves the id for
         the sensor
         """
         LOGGER.debug('Registering %s',self.sensor_name)
         super(StreamingVariable, self).register(instance,
-                                                authtoken=authtoken)
+                                                AUTHTOKEN=AUTHTOKEN)
 
         self.recipe_instances[instance] = recipe_instance
         self.identify(instance, recipe_instance)
@@ -374,19 +374,19 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
         self.overridden = WeakKeyDictionary()
 
     def subscribe(self, instance, recipe_instance,
-                  authtoken=None, callback=None):
+                  AUTHTOKEN=None, callback=None):
         """Subscribes to the feed for the variable as well as the
         complementing override.
 
         Args:
             instance: The instance subscribe
             recipe_instance: the recipe instance for subscription
-            authtoken: The authentication token to communicate over the API
+            AUTHTOKEN: The authentication token to communicate over the API
             callback: A function to be called after new data is received
                 from the server.
         """
         super(OverridableVariable, self).subscribe(instance,
-                                                   authtoken=authtoken)
+                                                   AUTHTOKEN=AUTHTOKEN)
 
         self.overridden[instance] = False
         super(OverridableVariable, self).subscribe(instance, recipe_instance,

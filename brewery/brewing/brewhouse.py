@@ -15,7 +15,7 @@ from tornado.httpclient import AsyncHTTPClient
 from brewery.brewing.simple_pump import SimplePump
 from brewery.brewing.vessels import HeatedVessel, HeatExchangedVessel
 from dsp.state_machine import StateMachine
-from settings import host, http_prefix
+from settings import HOST, HTTP_PREFIX
 import settings
 from utils import DataStreamer, SubscribableVariable, StreamingVariable
 
@@ -32,17 +32,17 @@ class Brewhouse(object):
     system_energy = StreamingVariable('system_energy')
     request_permission = StreamingVariable('request_permission')
 
-    def __init__(self,authtoken):
+    def __init__(self,AUTHTOKEN):
         '''Creates the `Brewhouse` instance and waits for a command
         from the webserver to start a new instance.
 
         Args:
-            authtoken: Token string stored on joulia-webserver which
+            AUTHTOKEN: Token string stored on joulia-webserver which
                 has permission to act on behalf of this `Brewhouse` in
                 order to communicate.
         '''
         LOGGER.info('Initializing Brewery object')
-        self.authtoken=authtoken
+        self.authtoken=AUTHTOKEN
 
         self.recipe_instance = None
         self.data_streamer = None
@@ -118,7 +118,7 @@ class Brewhouse(object):
 
         http_client = AsyncHTTPClient()
         post_data = {'brewhouse': settings.brewhouse_id}
-        uri = http_prefix + ":" + host + "/live/recipeInstance/start/"
+        uri = HTTP_PREFIX + ":" + HOST + "/live/recipeInstance/start/"
         headers = {'Authorization':'Token ' + self.authtoken}
         http_client.fetch(uri, handle_start_request,
                           headers=headers,
@@ -145,7 +145,7 @@ class Brewhouse(object):
 
         http_client = AsyncHTTPClient()
         post_data = {'brewhouse': settings.brewhouse_id}
-        uri = http_prefix + ":" + host + "/live/recipeInstance/end/"
+        uri = HTTP_PREFIX + ":" + HOST + "/live/recipeInstance/end/"
         headers = {'Authorization':'Token ' + self.authtoken}
         http_client.fetch(uri, handle_end_request,
                           headers=headers,
@@ -271,8 +271,8 @@ class Brewhouse(object):
         # Controls Calculations for Mash Tun Element
         self.mash_tun.regulate()
         #TODO: (Will) probably need to figure out better option rather than
-        # just checking if its regulator is enabled
-        if self.mash_tun.regulator.enabled:
+        # just checking if its Regulator is enabled
+        if self.mash_tun.Regulator.enabled:
             self.boil_kettle.set_temperature(self.mash_tun.source_temperature)
 
         # Controls Calculations for Boil Kettle Element

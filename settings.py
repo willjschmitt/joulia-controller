@@ -5,15 +5,15 @@ Created on Apr 30, 2016
 '''
 import os
 
-brewhouse_id = 1
+BREWHOUSE_ID = 1
 
-host = os.environ["joulia-webserver-host"]
-authtoken = os.environ["joulia-webserver-authtoken"]
+HOST = os.environ["joulia-webserver-HOST"]
+AUTHTOKEN = os.environ["joulia-webserver-AUTHTOKEN"]
 
-http_prefix = "http"
-ws_prefix = "ws"
+HTTP_PREFIX = "http"
+WS_PREFIX = "ws"
 
-datastream_frequency = 1000. #mS
+DATASTREAM_FREQUENCY = 1000. #mS
 
 LOGGING_CONFIG = {
     'version': 1,
@@ -27,16 +27,16 @@ LOGGING_CONFIG = {
     'loggers': {
         'root': {
             'level': 'DEBUG',
-            'handlers': ['console'],   
-            'propogate': True      
+            'handlers': ['console'],
+            'propogate': True
         },
         'utils': {
             'level': 'ERROR',
         },
         'requests': {
             'level': 'ERROR',
-            'handlers': ['console'],   
-            'propogate': False      
+            'handlers': ['console'],
+            'propogate': False
         },
     },
 }

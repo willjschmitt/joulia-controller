@@ -1,1 +1,1 @@
-from rtdSensor import rtdSensor
+from measurement import rtd_sensor

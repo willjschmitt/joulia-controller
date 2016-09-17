@@ -7,25 +7,22 @@ Created on Apr 3, 2016
 import time
 
 class integrator(object):
-    '''
-    classdocs
-    '''
+    """Integrates an incoming signal
+
+    Transfer function: H(s) = 1/s
+    """
     def __init__(self, **kwargs):
-        '''
-        Constructor
-        '''
         if 'init' in kwargs:
-            self.q_z1 = kwargs['init']
-            self.q = kwargs['init']
+            self.integrated = kwargs['init']
         else:
-            self.q_z1 = 0.
-            self.q = 0.
-            
-        self.t_z1 = time.time()
-        
-    def integrate(self,x):
+            self.integrated = 0.
+
+        self.time_last = time.time()
+
+    def integrate(self,signal):
+        """Integrates the incoming ``signal``"""
         now = time.time()
-        tDelt = now - self.t_z1        
-        self.t_z1 = now
-        
-        self.q += x * tDelt
+        time_delta = now - self.time_last
+        self.time_last = now
+
+        self.integrated += signal * time_delta
