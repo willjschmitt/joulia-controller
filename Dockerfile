@@ -1,4 +1,4 @@
-FROM python:2.7
+FROM hypriot/rpi-python
 MAINTAINER William Schmitt (will@joulia.io)
 
 RUN apt-get update
