@@ -8,7 +8,7 @@ import datetime
 import functools
 import json
 import logging
-from weakref import WeakKeyDictionary
+from weakref import WeakKeyDictionary,WeakSet
 import gpiocrust
 import pytz
 import requests
@@ -19,6 +19,32 @@ import settings
 
 
 LOGGER = logging.getLogger(__name__)
+
+def subscribed(func):
+    """Decorator function to check that the currently called instance is
+    already subscribed to the server before making a call to send to the
+    server
+    """
+    def func_wrapper(self,instance,*args,**kwargs):
+        if instance in self.subscribed:
+            return func(self,instance,*args,**kwargs)
+        else:
+            LOGGER.debug("Not yet subscribed.")
+
+    return func_wrapper
+
+def registered(func):
+    """Decorator function to check that the currently called instance is
+    already registered to the server before making a call to send to the
+    server
+    """
+    def func_wrapper(self,instance,*args,**kwargs):
+        if instance in self.registered:
+            return func(self,instance,*args,**kwargs)
+        else:
+            LOGGER.debug("Not yet registered.")
+
+    return func_wrapper
 
 def rsetattr(obj, attr, val):
     """Sets nested attribute of child elements separating attribute path
@@ -66,20 +92,23 @@ class ManagedVariable(object):
             authorization token.
     """
 
-    data_identify_service = (settings.http_prefix + ":" + settings.host
+    data_identify_service = (settings.HTTP_PREFIX + ":" + settings.HOST
                              + "/live/timeseries/identify/")
 
     def __init__(self, sensor_name, default=None):
         self.default = default
 
         self.sensor_name = sensor_name
+        self.recipe_instances = WeakKeyDictionary()
         self.data = WeakKeyDictionary()
         self.authtokens = WeakKeyDictionary()
         self.ids = WeakKeyDictionary()
 
         self.time_out_wait = 10
         self.time_out_counter = 0
-        self.recipe_instance = None
+
+        self.registered = WeakSet()
+        self.subscribed = WeakSet()
 
     def __get__(self, obj, objtype):
         """Retrieves the current value for the object requested"""
@@ -98,23 +127,27 @@ class ManagedVariable(object):
         """Sets the current value for the object requested"""
         self.data[obj] = value
 
-    def register(self, instance, AUTHTOKEN=None):
+    def register(self, instance, authtoken=None):
         """Registers this instance with the appropriate authentication.
 
         Args:
             instance: The instance to register.
-            AUTHTOKEN: The authentication token to authenticate with API
+            authtoken: The authentication token to authenticate with API
         """
-        self.authtokens[instance] = AUTHTOKEN
+        self.authtokens[instance] = authtoken
+        
+        self.registered.add(instance)
 
-    def subscribe(self, instance, AUTHTOKEN=None):
+    def subscribe(self, instance, authtoken=None):
         """Subscribes this instance with the appropriate authentication.
 
         Args:
             instance: The instance to subscribe.
-            AUTHTOKEN: The authentication token to authenticate with API
+            authtoken: The authentication token to authenticate with API
         """
-        self.authtokens[instance] = AUTHTOKEN
+        self.authtokens[instance] = authtoken
+
+        self.subscribed.add(instance)
 
     def authorization_headers(self, instance):
         """Generates authorization headers for the instance"""
@@ -124,6 +157,8 @@ class ManagedVariable(object):
             headers = {}
         return headers
 
+    @subscribed
+    @registered
     def identify(self, instance, recipe_instance):
         """Sends a request to the server based on the current recipe instance
         to identify the sensors id number, given the `sensor_name`
@@ -179,7 +214,7 @@ class SubscribableVariable(ManagedVariable):
         self.callback = WeakKeyDictionary()
 
     def subscribe(self, instance, recipe_instance,
-                  AUTHTOKEN=None, callback=None):
+                  authtoken=None, callback=None):
         """Establishes the subscription information for the instance of
         this variable.
 
@@ -187,17 +222,16 @@ class SubscribableVariable(ManagedVariable):
             instance: The object this variable instance is a property of
             recipe_instance: The recipe_instance id from the server for the
                 current recipe execution.
-            AUTHTOKEN: The authorization token used to authenticate activity
+            authtoken: The authorization token used to authenticate activity
                 with the server.
             callback: Function that should be called when an update is
                 retreived. Useful if additional action should be taken
                 to validate the servers's feedback.
         """
         super(SubscribableVariable, self).subscribe(instance,
-                                                    AUTHTOKEN=AUTHTOKEN)
+                                                    authtoken=authtoken)
 
         self.callback[instance] = callback
-        self.recipe_instance = recipe_instance
 
         self.check_connectivity()
 
@@ -244,7 +278,7 @@ class SubscribableVariable(ManagedVariable):
         """
         # make sure we have a websocket established
         if self.websocket is None:
-            websocket_address = (settings.ws_prefix + ":" + settings.host
+            websocket_address = (settings.WS_PREFIX + ":" + settings.HOST
                                  + "/live/timeseries/socket/")
             LOGGER.info('No websocket established. Establishing at %s',
                         websocket_address)
@@ -292,14 +326,13 @@ class StreamingVariable(ManagedVariable):
     """A version of `ManagedVaraiable` that publishes to a sensor stream
     on the server.
     """
-    data_post_service = (settings.http_prefix + ":" + settings.host
+    data_post_service = (settings.HTTP_PREFIX + ":" + settings.HOST
                          + "/live/timeseries/new/")
 
     def __init__(self, sensor_name, default=None):
         super(StreamingVariable, self).__init__(sensor_name, default=default)
 
         self.ids = WeakKeyDictionary()
-        self.recipe_instances = WeakKeyDictionary()
         self.time_out_counter = 0
 
     def __set__(self, instance, value):
@@ -313,17 +346,18 @@ class StreamingVariable(ManagedVariable):
         super(StreamingVariable, self).__set__(instance, value)
         self.send_sensor_value(instance)
 
-    def register(self, instance, recipe_instance, AUTHTOKEN=None):
+    def register(self, instance, recipe_instance, authtoken=None):
         """Registers the sensor with the server and retrieves the id for
         the sensor
         """
         LOGGER.debug('Registering %s',self.sensor_name)
         super(StreamingVariable, self).register(instance,
-                                                AUTHTOKEN=AUTHTOKEN)
+                                                authtoken=authtoken)
 
         self.recipe_instances[instance] = recipe_instance
         self.identify(instance, recipe_instance)
 
+    @registered
     def send_sensor_value(self, instance):
         """Sends the current sensor value for the sensor to the server
 
@@ -374,19 +408,19 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
         self.overridden = WeakKeyDictionary()
 
     def subscribe(self, instance, recipe_instance,
-                  AUTHTOKEN=None, callback=None):
+                  authtoken=None, callback=None):
         """Subscribes to the feed for the variable as well as the
         complementing override.
 
         Args:
             instance: The instance subscribe
             recipe_instance: the recipe instance for subscription
-            AUTHTOKEN: The authentication token to communicate over the API
+            authtoken: The authentication token to communicate over the API
             callback: A function to be called after new data is received
                 from the server.
         """
         super(OverridableVariable, self).subscribe(instance,
-                                                   AUTHTOKEN=AUTHTOKEN)
+                                                   authtoken=authtoken)
 
         self.overridden[instance] = False
         super(OverridableVariable, self).subscribe(instance, recipe_instance,
@@ -411,9 +445,9 @@ class DataStreamer(object):
     """
     time_out_wait = 10
 
-    data_post_service = (settings.http_prefix + ":" + settings.host
+    data_post_service = (settings.HTTP_PREFIX + ":" + settings.HOST
                          + "/live/timeseries/new/")
-    data_identify_service = (settings.http_prefix + ":" + settings.host
+    data_identify_service = (settings.HTTP_PREFIX + ":" + settings.HOST
                              + "/live/timeseries/identify/")
 
     def __init__(self, streaming_class, recipe_instance):
@@ -423,7 +457,7 @@ class DataStreamer(object):
         self.sensor_map = {}
         self.time_out_counter = 0
 
-        ioloop.PeriodicCallback(self.post_data, settings.datastream_frequency).start()
+        ioloop.PeriodicCallback(self.post_data, settings.DATASTREAM_FREQUENCY).start()
 
     def register(self, attr, name=None):
         """Registers variable with server
@@ -442,6 +476,7 @@ class DataStreamer(object):
         # map the attribute to the server var name
         self.sensor_map[name] = {'attr':attr}
 
+    @registered
     def post_data(self):
         """Posts the current values of the data to the server"""
         if self.time_out_counter > 0:
