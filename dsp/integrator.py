@@ -6,7 +6,7 @@ Created on Apr 3, 2016
 
 import time
 
-class integrator(object):
+class Integrator(object):
     """Integrates an incoming signal
 
     Transfer function: H(s) = 1/s

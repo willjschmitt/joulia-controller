@@ -3,11 +3,10 @@ Created on Apr 5, 2016
 
 @author: William
 '''
-import logging
+import logging.config
 from tornado import ioloop, gen
 from brewery import brewing
 import settings
-
 
 logging.basicConfig(level=logging.DEBUG)
 logging.config.dictConfig(settings.LOGGING_CONFIG)

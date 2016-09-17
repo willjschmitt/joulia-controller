@@ -6,9 +6,12 @@ Created on Apr 5, 2016
 
 import logging
 import time
+
 from gpiocrust import OutputPin
-from dsp import Regulator, integrator
-from measurement import rtd_sensor
+
+from dsp.integrator import Integrator
+from dsp.regulator import Regulator
+from measurement.rtd_sensor import RtdSensor
 from utils import GPIO_MOCK_API_ACTIVE, OverridableVariable, StreamingVariable
 
 LOGGER = logging.getLogger(__name__)
@@ -38,12 +41,12 @@ class TemperatureMonitoredVessel(SimpleVessel):
     def __init__(self, volume, rtdParams):
         super(TemperatureMonitoredVessel,self).__init__(volume)
 
-        self.temperature_sensor = rtd_sensor(*rtdParams)
+        self.temperature_sensor = RtdSensor(*rtdParams)
 
-        # For simulation environment make an integrator to represent the
+        # For simulation environment make an Integrator to represent the
         # absorbtion of energy
         if GPIO_MOCK_API_ACTIVE:
-            self.liquid_temperature_simulator = integrator(init=68.)
+            self.liquid_temperature_simulator = Integrator(init=68.)
 
     def register(self,recipe_instance):
         """Registers this instance with the properties by submitting the

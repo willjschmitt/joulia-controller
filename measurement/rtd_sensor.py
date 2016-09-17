@@ -1,3 +1,5 @@
+"""RTD Sensor module for resistance temperature devices"""
+
 from dsp.first_order_lag import FirstOrderLag
 
 class RtdSensor(object):

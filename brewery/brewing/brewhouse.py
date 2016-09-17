@@ -117,7 +117,7 @@ class Brewhouse(object):
                 self.watch_for_end()
 
         http_client = AsyncHTTPClient()
-        post_data = {'brewhouse': settings.brewhouse_id}
+        post_data = {'brewhouse': settings.BREWHOUSE_ID}
         uri = HTTP_PREFIX + ":" + HOST + "/live/recipeInstance/start/"
         headers = {'Authorization':'Token ' + self.authtoken}
         http_client.fetch(uri, handle_start_request,
