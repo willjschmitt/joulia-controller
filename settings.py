@@ -31,7 +31,7 @@ LOGGING_CONFIG = {
             'propogate': True
         },
         'utils': {
-            'level': 'ERROR',
+            'level': 'DEBUG',
         },
         'requests': {
             'level': 'ERROR',

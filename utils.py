@@ -8,13 +8,15 @@ import datetime
 import functools
 import json
 import logging
-from weakref import WeakKeyDictionary,WeakSet
+from weakref import WeakKeyDictionary, WeakSet
+
 import gpiocrust
 import pytz
 import requests
 from tornado import gen
 from tornado import ioloop
 from tornado.websocket import websocket_connect
+
 import settings
 
 
@@ -25,26 +27,39 @@ def subscribed(func):
     already subscribed to the server before making a call to send to the
     server
     """
-    def func_wrapper(self,instance,*args,**kwargs):
+    def subscribed_wrapper(self,instance,*args,**kwargs):
         if instance in self.subscribed:
             return func(self,instance,*args,**kwargs)
         else:
             LOGGER.debug("Not yet subscribed.")
 
-    return func_wrapper
+    return subscribed_wrapper
 
 def registered(func):
     """Decorator function to check that the currently called instance is
     already registered to the server before making a call to send to the
     server
     """
-    def func_wrapper(self,instance,*args,**kwargs):
+    def registered_wrapper(self,instance,*args,**kwargs):
         if instance in self.registered:
             return func(self,instance,*args,**kwargs)
         else:
             LOGGER.debug("Not yet registered.")
 
-    return func_wrapper
+    return registered_wrapper
+
+def websocket_required(func):
+    """Makes sure a websocket is established before calling this function.
+
+    Calls ``check_connectivity`` to make sure a websocket is established,
+    and if not, estatblishes asynchronously.
+    """
+#     @gen.coroutine
+    def websocket_required_wrapper(self,*args,**kwargs):
+        yield self.check_connectivity()
+        func(self,*args,**kwargs)
+
+    return websocket_required_wrapper
 
 def rsetattr(obj, attr, val):
     """Sets nested attribute of child elements separating attribute path
@@ -135,7 +150,7 @@ class ManagedVariable(object):
             authtoken: The authentication token to authenticate with API
         """
         self.authtokens[instance] = authtoken
-        
+
         self.registered.add(instance)
 
     def subscribe(self, instance, authtoken=None):
@@ -157,8 +172,6 @@ class ManagedVariable(object):
             headers = {}
         return headers
 
-    @subscribed
-    @registered
     def identify(self, instance, recipe_instance):
         """Sends a request to the server based on the current recipe instance
         to identify the sensors id number, given the `sensor_name`
@@ -237,6 +250,7 @@ class SubscribableVariable(ManagedVariable):
 
         self._subscribe(instance, self.sensor_name, recipe_instance)
 
+    @websocket_required
     def _subscribe(self,instance,sensor_name,recipe_instance,
                    variable_type="value"):
         """Creates a subscription given a sensor name and recipe instance
@@ -332,7 +346,6 @@ class StreamingVariable(ManagedVariable):
     def __init__(self, sensor_name, default=None):
         super(StreamingVariable, self).__init__(sensor_name, default=default)
 
-        self.ids = WeakKeyDictionary()
         self.time_out_counter = 0
 
     def __set__(self, instance, value):
@@ -419,7 +432,7 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
             callback: A function to be called after new data is received
                 from the server.
         """
-        super(OverridableVariable, self).subscribe(instance,
+        super(OverridableVariable, self).subscribe(instance, recipe_instance,
                                                    authtoken=authtoken)
 
         self.overridden[instance] = False
@@ -476,7 +489,6 @@ class DataStreamer(object):
         # map the attribute to the server var name
         self.sensor_map[name] = {'attr':attr}
 
-    @registered
     def post_data(self):
         """Posts the current values of the data to the server"""
         if self.time_out_counter > 0:

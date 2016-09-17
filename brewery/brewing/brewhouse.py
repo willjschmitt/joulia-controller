@@ -144,7 +144,7 @@ class Brewhouse(object):
                 self.end_brewing()
 
         http_client = AsyncHTTPClient()
-        post_data = {'brewhouse': settings.brewhouse_id}
+        post_data = {'brewhouse': settings.BREWHOUSE_ID}
         uri = HTTP_PREFIX + ":" + HOST + "/live/recipeInstance/end/"
         headers = {'Authorization':'Token ' + self.authtoken}
         http_client.fetch(uri, handle_end_request,
@@ -193,9 +193,9 @@ class Brewhouse(object):
 
         #variables that are @properties and need to be streamed periodically still
         self.data_streamer = DataStreamer(self,recipe_instance)
-        self.data_streamer.register('boilKettle__temperature')
-        self.data_streamer.register('mashTun__temperature')
-        self.data_streamer.register('boilKettle__power')
+        self.data_streamer.register('boil_kettle__temperature')
+        self.data_streamer.register('mash_tun__temperature')
+        self.data_streamer.register('boil_kettle__power')
         self.data_streamer.register('system_energy_cost')
         self.data_streamer.register('state__id','state')
 
