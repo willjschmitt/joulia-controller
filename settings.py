@@ -7,8 +7,8 @@ import os
 
 BREWHOUSE_ID = 1
 
-HOST = os.environ["joulia-webserver-HOST"]
-AUTHTOKEN = os.environ["joulia-webserver-AUTHTOKEN"]
+HOST = os.environ["JOULIA_WEBSERVER_HOST"]
+AUTHTOKEN = os.environ["JOULIA_WEBSERVER_AUTHTOKEN"]
 
 HTTP_PREFIX = "http"
 WS_PREFIX = "ws"
