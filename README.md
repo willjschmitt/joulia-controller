@@ -17,7 +17,9 @@ since Docker is not built for ARM normally. Read more at:
 http://blog.hypriot.com/getting-started-with-docker-on-your-arm-device/
 
 Then download and run the docker image:
-`docker -d willjschmitt/joulia-controller`
+`docker -d --device /dev/ttyAMA0:/dev/ttyAMA0 --device /dev/mem:/dev/mem --privileged willjschmitt/joulia-controller`
+
+The image needs to run in privileged mode with devices bound in order to access the GPIO pins.
 
 ### From Source
 Clone the source:
