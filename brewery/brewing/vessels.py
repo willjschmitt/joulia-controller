@@ -8,6 +8,14 @@ import logging
 import time
 
 from gpiocrust import OutputPin
+try:
+    import RPi.GPIO as GPIO
+    GPIO.setmode(GPIO.BCM)
+except:
+    """This is to catch when we are not on the raspberry pi. The gpiocrust
+    library doesn't provide this?
+    """
+    pass
 
 from dsp.integrator import Integrator
 from dsp.regulator import Regulator
