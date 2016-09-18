@@ -2,6 +2,24 @@
 Controller for the electric brewing hardware.
 
 ## Quickstart
+### Environment Variables
+For both methods (Docker or manual), environment variables need to be set.
+With docker, this is via command line options (`-e ENVVARNAME="ENVVARVALUE"`).
+Otherwise set them normally with `set`:
+ * `joulia-webserver-HOST` - The webserver this controller should stream data to (usually `//joulia.io`)
+ * `joulia-webserver-AUTHTOKEN` - The authtoken provided in your dashboard on joulia.io, used to authenticate the controller and identify controller information.
+
+### From Docker
+This project is meant to be run on a Raspberry PI running Docker. 
+
+Hypriot provides a Docker-ready Raspian image, which can save a big hassle,
+since Docker is not built for ARM normally. Read more at:
+http://blog.hypriot.com/getting-started-with-docker-on-your-arm-device/
+
+Then download and run the docker image:
+`docker -d willjschmitt/joulia-controller`
+
+### From Source
 Clone the source:
 `git clone https://github.com/willjschmitt/joulia-controller.git`
 

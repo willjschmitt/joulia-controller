@@ -1,4 +1,4 @@
-FROM hypriot/rpi-python
+FROM acencini/rpi-python-serial-wiringpi
 MAINTAINER William Schmitt (will@joulia.io)
 
 RUN apt-get update
@@ -11,6 +11,4 @@ ADD . /code/
 WORKDIR /code
 RUN pip install -r requirements.txt
 
-CMD python main.py
-
-#EXPOSE 8888
+CMD sudo -E python main.py
