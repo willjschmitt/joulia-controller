@@ -5,7 +5,7 @@ Created on Apr 30, 2016
 '''
 import os
 
-BREWHOUSE_ID = 1
+BREWHOUSE_ID = os.environ['JOULIA_WEBSERVER_BREWHOUSE_ID']
 
 HOST = os.environ["JOULIA_WEBSERVER_HOST"]
 AUTHTOKEN = os.environ["JOULIA_WEBSERVER_AUTHTOKEN"]

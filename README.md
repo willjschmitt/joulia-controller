@@ -6,8 +6,9 @@ Controller for the electric brewing hardware.
 For both methods (Docker or manual), environment variables need to be set.
 With docker, this is via command line options (`-e ENVVARNAME="ENVVARVALUE"`).
 Otherwise set them normally with `set`:
- * `joulia-webserver-HOST` - The webserver this controller should stream data to (usually `//joulia.io`)
- * `joulia-webserver-AUTHTOKEN` - The authtoken provided in your dashboard on joulia.io, used to authenticate the controller and identify controller information.
+ * `JOULIA_WEBSERVER_BREWHOUSE_ID` - The database ID for the brewhouse on the server.
+ * `joulia_webserver_HOST` - The webserver this controller should stream data to (usually `//joulia.io`)
+ * `joulia_webserver_AUTHTOKEN` - The authtoken provided in your dashboard on joulia.io, used to authenticate the controller and identify controller information.
 
 ### From Docker
 This project is meant to be run on a Raspberry PI running Docker. 
