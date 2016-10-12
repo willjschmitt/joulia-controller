@@ -1,15 +1,12 @@
-'''
-Created on Apr 14, 2016
-
-@author: William
-'''
-
+"""Utility functions for ``joulia-controller`` project as well as data
+streaming enabled property-like functions that handle the sharing and
+accepting of data with and from a ``joulia-webserver`` instance.
+"""
 import datetime
 import functools
 import json
 import logging
 from weakref import WeakKeyDictionary, WeakSet
-
 import gpiocrust
 import pytz
 import requests
@@ -28,6 +25,7 @@ def subscribed(func):
     server
     """
     def subscribed_wrapper(self,instance,*args,**kwargs):
+        """The wrapping function for the ``subscribed`` decorator."""
         if instance in self.subscribed:
             return func(self,instance,*args,**kwargs)
         else:
@@ -41,6 +39,7 @@ def registered(func):
     server
     """
     def registered_wrapper(self,instance,*args,**kwargs):
+        """The wrapping function for the ``registered`` decorator."""
         if instance in self.registered:
             return func(self,instance,*args,**kwargs)
         else:
@@ -54,9 +53,9 @@ def websocket_required(func):
     Calls ``check_connectivity`` to make sure a websocket is established,
     and if not, estatblishes asynchronously.
     """
-#     @gen.coroutine
     def websocket_required_wrapper(self,*args,**kwargs):
-        yield self.check_connectivity()
+        """The wrapping function for the ``websocket_required`` decorator."""
+        self.check_connectivity()
         func(self,*args,**kwargs)
 
     return websocket_required_wrapper
@@ -217,14 +216,65 @@ class ManagedVariable(object):
 
         return request
 
-class SubscribableVariable(ManagedVariable):
-    """A version of `ManagedVaraiable` that subscribes to a sensor stream
-    on the server, and uses the values received to set the property.
+
+class WebsocketVariable(ManagedVariable):
+    """A variable that has a websocket connection established for it.
+
+    Attributes:
+        callback: A callback to be called when a related frame is received
+            from the server.
+        websocket: A class-level websocket connection with the server used
+            for exchanging data to/from the server.
     """
 
     def __init__(self, *args, **kwargs):
-        super(SubscribableVariable, self).__init__(*args, **kwargs)
+        super(WebsocketVariable, self).__init__(*args, **kwargs)
         self.callback = WeakKeyDictionary()
+
+    def connect(self,instance,callback=None):
+        """Establishes a websocket connection for the variable.
+
+        Args:
+            instance: The object this variable instance is a property of
+            callback: Function that should be called when an update is
+                retreived. Useful if additional action should be taken
+                to validate the servers's feedback.
+        """
+        self.callback[instance] = callback
+        self.check_connectivity()
+
+    @classmethod
+    def check_connectivity(cls):
+        """Checks if a websocket connection is already established and
+        starts a connection if it is not yet established.
+        """
+        # make sure we have a websocket established
+        if cls.websocket is None:
+            websocket_address = (settings.WS_PREFIX + ":" + settings.HOST
+                                 + "/live/timeseries/socket/")
+            LOGGER.info('No websocket established. Establishing at %s',
+                        websocket_address)
+            #TODO: (Will) We should not use other classes...
+            callback = SubscribableVariable.on_message
+            cls.websocket = yield websocket_connect(websocket_address,
+                                                    callback=cls.connected_callback,
+                                                    on_message_callback=callback)
+
+    @classmethod
+    def connected_callback(cls,*args,**kwargs):
+        """Callback for when websocket connects. Sets ``websocket`` to
+        ``True`` for checking if data is okay to be sent.
+        """
+        cls.connected = True
+
+    connected = False
+    websocket = None
+
+
+class SubscribableVariable(WebsocketVariable):
+    """A version of `ManagedVaraiable` that subscribes to a sensor stream
+    on the server, and uses the values received to set the property.
+    """
 
     def subscribe(self, instance, recipe_instance,
                   authtoken=None, callback=None):
@@ -241,13 +291,8 @@ class SubscribableVariable(ManagedVariable):
                 retreived. Useful if additional action should be taken
                 to validate the servers's feedback.
         """
-        super(SubscribableVariable, self).subscribe(instance,
-                                                    authtoken=authtoken)
-
-        self.callback[instance] = callback
-
-        self.check_connectivity()
-
+        super(SubscribableVariable, self).subscribe(instance,authtoken)
+        self.connect(instance,callback)
         self._subscribe(instance, self.sensor_name, recipe_instance)
 
     @websocket_required
@@ -283,22 +328,9 @@ class SubscribableVariable(ManagedVariable):
             msg_string = json.dumps({'recipe_instance':recipe_instance,
                                      'sensor':id_sensor,
                                      'subscribe':True})
-            self.websocket.write_message(msg_string)
 
-    @gen.coroutine
-    def check_connectivity(self):
-        """Checks if a websocket connection is already established and
-        starts a connection if it is not yet established.
-        """
-        # make sure we have a websocket established
-        if self.websocket is None:
-            websocket_address = (settings.WS_PREFIX + ":" + settings.HOST
-                                 + "/live/timeseries/socket/")
-            LOGGER.info('No websocket established. Establishing at %s',
-                        websocket_address)
-            callback = SubscribableVariable.on_message
-            self.websocket = yield websocket_connect(websocket_address,
-                                                     on_message_callback=callback)
+            if self.connected:
+                self.websocket.write_message(msg_string)
 
     @classmethod
     def on_message(cls, response, *_, **__):
@@ -332,21 +364,15 @@ class SubscribableVariable(ManagedVariable):
         else:
             LOGGER.warning('Websocket closed unexpectedly.')
 
-    websocket = None
     subscribers = {}
 
 
-class StreamingVariable(ManagedVariable):
+class StreamingVariable(WebsocketVariable):
     """A version of `ManagedVaraiable` that publishes to a sensor stream
     on the server.
     """
     data_post_service = (settings.HTTP_PREFIX + ":" + settings.HOST
                          + "/live/timeseries/new/")
-
-    def __init__(self, sensor_name, default=None):
-        super(StreamingVariable, self).__init__(sensor_name, default=default)
-
-        self.time_out_counter = 0
 
     def __set__(self, instance, value):
         """Sets the value to the current instance and sends the new value
@@ -359,14 +385,23 @@ class StreamingVariable(ManagedVariable):
         super(StreamingVariable, self).__set__(instance, value)
         self.send_sensor_value(instance)
 
-    def register(self, instance, recipe_instance, authtoken=None):
+    def register(self, instance, recipe_instance,
+                 authtoken=None, callback=None):
         """Registers the sensor with the server and retrieves the id for
         the sensor
+
+        Args:
+            instance: The object this variable instance is a property of
+            recipe_instance: The recipe_instance id from the server for the
+                current recipe execution.
+            authtoken: The authorization token used to authenticate activity
+                with the server.
+            callback: Function that should be called if the server sends
+                a frame identifying the registered variable.
         """
         LOGGER.debug('Registering %s',self.sensor_name)
-        super(StreamingVariable, self).register(instance,
-                                                authtoken=authtoken)
-
+        super(StreamingVariable, self).register(instance, authtoken=authtoken)
+        self.connect(instance,callback)
         self.recipe_instances[instance] = recipe_instance
         self.identify(instance, recipe_instance)
 
@@ -393,7 +428,8 @@ class StreamingVariable(ManagedVariable):
                 'value': value,
                 'sensor':self.ids[instance]
             }
-            self.post(instance, self.data_post_service, data=data)
+            if self.connected:
+                self.websocket.write_message(data)
 
     @staticmethod
     def clean_value(value):

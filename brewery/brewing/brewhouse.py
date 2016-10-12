@@ -17,7 +17,7 @@ from brewery.brewing.vessels import HeatedVessel, HeatExchangedVessel
 from dsp.state_machine import StateMachine
 from settings import HOST, HTTP_PREFIX
 import settings
-from utils import DataStreamer, SubscribableVariable, StreamingVariable
+from utils import SubscribableVariable, StreamingVariable, DataStreamer
 
 LOGGER = logging.getLogger(__name__)
 
