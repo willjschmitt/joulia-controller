@@ -47,19 +47,6 @@ def registered(func):
 
     return registered_wrapper
 
-def websocket_required(func):
-    """Makes sure a websocket is established before calling this function.
-
-    Calls ``check_connectivity`` to make sure a websocket is established,
-    and if not, estatblishes asynchronously.
-    """
-    def websocket_required_wrapper(self,*args,**kwargs):
-        """The wrapping function for the ``websocket_required`` decorator."""
-        self.check_connectivity()
-        func(self,*args,**kwargs)
-
-    return websocket_required_wrapper
-
 def rsetattr(obj, attr, val):
     """Sets nested attribute of child elements separating attribute path
     using a double underscore.
@@ -188,6 +175,7 @@ class ManagedVariable(object):
 
         request = self.post(instance, self.data_identify_service, data=data)
         self.ids[instance] = request.json()['sensor']
+        LOGGER.debug("Identified %s as %d",self.sensor_name,request.json()['sensor'])
         return request.json()['sensor']
 
     def post(self, instance, url, *args, **kwargs):
@@ -216,6 +204,40 @@ class ManagedVariable(object):
 
         return request
 
+class WebsocketHelper(object):
+    def __init__(self,url):
+        self.queue = []
+        self.connected = False
+        self.callbacks = set()
+        LOGGER.info('No websocket established. Establishing at %s',url)
+        self.connect(url)
+
+    @gen.coroutine
+    def connect(self,url):
+        self.websocket = yield websocket_connect(url,callback=self.connected_callback,
+                                                 on_message_callback=self.on_message)
+
+    def write_message(self,message):
+        self.queue.append(message)
+        self.empty_queue()
+
+    def empty_queue(self):
+        if self.connected:
+            for item in self.queue:
+                self.websocket.write_message(item)
+            self.queue = []
+
+    def connected_callback(self,*args,**kwargs):
+        self.connected = True
+        self.empty_queue()
+
+    def register_callback(self,callback):
+        if callback not in self.callbacks:
+            self.callbacks.add(callback)
+
+    def on_message(self,response,*args,**kwargs):
+        for callback in self.callbacks:
+            callback(response,*args,**kwargs)
 
 class WebsocketVariable(ManagedVariable):
     """A variable that has a websocket connection established for it.
@@ -241,34 +263,10 @@ class WebsocketVariable(ManagedVariable):
                 to validate the servers's feedback.
         """
         self.callback[instance] = callback
-        self.check_connectivity()
 
-    @classmethod
-    def check_connectivity(cls):
-        """Checks if a websocket connection is already established and
-        starts a connection if it is not yet established.
-        """
-        # make sure we have a websocket established
-        if cls.websocket is None:
-            websocket_address = (settings.WS_PREFIX + ":" + settings.HOST
-                                 + "/live/timeseries/socket/")
-            LOGGER.info('No websocket established. Establishing at %s',
-                        websocket_address)
-            #TODO: (Will) We should not use other classes...
-            callback = SubscribableVariable.on_message
-            cls.websocket = yield websocket_connect(websocket_address,
-                                                    callback=cls.connected_callback,
-                                                    on_message_callback=callback)
-
-    @classmethod
-    def connected_callback(cls,*args,**kwargs):
-        """Callback for when websocket connects. Sets ``websocket`` to
-        ``True`` for checking if data is okay to be sent.
-        """
-        cls.connected = True
-
-    connected = False
-    websocket = None
+    websocket_address = (settings.WS_PREFIX + ":" + settings.HOST
+                         + "/live/timeseries/socket/")
+    websocket = WebsocketHelper(websocket_address)
 
 
 class SubscribableVariable(WebsocketVariable):
@@ -292,10 +290,10 @@ class SubscribableVariable(WebsocketVariable):
                 to validate the servers's feedback.
         """
         super(SubscribableVariable, self).subscribe(instance,authtoken)
+        self.websocket.register_callback(self.__class__.on_message)
         self.connect(instance,callback)
         self._subscribe(instance, self.sensor_name, recipe_instance)
 
-    @websocket_required
     def _subscribe(self,instance,sensor_name,recipe_instance,
                    variable_type="value"):
         """Creates a subscription given a sensor name and recipe instance
@@ -329,8 +327,7 @@ class SubscribableVariable(WebsocketVariable):
                                      'sensor':id_sensor,
                                      'subscribe':True})
 
-            if self.connected:
-                self.websocket.write_message(msg_string)
+            self.websocket.write_message(msg_string)
 
     @classmethod
     def on_message(cls, response, *_, **__):
@@ -365,7 +362,6 @@ class SubscribableVariable(WebsocketVariable):
             LOGGER.warning('Websocket closed unexpectedly.')
 
     subscribers = {}
-
 
 class StreamingVariable(WebsocketVariable):
     """A version of `ManagedVaraiable` that publishes to a sensor stream
@@ -428,8 +424,7 @@ class StreamingVariable(WebsocketVariable):
                 'value': value,
                 'sensor':self.ids[instance]
             }
-            if self.connected:
-                self.websocket.write_message(data)
+            self.websocket.write_message(json.dumps(data))
 
     @staticmethod
     def clean_value(value):
