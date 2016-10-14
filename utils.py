@@ -205,6 +205,18 @@ class ManagedVariable(object):
         return request
 
 class WebsocketHelper(object):
+    """A Helper class for handling a synchronous connection to the websocket
+    layer and establishing a queue system for messages when the websocket is
+    not available.
+
+    Attributes:
+        queue: Queue of messages waiting to be sent to the server
+        connected: Boolean status indicator if the websocket is yet
+            connected.
+        callbacks: A list of the registered callbacks for handling messages
+            from the websocket.
+        websocket: The tornado websocket client
+    """
     def __init__(self,url):
         self.queue = []
         self.connected = False
@@ -214,28 +226,61 @@ class WebsocketHelper(object):
 
     @gen.coroutine
     def connect(self,url):
+        """Starts connection to the websocket streaming endpoint.
+
+        Is a tornado coroutine, so the websocket connection is yielded,
+        and we have a connection callback set.
+
+        Args:
+            url: URL to the websocket endpoint.
+        """
         self.websocket = yield websocket_connect(url,callback=self.connected_callback,
                                                  on_message_callback=self.on_message)
 
     def write_message(self,message):
+        """Serves as a ``write_message`` api to the websocket. Adds the new
+        message to the queue, and calls the ``empty_queue`` method.
+
+        Args:
+            message: String-like message to send to the websocket
+        """
         self.queue.append(message)
         self.empty_queue()
 
     def empty_queue(self):
+        """If the websocket is connected, sends the queued messages to
+        the websocket.
+        """
         if self.connected:
             for item in self.queue:
                 self.websocket.write_message(item)
             self.queue = []
 
     def connected_callback(self,*args,**kwargs):
+        """Callback called when the websocket connection is established.
+        Empties the queue of messages stored while the connection was
+        still pending.
+        """
         self.connected = True
         self.empty_queue()
 
     def register_callback(self,callback):
+        """Registers a callback function to be called when a new message is
+        received from the websocket.
+
+        Args:
+            callback: function to be called when a new message is received.
+                The same arguments received by the standard
+                ``on_message_callback`` callback for the websocket.
+        """
         if callback not in self.callbacks:
             self.callbacks.add(callback)
 
     def on_message(self,response,*args,**kwargs):
+        """Callback called when the websocket receives new data.
+
+        Calls all the registered callback functions.
+        """
         for callback in self.callbacks:
             callback(response,*args,**kwargs)
 
