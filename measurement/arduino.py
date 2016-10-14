@@ -1,6 +1,9 @@
 """Utility functions for interacting with arduino over I2C"""
 
-import smbus
+from utils import GPIO_MOCK_API_ACTIVE
+
+if not GPIO_MOCK_API_ACTIVE:
+    import smbus
 
 def analog_read(channel):
     """Reads the counts value broadcast from an arduino at the indicated
