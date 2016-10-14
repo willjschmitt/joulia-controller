@@ -86,9 +86,9 @@ class TemperatureMonitoredVessel(SimpleVessel):
 class HeatedVessel(TemperatureMonitoredVessel):
     """A vessel with temperature monitoring and a heating method"""
 
-    temperature_set_point = OverridableVariable('boilKettle__temperatureSetPoint',default=0.)
-    element_status =  OverridableVariable('boilKettle__elementStatus',default=False)
-    duty_cycle = StreamingVariable('boilKettle__dutyCycle')
+    temperature_set_point = OverridableVariable('boil_kettle__temperature_set_point',default=0.)
+    element_status =  OverridableVariable('boil_kettle__element_status',default=False)
+    duty_cycle = StreamingVariable('boil_kettle__duty_cycle')
 
     def __init__(self, rating, volume, rtd_params, pin, **kwargs):
         self.rating = rating # in Watts (of heating element)
@@ -188,7 +188,7 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
     which includes flow as a controllable parameter.
     """
 
-    temperature_set_point = OverridableVariable('mashTun__temperatureSetPoint')
+    temperature_set_point = OverridableVariable('mash_tun__temperature_set_point')
 
     def __init__(self, volume, rtd_params, heat_exchanger_conductivity=1., **kwargs):
         self.volume = volume

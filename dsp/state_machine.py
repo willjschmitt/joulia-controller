@@ -89,7 +89,7 @@ class StateMachine(object):
 
     @property
     def state(self):
-        return self.states[self.id]
+        return self.states[min(self.id,len(self.states)-1)]
     @state.setter
     def state(self,val):
         self.id = self.states.index(val)
