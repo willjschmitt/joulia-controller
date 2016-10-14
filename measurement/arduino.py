@@ -9,7 +9,7 @@ def analog_read(channel):
     Args:
         channel: The analog pin to read at.
     """
-    bus = smbus.SMBus(0)
+    bus = smbus.SMBus(1)
     address = 0x0A
 
     bus.write_byte(address, channel)
