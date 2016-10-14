@@ -1,6 +1,7 @@
 """RTD Sensor module for resistance temperature devices"""
 
 from dsp.first_order_lag import FirstOrderLag
+from measurement.arduino import analog_read
 
 class RtdSensor(object):
     """A resistance temperature device that measures temperature by
@@ -98,7 +99,7 @@ class RtdSensor(object):
         temperature.
         """
         # Measured voltage into Arduino
-        counts = 1000 #arduino_analogRead(fd, analog_in_pin);
+        counts = analog_read(self.analog_in_pin);
         if counts < 0:
             return
         voltage_measured = self.analog_reference_voltage * (counts/1024.)
