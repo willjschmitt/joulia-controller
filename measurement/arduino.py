@@ -12,6 +12,8 @@ def analog_read(channel):
     bus = smbus.SMBus(0)
     address = 0x0A
 
+    bus.write_byte(address, channel)
+
     counts1 = bus.read_byte_data(address, 0)
     counts2 = bus.read_byte_data(address, 1)
     counts = (counts1 << 8) + counts2
