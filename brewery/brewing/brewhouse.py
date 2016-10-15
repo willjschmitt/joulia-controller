@@ -86,11 +86,11 @@ class Brewhouse(object):
         '''
         self.boil_kettle = HeatedVessel(rating=5000.,volume=5.,
                                         rtd_params=[0,0.385,100.0,5.0,0.94,-16.0,10.],
-                                        pin=0)
+                                        pin=17)
         self.mash_tun = HeatExchangedVessel(volume=5.,
                                            rtd_params=[1,0.385,100.0,5.0,0.94,-9.0,10.],
                                            temperature_source = self.boil_kettle)
-        self.main_pump = SimplePump(pin=2)
+        self.main_pump = SimplePump(pin=27)
 
     def watch_for_start(self):
         '''Makes a long-polling request to joulia-webserver to check

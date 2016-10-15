@@ -20,18 +20,15 @@ LOGGING_CONFIG = {
     'disable_existing_loggers': False,
     'handlers': {
         'console': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
         }
     },
     'loggers': {
         'root': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'handlers': ['console'],
             'propogate': True
-        },
-        'utils': {
-            'level': 'DEBUG',
         },
         'requests': {
             'level': 'ERROR',
