@@ -234,8 +234,8 @@ class WebsocketHelper(object):
         Args:
             url: URL to the websocket endpoint.
         """
-        self.websocket = yield websocket_connect(url,callback=self.connected_callback,
-                                                 on_message_callback=self.on_message)
+        yield websocket_connect(url,callback=self.connected_callback,
+                                on_message_callback=self.on_message)
 
     def write_message(self,message):
         """Serves as a ``write_message`` api to the websocket. Adds the new
@@ -252,16 +252,22 @@ class WebsocketHelper(object):
         the websocket.
         """
         if self.connected:
+            LOGGER.debug("Websocket open. %d messages in queue.",
+                         len(self.queue))
             for item in self.queue:
                 self.websocket.write_message(item)
             self.queue = []
+        else:
+            LOGGER.warning("Websocket still not open. %d messages in queue",
+                           len(self.queue))
 
-    def connected_callback(self,*args,**kwargs):
+    def connected_callback(self,connection,*args,**kwargs):
         """Callback called when the websocket connection is established.
         Empties the queue of messages stored while the connection was
         still pending.
         """
         self.connected = True
+        self.websocket = connection.result()
         self.empty_queue()
 
     def register_callback(self,callback):
