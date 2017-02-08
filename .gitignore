@@ -93,3 +93,6 @@ ENV/
 .project
 .cproject
 .pydevproject
+
+# Ignore PyCharm
+.idea/
