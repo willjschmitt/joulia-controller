@@ -9,7 +9,10 @@ from tornado import gen, ioloop
 from tornado.websocket import websocket_connect
 
 import settings
-from utils import LOGGER, rgetattr
+from utils import rgetattr
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 def subscribed(func):
