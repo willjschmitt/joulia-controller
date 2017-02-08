@@ -41,6 +41,19 @@ class SimpleVessel(object):
         """
         self.volume = volume
 
+    def register(self,recipe_instance):
+        """Registers this instance with the properties by submitting the
+        ``recipe_instance`` to them.
+
+        This abstract base class does not have any properties to register,
+        but maintains this method to maintain the interface for class users.
+
+        Args:
+            recipe_instance: The id for the recipe instance we are
+                connecting with
+        """
+        pass
+
 class TemperatureMonitoredVessel(SimpleVessel):
     """A vessel that has a temperature sensor monitoring the temperature
     of the liquid it contains.
