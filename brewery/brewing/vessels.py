@@ -12,18 +12,18 @@ try:
     import RPi.GPIO as GPIO
     GPIO.setmode(GPIO.BCM)
 except:
-    """This is to catch when we are not on the raspberry pi. The gpiocrust
-    library doesn't provide this?
-    """
+    # This is to catch when we are not on the raspberry pi. The gpiocrust
+    # library doesn't provide this?
     pass
 
 from dsp.integrator import Integrator
 from dsp.regulator import Regulator
 from measurement.rtd_sensor import RtdSensor
-from utils import GPIO_MOCK_API_ACTIVE, OverridableVariable
+from utils import GPIO_MOCK_API_ACTIVE
 from variables import StreamingVariable, OverridableVariable
 
 LOGGER = logging.getLogger(__name__)
+
 
 class SimpleVessel(object):
     """An abstract class to represent a vessel that contains liquid.
@@ -31,10 +31,10 @@ class SimpleVessel(object):
     Attributes:
         volume: Volume of liquid that is in the vessel
     """
-    def __init__(self, volume,**_):
+    def __init__(self, volume, **_):
         self.volume = volume
 
-    def set_liquid_level(self,volume):
+    def set_liquid_level(self, volume):
         """Changes the current liquid level of the vessel.
 
         Args:
@@ -42,7 +42,7 @@ class SimpleVessel(object):
         """
         self.volume = volume
 
-    def register(self,recipe_instance):
+    def register(self, recipe_instance):
         """Registers this instance with the properties by submitting the
         ``recipe_instance`` to them.
 
@@ -55,22 +55,26 @@ class SimpleVessel(object):
         """
         pass
 
+
 class TemperatureMonitoredVessel(SimpleVessel):
     """A vessel that has a temperature sensor monitoring the temperature
     of the liquid it contains.
+
+    Attributes:
+        temperature_sensor: an RtdSensor object to retrieve measurements from
     """
 
-    def __init__(self, volume, rtdParams):
-        super(TemperatureMonitoredVessel,self).__init__(volume)
+    def __init__(self, volume, rtd_parameters):
+        super(TemperatureMonitoredVessel, self).__init__(volume)
 
-        self.temperature_sensor = RtdSensor(*rtdParams)
+        self.temperature_sensor = RtdSensor(*rtd_parameters)
 
         # For simulation environment make an Integrator to represent the
-        # absorbtion of energy
+        # absorption of energy
         if GPIO_MOCK_API_ACTIVE:
             self.liquid_temperature_simulator = Integrator(init=68.)
 
-    def register(self,recipe_instance):
+    def register(self, recipe_instance):
         """Registers this instance with the properties by submitting the
         ``recipe_instance`` to them.
 
@@ -97,29 +101,30 @@ class TemperatureMonitoredVessel(SimpleVessel):
         """Samples the temperature from the measurement circuit."""
         return self.temperature_sensor.measure()
 
+
 class HeatedVessel(TemperatureMonitoredVessel):
     """A vessel with temperature monitoring and a heating method"""
 
-    temperature_set_point = OverridableVariable('boil_kettle__temperature_set_point',default=0.)
-    element_status =  OverridableVariable('boil_kettle__element_status',default=False)
+    temperature_set_point = OverridableVariable('boil_kettle__temperature_set_point', default=0.)
+    element_status = OverridableVariable('boil_kettle__element_status', default=False)
     duty_cycle = StreamingVariable('boil_kettle__duty_cycle')
 
     def __init__(self, rating, volume, rtd_params, pin, **kwargs):
-        self.rating = rating # in Watts (of heating element)
+        self.rating = rating  # Watts (heating element)
         self.temperature_set_point = 0.
 
-        self.Regulator = kwargs.get('regulatorClass',Regulator)(maxQ=1.,minQ=0.)
+        self.Regulator = kwargs.get('regulatorClass', Regulator)(maxQ=1.0, minQ=0.0)
 
-        self.duty_cycle = 0.
-        self.duty_period = 1.0 #seconds
+        self.duty_cycle = 0.0
+        self.duty_period = 1.0  # Seconds
 
         self.pin = OutputPin(pin, value=0)
 
-        super(HeatedVessel,self).__init__(volume,rtd_params)
+        super(HeatedVessel, self).__init__(volume, rtd_params)
 
         self.recalculate_gains()
 
-    def register(self,recipe_instance):
+    def register(self, recipe_instance):
         """Registers this instance with the properties by submitting the
         ``recipe_instance`` to them.
 
@@ -127,15 +132,15 @@ class HeatedVessel(TemperatureMonitoredVessel):
             recipe_instance: The id for the recipe instance we are
                 connecting with
         """
-        HeatedVessel.element_status.subscribe(self,recipe_instance)
-        HeatedVessel.temperature_set_point.subscribe(self,recipe_instance)
-        HeatedVessel.duty_cycle.register(self,recipe_instance)
-        super(HeatedVessel,self).register(recipe_instance)
+        HeatedVessel.element_status.subscribe(self, recipe_instance)
+        HeatedVessel.temperature_set_point.subscribe(self, recipe_instance)
+        HeatedVessel.duty_cycle.register(self, recipe_instance)
+        super(HeatedVessel, self).register(recipe_instance)
 
-    def set_temperature(self,value):
+    def set_temperature(self, value):
         """Sets the temperature set point for the heating element controls.
         """
-        LOGGER.debug("Setting temperature %f",value)
+        LOGGER.debug("Setting temperature %f", value)
         self.temperature_set_point = value
 
     def turn_off(self):
@@ -150,7 +155,7 @@ class HeatedVessel(TemperatureMonitoredVessel):
         self.element_status = self.pin.value = True
         self.Regulator.enable()
 
-    def set_liquid_level(self,volume):
+    def set_liquid_level(self, volume):
         """Adjusts the liquid volume of the vessel, which then recalculates
         the control gains based on the new liquid volume.
         """
@@ -168,17 +173,20 @@ class HeatedVessel(TemperatureMonitoredVessel):
         """Executes regulation action to control the temperature of the
         vessel by adjusting the duty_cycle of the heating eleement
         """
-        LOGGER.debug("Temp: %f, SP: %f",self.temperature,self.temperature_set_point)
-        self.duty_cycle = self.Regulator.calculate(self.temperature,self.temperature_set_point)
+        LOGGER.debug("Temp: %f, SP: %f",
+                     self.temperature, self.temperature_set_point)
+        self.duty_cycle = self.Regulator.calculate(self.temperature,
+                                                   self.temperature_set_point)
 
     def measure_temperature(self):
         """Samples the temperature from the measurement circuit. If GPIO
         is mocked, we will simulate the heating action."""
-        #lets here add heat to the vessel in simulation mode
+        # Let's here add heat to the vessel in simulation mode
         if GPIO_MOCK_API_ACTIVE:
-            return self.liquid_temperature_simulator.integrate(self.temperature_ramp)
+            return self.liquid_temperature_simulator.integrate(
+                self.temperature_ramp)
         else:
-            return super(HeatedVessel,self).measure_temperature()
+            return super(HeatedVessel, self).measure_temperature()
 
     @property
     def power(self):
@@ -192,9 +200,9 @@ class HeatedVessel(TemperatureMonitoredVessel):
         """An estimated degF/sec rate of change of liquid based on ideal
         conditions. Does not include ambient losses.
         """
-        #TODO: add better energy loss to environment
+        # TODO: add better energy loss to environment
         return ((self.power - (self.temperature - 68.)*1.)
-                /(self.volume*4.184*1000.)*(9./5.)*(1./3.79))
+                / (self.volume*4.184*1000.)*(9./5.)*(1./3.79))
 
 
 class HeatExchangedVessel(TemperatureMonitoredVessel):
@@ -211,9 +219,9 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         self.source_temperature = self.temperature_set_point
 
         self.heat_exchanger_conductivity = heat_exchanger_conductivity
-        self.Regulator = kwargs.get('regulatorClass',Regulator)(maxQ=15.,minQ=-15.)
+        self.Regulator = kwargs.get('regulatorClass', Regulator)(maxQ=15., minQ=-15.)
 
-        super(HeatExchangedVessel,self).__init__(volume, rtd_params)
+        super(HeatExchangedVessel, self).__init__(volume, rtd_params)
         self.recalculate_gains()
 
         self.enabled = False
@@ -221,9 +229,9 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         self.temperature_source = kwargs.get('temperature_source',None)
         self.temperature_profile = kwargs.get('temperature_profile',None)
 
-    def register(self,recipe_instance):
-        HeatExchangedVessel.temperature_set_point.subscribe(self,recipe_instance)
-        super(HeatExchangedVessel,self).register(recipe_instance)
+    def register(self, recipe_instance):
+        HeatExchangedVessel.temperature_set_point.subscribe(self, recipe_instance)
+        super(HeatExchangedVessel, self).register(recipe_instance)
 
     def turn_off(self):
         """Disables the pump on this vessel along with its controls"""
@@ -235,13 +243,13 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         self.enabled = True
         self.Regulator.enable()
 
-    def set_temperature(self,temp):
+    def set_temperature(self, temp):
         """Sets the temperatures setpoint for the Regulator to control
         the vessel temperature.
         """
         self.temperature_set_point = temp
 
-    def set_temperature_profile(self,time0):
+    def set_temperature_profile(self, time0):
         """Sets the temperature setpoint for the controls based on the
         current time relative to the start of the temperature profile.
 
@@ -272,8 +280,8 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         vessel by adjusting the temperature set point of the vessel serving
         as the heat source.
         """
-        regulator_temperature = self.Regulator.calculate(self.temperature,
-                                                         self.temperature_set_point)
+        regulator_temperature = self.Regulator.calculate(
+            self.temperature, self.temperature_set_point)
         self.source_temperature = self.temperature + regulator_temperature
 
     def recalculate_gains(self):
@@ -285,18 +293,20 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
 
     def measure_temperature(self):
         """Samples the temperature from the measurement circuit. If GPIO
-        is mocked, we will simulate the heating action."""
+        is mocked, we will simulate the heating action.
+        """
         if GPIO_MOCK_API_ACTIVE:
-            return self.liquid_temperature_simulator.integrate(self.temperature_ramp)
+            return self.liquid_temperature_simulator.integrate(
+                self.temperature_ramp)
         else:
-            return super(HeatExchangedVessel,self).measure_temperature()
+            return super(HeatExchangedVessel, self).measure_temperature()
 
     @property
     def temperature_ramp(self):
         """An estimated degF/sec rate of change of liquid based on ideal
         conditions. Does not include ambient losses.
         """
-        #TODO: add better energy loss to environment
+        # TODO: add better energy loss to environment
         if self.temperature_source and self.enabled:
             return ((self.temperature_source.temperature - self.temperature)
                     * self.heat_exchanger_conductivity)
