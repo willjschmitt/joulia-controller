@@ -6,7 +6,8 @@ Created on Apr 8, 2016
 
 import time
 
-from utils import SubscribableVariable
+from variables import SubscribableVariable
+
 
 class StateMachine(object):
     '''A state machine implementation with a storage of states as

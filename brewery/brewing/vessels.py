@@ -20,7 +20,8 @@ except:
 from dsp.integrator import Integrator
 from dsp.regulator import Regulator
 from measurement.rtd_sensor import RtdSensor
-from utils import GPIO_MOCK_API_ACTIVE, OverridableVariable, StreamingVariable
+from utils import GPIO_MOCK_API_ACTIVE, OverridableVariable
+from variables import StreamingVariable, OverridableVariable
 
 LOGGER = logging.getLogger(__name__)
 
