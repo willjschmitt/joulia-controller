@@ -15,6 +15,14 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 
+class UnregisteredVariableError(Exception):
+    """Represents the case where a method on a managed variable was called that
+    required subscription or registration to the server, but subscription and/
+    or registration had not yet occurred.
+    """
+    pass
+
+
 def subscribed(func):
     """Decorator function to check that the currently called instance is
     already subscribed to the server before making a call to send to the
@@ -25,7 +33,11 @@ def subscribed(func):
         if instance in self.subscribed:
             return func(self, instance, *args, **kwargs)
         else:
-            LOGGER.debug("Not yet subscribed.")
+            raise UnregisteredVariableError(
+                "Variable {} in {} was never subscribed to the server before"
+                " calling {}."
+                "".format(self.sensor_name, instance, func)
+            )
 
     return subscribed_wrapper
 
@@ -40,9 +52,34 @@ def registered(func):
         if instance in self.registered:
             return func(self, instance, *args, **kwargs)
         else:
-            LOGGER.debug("Not yet registered.")
+            raise UnregisteredVariableError(
+                "Variable {} in {} was never registered to the server before"
+                " calling {}."
+                "".format(self.sensor_name, instance, func)
+            )
 
     return registered_wrapper
+
+
+def subscribed_or_registered(func):
+    """Decorator function to check that the currently called instance is
+    already subscribed to or registered with the server before making a call to
+    send to the server.
+    """
+    def subscribed_or_registered_wrapper(self, instance, *args, **kwargs):
+        """The wrapping function for the ``subscribed_or_registered``
+        decorator.
+        """
+        if instance in self.subscribed or instance in self.registered:
+            return func(self, instance, *args, **kwargs)
+        else:
+            raise UnregisteredVariableError(
+                "Variable {} in {} was never subscribed or registered to the"
+                " server before calling {}."
+                "".format(self.sensor_name, instance, func)
+            )
+
+    return subscribed_or_registered_wrapper
 
 
 class ManagedVariable(object):
@@ -81,6 +118,9 @@ class ManagedVariable(object):
         self.registered = WeakSet()
         self.subscribed = WeakSet()
 
+        # External APIs exposed for mocking and replacing
+        self._requests_service = requests
+
     def __get__(self, obj, objtype):
         """Retrieves the current value for the object requested"""
         # Allows us to be able to access the property directly to get
@@ -89,8 +129,12 @@ class ManagedVariable(object):
             return self
 
         # Set the value to the default if it doesn't have a value yet
-        if obj not in self.data:
+        if obj not in self.data and self.default is not None:
             self.data[obj] = self.default
+        elif obj not in self.data and self.default is None:
+            raise AttributeError("Variable {} attempted to be accessed on {}"
+                                 " prior to initialization and no default was"
+                                 " set.".format(self.sensor_name, obj))
 
         return self.data.get(obj)
 
@@ -120,6 +164,7 @@ class ManagedVariable(object):
 
         self.subscribed.add(instance)
 
+    @subscribed_or_registered
     def authorization_headers(self, instance):
         """Generates authorization headers for the instance"""
         if self.authtokens[instance] is not None:
@@ -128,6 +173,7 @@ class ManagedVariable(object):
             headers = {}
         return headers
 
+    @subscribed_or_registered
     def identify(self, instance, recipe_instance):
         """Sends a request to the server based on the current recipe instance
         to identify the sensors id number, given the `sensor_name`
@@ -147,6 +193,7 @@ class ManagedVariable(object):
                      self.sensor_name, request.json()['sensor'])
         return request.json()['sensor']
 
+    @subscribed_or_registered
     def post(self, instance, url, *args, **kwargs):
         """Helper function to help make posts to the server but add time
         between requests incase there are issues so we don't pile up a ton
@@ -160,8 +207,8 @@ class ManagedVariable(object):
         """
         headers = self.authorization_headers(instance)
         try:
-            request = requests.post(url, headers=headers,
-                                    *args, **kwargs)
+            request = self._requests_service.post(
+                url, headers=headers, *args, **kwargs)
         except requests.exceptions.ConnectionError as e:
             LOGGER.info("Server not there. Will retry later.")
             self.time_out_counter = self.time_out_wait
@@ -191,7 +238,7 @@ class WebsocketHelper(object):
             from the websocket.
         websocket: The tornado websocket client
     """
-    def __init__(self,url):
+    def __init__(self, url):
         self.queue = []
         self.connected = False
         self.callbacks = set()
@@ -296,7 +343,7 @@ class WebsocketVariable(ManagedVariable):
 
 
 class SubscribableVariable(WebsocketVariable):
-    """A version of `ManagedVaraiable` that subscribes to a sensor stream
+    """A version of `ManagedVariable` that subscribes to a sensor stream
     on the server, and uses the values received to set the property.
     """
 
