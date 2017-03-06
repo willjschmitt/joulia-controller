@@ -100,20 +100,13 @@ class ManagedVariable(object):
             authorization token.
     """
 
-    data_identify_service = (settings.HTTP_PREFIX + ":" + settings.HOST
-                             + "/live/timeseries/identify/")
-
     def __init__(self, sensor_name, default=None):
         self.default = default
 
         self.sensor_name = sensor_name
         self.recipe_instances = WeakKeyDictionary()
         self.data = WeakKeyDictionary()
-        self.authtokens = WeakKeyDictionary()
         self.ids = WeakKeyDictionary()
-
-        self.time_out_wait = 10
-        self.time_out_counter = 0
 
         self.registered = WeakSet()
         self.subscribed = WeakSet()
@@ -163,153 +156,6 @@ class ManagedVariable(object):
         self.authtokens[instance] = authtoken
 
         self.subscribed.add(instance)
-
-    @subscribed_or_registered
-    def authorization_headers(self, instance):
-        """Generates authorization headers for the instance"""
-        if self.authtokens[instance] is not None:
-            headers = {'Authorization': 'Token ' + self.authtokens[instance]}
-        else:
-            headers = {}
-        return headers
-
-    @subscribed_or_registered
-    def identify(self, instance, recipe_instance):
-        """Sends a request to the server based on the current recipe instance
-        to identify the sensors id number, given the `sensor_name`
-
-        Args:
-            instance: The instance associated with the request (used for
-                retrieving auth params)
-            recipe_instance: The id number for the active recipe instance
-
-        Returns: The id number for the sensor.
-        """
-        data = {'recipe_instance': recipe_instance, 'name': self.sensor_name}
-
-        request = self.post(instance, self.data_identify_service, data=data)
-        self.ids[instance] = request.json()['sensor']
-        LOGGER.debug("Identified %s as %d",
-                     self.sensor_name, request.json()['sensor'])
-        return request.json()['sensor']
-
-    @subscribed_or_registered
-    def post(self, instance, url, *args, **kwargs):
-        """Helper function to help make posts to the server but add time
-        between requests incase there are issues so we don't pile up a ton
-        of requests. Attaches authentication based on instance.
-
-        Args:
-            instance: the instance of the property we are working with
-            url: Url to post to
-            *args: To pass to `requests.post`
-            **kwargs: To pass to `requests.post`
-        """
-        headers = self.authorization_headers(instance)
-        try:
-            request = self._requests_service.post(
-                url, headers=headers, *args, **kwargs)
-        except requests.exceptions.ConnectionError as e:
-            LOGGER.info("Server not there. Will retry later.")
-            self.time_out_counter = self.time_out_wait
-            raise e
-
-        try:
-            request.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            LOGGER.info("Server returned error status. Will retry later. (%s)",
-                        request.text)
-            self.time_out_counter = self.time_out_wait
-            raise e
-
-        return request
-
-
-class WebsocketHelper(object):
-    """A Helper class for handling a synchronous connection to the websocket
-    layer and establishing a queue system for messages when the websocket is
-    not available.
-
-    Attributes:
-        queue: Queue of messages waiting to be sent to the server
-        connected: Boolean status indicator if the websocket is yet
-            connected.
-        callbacks: A list of the registered callbacks for handling messages
-            from the websocket.
-        websocket: The tornado websocket client
-    """
-    def __init__(self, url):
-        self.queue = []
-        self.connected = False
-        self.callbacks = set()
-        LOGGER.info('No websocket established. Establishing at %s', url)
-        self.connect(url)
-
-    @gen.coroutine
-    def connect(self, url):
-        """Starts connection to the websocket streaming endpoint.
-
-        Is a tornado coroutine, so the websocket connection is yielded,
-        and we have a connection callback set.
-
-        Args:
-            url: URL to the websocket endpoint.
-        """
-        yield websocket_connect(url, callback=self.connected_callback,
-                                on_message_callback=self.on_message)
-
-    def write_message(self, message):
-        """Serves as a ``write_message`` api to the websocket. Adds the new
-        message to the queue, and calls the ``empty_queue`` method.
-
-        Args:
-            message: String-like message to send to the websocket
-        """
-        self.queue.append(message)
-        self.empty_queue()
-
-    def empty_queue(self):
-        """If the websocket is connected, sends the queued messages to
-        the websocket.
-        """
-        if self.connected:
-            LOGGER.debug("Websocket open. %d messages in queue.",
-                         len(self.queue))
-            for item in self.queue:
-                self.websocket.write_message(item)
-            self.queue = []
-        else:
-            LOGGER.warning("Websocket still not open. %d messages in queue",
-                           len(self.queue))
-
-    def connected_callback(self, connection, *_, **__):
-        """Callback called when the websocket connection is established.
-        Empties the queue of messages stored while the connection was
-        still pending.
-        """
-        self.connected = True
-        self.websocket = connection.result()
-        self.empty_queue()
-
-    def register_callback(self, callback):
-        """Registers a callback function to be called when a new message is
-        received from the websocket.
-
-        Args:
-            callback: function to be called when a new message is received.
-                The same arguments received by the standard
-                ``on_message_callback`` callback for the websocket.
-        """
-        if callback not in self.callbacks:
-            self.callbacks.add(callback)
-
-    def on_message(self, response, *args, **kwargs):
-        """Callback called when the websocket receives new data.
-
-        Calls all the registered callback functions.
-        """
-        for callback in self.callbacks:
-            callback(response, *args, **kwargs)
 
 
 class WebsocketVariable(ManagedVariable):
@@ -478,42 +324,6 @@ class StreamingVariable(WebsocketVariable):
         self.connect(instance, callback)
         self.recipe_instances[instance] = recipe_instance
         self.identify(instance, recipe_instance)
-
-    @registered
-    def send_sensor_value(self, instance):
-        """Sends the current sensor value for the sensor to the server
-
-        Args:
-            instance: The instance to send the value for.
-        """
-        if self.time_out_counter > 0:
-            self.time_out_counter -= 1
-        else:
-            LOGGER.debug('Data streamer %r sending data for %s.',
-                         self, self.sensor_name)
-
-            # send the data
-            sample_time = datetime.datetime.now(tz=pytz.utc).isoformat()
-
-            value = self.clean_value(self.data[instance])
-            data = {'time': sample_time,
-                    'recipe_instance': self.recipe_instances[instance],
-                    'value': value,
-                    'sensor': self.ids[instance]}
-            self.websocket.write_message(json.dumps(data))
-
-    @staticmethod
-    def clean_value(value):
-        """Returns a cleaned value that will be appropriately interpreted.
-        """
-        if value is None:  # TODO: make server accept None
-            value = 0
-        if value is True:
-            value = 1
-        if value is False:
-            value = 0
-
-        return value
 
 
 class OverridableVariable(StreamingVariable, SubscribableVariable):
