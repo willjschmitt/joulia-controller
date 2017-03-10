@@ -129,8 +129,41 @@ class WebsocketVariable(ManagedVariable):
         super(WebsocketVariable, self).__init__(*args, **kwargs)
         self.callback = WeakKeyDictionary()
 
-    websocket_address = (settings.WS_PREFIX + ":" + settings.HOST
-                         + "/live/timeseries/socket/")
+    def register(self, client, instance, recipe_instance,
+                 authtoken=None, callback=None):
+        assert isinstance(client, JouliaWebsocketClient)
+
+        super(WebsocketVariable, self).register(
+            client, instance, recipe_instance, authtoken=authtoken,
+            callback=callback)
+
+
+class StreamingVariable(WebsocketVariable):
+    """A version of `ManagedVaraiable` that publishes to a sensor stream
+    on the server.
+    """
+
+    def __set__(self, instance, value):
+        """Sets the value to the current instance and sends the new value
+        to the server.
+
+        Args:
+            instance: The instance to set the value for
+            value: The value to set
+        """
+        super(StreamingVariable, self).__set__(instance, value)
+        client = self.clients[instance]
+        recipe_instance = self.recipe_instances[instance]
+        sensor = self.ids[instance]
+        client.update_sensor_value(recipe_instance, value, sensor)
+
+    def register(self, client, instance, recipe_instance,
+                 authtoken=None, callback=None):
+        super(StreamingVariable, self).register(
+            client, instance, recipe_instance, authtoken=authtoken,
+            callback=callback)
+        self.recipe_instances[instance] = recipe_instance
+        self.identify(instance, recipe_instance)
 
 
 class SubscribableVariable(WebsocketVariable):
@@ -140,8 +173,6 @@ class SubscribableVariable(WebsocketVariable):
 
     def register(self, client, instance, recipe_instance,
                  authtoken=None, callback=None):
-        assert isinstance(client, JouliaWebsocketClient)
-
         super(SubscribableVariable, self).register(
             client, instance, recipe_instance, authtoken=authtoken,
             callback=callback)
@@ -172,7 +203,6 @@ class SubscribableVariable(WebsocketVariable):
             LOGGER.info('Subscribing to %s, instance %s',
                         self.sensor_name, recipe_instance)
 
-            client = self.clients[instance]
             sensor = self.ids[instance]
             subscriber = {'descriptor': self,
                           'instance': instance,
@@ -212,32 +242,6 @@ class SubscribableVariable(WebsocketVariable):
             descriptor.overridden[instance] = bool(response_value)
 
     subscribers = {}
-
-
-class StreamingVariable(WebsocketVariable):
-    """A version of `ManagedVaraiable` that publishes to a sensor stream
-    on the server.
-    """
-    data_post_service = (settings.HTTP_PREFIX + ":" + settings.HOST
-                         + "/live/timeseries/new/")
-
-    def __set__(self, instance, value):
-        """Sets the value to the current instance and sends the new value
-        to the server.
-
-        Args:
-            instance: The instance to set the value for
-            value: The value to set
-        """
-        super(StreamingVariable, self).__set__(instance, value)
-        client = self.clients[instance]
-        client.send_sensor_value(instance)
-
-    def register(self, client, instance, recipe_instance,
-                 authtoken=None, callback=None):
-        super(StreamingVariable, self).register(instance, authtoken=authtoken)
-        self.recipe_instances[instance] = recipe_instance
-        self.identify(instance, recipe_instance)
 
 
 class OverridableVariable(StreamingVariable, SubscribableVariable):

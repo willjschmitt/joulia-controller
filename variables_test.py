@@ -5,8 +5,8 @@ import os
 import requests
 import unittest
 
-#from testing.stub_requests import StubRequests
 from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
+from testing.stub_joulia_webserver_client import StubJouliaWebsocketClient
 
 # TODO(Will): Make these settings injected for test cases in a more general way.
 os.environ['JOULIA_WEBSERVER_BREWHOUSE_ID'] = "1"
@@ -143,16 +143,74 @@ class TestManagedVariable(unittest.TestCase):
         want = 11
         self.assertEquals(got, want)
 
-# class TestWebsocketVariable(TestCase):
-#     """Tests for the variables.WebsocketVariable class.
-#     """
-#     def setUp(self):
-#         self.stub_requests = StubRequests()
-#
-#     def test_websocket_connect(self):
-#         class TestClass(object):
-#             foo = variables.WebsocketVariable("websocket_variable")
 
+class TestWebsocketVariable(unittest.TestCase):
+    """Tests for WebsocketVariable."""
+
+    def setUp(self):
+        self.http_address = "http://fakehost"
+        self.ws_address = "ws://fakehost"
+        self.http_client = StubJouliaHTTPClient(
+            self.http_address, auth_token=None)
+        self.ws_client = StubJouliaWebsocketClient(
+            self.ws_address, self.http_client)
+
+    def test_init(self):
+        variables.WebsocketVariable("websocket_variable")
+
+    def test_register_ws_client(self):
+        class TestClass(object):
+            foo = variables.StreamingVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 0
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+    def test_register_http_client_fails(self):
+        class TestClass(object):
+            foo = variables.StreamingVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 0
+        with self.assertRaises(AssertionError):
+            TestClass.foo.register(self.http_client, instance, recipe_instance)
+
+
+class TestStreamingVariable(unittest.TestCase):
+    """Tests for StreamingVariable."""
+
+    def setUp(self):
+        self.http_address = "http://fakehost"
+        self.ws_address = "ws://fakehost"
+        self.http_client = StubJouliaHTTPClient(
+            self.http_address, auth_token=None)
+        self.ws_client = StubJouliaWebsocketClient(
+            self.ws_address, self.http_client)
+
+    def test_set(self):
+        class TestClass(object):
+            foo = variables.StreamingVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 0
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        instance.foo = 1
+        self.assertEquals(instance.foo, 1)
+
+
+class TestSubscribableVariable(unittest.TestCase):
+    """Tests for SubscribableVariable."""
+
+    def setUp(self):
+        self.http_address = "http://fakehost"
+        self.ws_address = "ws://fakehost"
+        self.http_client = StubJouliaHTTPClient(
+            self.http_address, auth_token=None)
+        self.ws_client = StubJouliaWebsocketClient(
+            self.ws_address, self.http_client)
+
+        # TODO(will): Add rest of tests for SubscribableVariable
 
 if __name__ == '__main__':
     unittest.main()

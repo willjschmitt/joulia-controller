@@ -2,6 +2,7 @@
 
 from joulia_webserver_client import JouliaHTTPClient
 from joulia_webserver_client import JouliaWebsocketClient
+from testing.stub_websocket import stub_websocket_connect
 
 
 class StubJouliaHTTPClient(JouliaHTTPClient):
@@ -24,5 +25,7 @@ class StubJouliaWebsocketClient(JouliaWebsocketClient):
     """Stub class for JouliaWebsocketClient.
     """
     def __init__(self, address, http_client, auth_token=None):
+        self._websocket_connect = stub_websocket_connect
+
         super(StubJouliaWebsocketClient, self).__init__(
             address, http_client, auth_token=auth_token)
