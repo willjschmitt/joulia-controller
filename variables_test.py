@@ -5,7 +5,8 @@ import os
 import requests
 import unittest
 
-from testing.stub_requests import StubRequests
+#from testing.stub_requests import StubRequests
+from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 
 # TODO(Will): Make these settings injected for test cases in a more general way.
 os.environ['JOULIA_WEBSERVER_BREWHOUSE_ID'] = "1"
@@ -18,6 +19,10 @@ import variables
 class TestManagedVariable(unittest.TestCase):
     """Tests for the variables.ManagedVariable class.
     """
+    def setUp(self):
+        self.address = "ws://fakehost"
+        self.http_client = StubJouliaHTTPClient(self.address, auth_token=None)
+
     def test_unset_get_no_default(self):
         """Checks the case where the variable has no default and a get is
         attempted on it.
@@ -45,8 +50,10 @@ class TestManagedVariable(unittest.TestCase):
         """
         class TestClass(object):
             foo = variables.ManagedVariable("foo")
+
         instance = TestClass()
-        TestClass.foo.register(instance)
+        recipe_instance = 0
+        TestClass.foo.register(self.http_client, instance, recipe_instance)
 
         instance.foo = 1
         self.assertEquals(instance.foo, 1)
@@ -63,7 +70,8 @@ class TestManagedVariable(unittest.TestCase):
 
         instance = TestClass()
         instance2 = TestClass()
-        TestClass.foo.register(instance)
+        recipe_instance = 0
+        TestClass.foo.register(self.http_client, instance, recipe_instance)
 
         # Edit instance2 then instance1
         instance2.foo = 3
@@ -86,7 +94,8 @@ class TestManagedVariable(unittest.TestCase):
             bar = variables.ManagedVariable("bar")
 
         instance = TestClass()
-        TestClass.foo.register(instance)
+        recipe_instance = 0
+        TestClass.foo.register(self.http_client, instance, recipe_instance)
 
         # Edit bar then foo
         instance.bar = 3
@@ -104,7 +113,7 @@ class TestManagedVariable(unittest.TestCase):
         class TestClass(object):
             foo = variables.ManagedVariable("foo")
 
-        instance = TestClass()
+        TestClass()
 
         self.assertIsInstance(TestClass.foo, variables.ManagedVariable)
 
@@ -113,63 +122,26 @@ class TestManagedVariable(unittest.TestCase):
             foo = variables.ManagedVariable("foo")
 
         instance = TestClass()
-        TestClass.foo.register(instance)
+        recipe_instance = 0
+        TestClass.foo.register(self.http_client, instance, recipe_instance)
 
+        self.assertEquals(TestClass.foo.clients[instance], self.http_client)
         self.assertIn(instance, TestClass.foo.registered)
 
-    def test_subscribe(self):
+    def test_identify(self):
         class TestClass(object):
             foo = variables.ManagedVariable("foo")
 
+        self.http_client.identifier = 11
         instance = TestClass()
-        TestClass.foo.subscribe(instance)
+        recipe_instance = 0
+        TestClass.foo.register(self.http_client, instance, recipe_instance)
 
-        self.assertIn(instance, TestClass.foo.subscribed)
+        TestClass.foo.identify(instance, recipe_instance)
 
-    def test_post_server_not_there(self):
-        class TestClass(object):
-            foo = variables.ManagedVariable("foo")
-        instance = TestClass()
-        TestClass.foo.register(instance)
-
-        # Inject requests mock service
-        requests_service = StubRequests()
-        requests_service.server_there = False
-        TestClass.foo._requests_service = requests_service
-
-        with self.assertRaises(requests.exceptions.ConnectionError):
-            TestClass.foo.post(instance, "fake.url/nowhere")
-
-    def test_post_ok(self):
-        class TestClass(object):
-            foo = variables.ManagedVariable("foo")
-        instance = TestClass()
-        TestClass.foo.register(instance)
-
-        # Inject requests mock service
-        requests_service = StubRequests()
-        requests_service.response_string = '{"foo":1}'
-        TestClass.foo._requests_service = requests_service
-
-        response = TestClass.foo.post(instance, "fake.url/nowhere")
-
-        self.assertEquals(response.json(), {"foo": 1})
-
-    def test_post_server_error(self):
-        class TestClass(object):
-            foo = variables.ManagedVariable("foo")
-        instance = TestClass()
-        TestClass.foo.register(instance)
-
-        # Inject requests mock service
-        requests_service = StubRequests()
-        requests_service.status_code = 500
-        requests_service.reason = "Internal server error."
-        TestClass.foo._requests_service = requests_service
-
-        with self.assertRaises(requests.exceptions.HTTPError):
-            TestClass.foo.post(instance, "fake.url/nowhere")
-
+        got = TestClass.foo.ids[instance]
+        want = 11
+        self.assertEquals(got, want)
 
 # class TestWebsocketVariable(TestCase):
 #     """Tests for the variables.WebsocketVariable class.
