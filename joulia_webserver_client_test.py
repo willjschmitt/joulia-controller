@@ -5,8 +5,10 @@ import unittest
 
 from joulia_webserver_client import JouliaHTTPClient
 from joulia_webserver_client import JouliaWebsocketClient
+from joulia_webserver_client import JouliaWebserverClientBase
 from testing.stub_requests import StubRequests
 from testing.stub_websocket import stub_websocket_connect
+from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 
 
 class JouliaHTTPClientTest(JouliaHTTPClient):
@@ -29,21 +31,18 @@ class JouliaWebsocketClientTest(JouliaWebsocketClient):
             address, http_client, auth_token=auth_token)
 
 
-class StubJouliaHTTPClient(JouliaHTTPClient):
-    """Stub class for JouliaHTTPClient, which is needed for testing
-    JouliaWebsocketClient.
+class TestJouliaWebserverClientBase(unittest.TestCase):
+    """Tests JouliaWebserverClientBase."""
 
-    Attributes:
-        identifier: The id number to be returned by the identify method as the
-            mocked response.
-    """
-    def __init__(self, address, auth_token=None):
-        super(StubJouliaHTTPClient, self).__init__(
-            address, auth_token=auth_token)
-        self.identifier = 0
+    def setUp(self):
+        self.address = "http://fakehost"
+        self.client = JouliaWebserverClientBase(self.address)
 
-    def identify(self, sensor_name, recipe_instance):
-        return self.identifier
+    def test_identify(self):
+        sensor_name = "foo"
+        recipe_instance = 0
+        with self.assertRaises(NotImplementedError):
+            self.client.identify(sensor_name, recipe_instance)
 
 
 class TestJouliaHttpClient(unittest.TestCase):
@@ -88,6 +87,8 @@ class TestJouliaHttpClient(unittest.TestCase):
 
 class TestJouliaWebsocketClient(unittest.TestCase):
     """Tests JouliaWebsocketClient."""
+    # TODO(will): Add test for creating a client where the delay on the
+    # websocket connecting is greater than 0.
 
     def setUp(self):
         self.address = "ws://fakehost"
@@ -148,6 +149,25 @@ class TestJouliaWebsocketClient(unittest.TestCase):
         self.assertEquals(parsed['value'], 2)
         self.assertEquals(parsed['sensor'], 3)
 
+    def test_identify(self):
+        self.client.http_client.identifier = 11
+        sensor_name = "fake_sensor"
+        recipe_instance = 1
+        got = self.client.identify(sensor_name, recipe_instance)
+        want = 11
+        self.assertEqual(got, want)
+
+    def test_subscribe(self):
+        recipe_instance = 1
+        sensor = 3
+        self.client.subscribe(recipe_instance,sensor)
+
+        got = self.client.websocket.written_messages[0]
+        parsed = json.loads(got)
+        self.assertEquals(parsed['recipe_instance'], recipe_instance)
+        self.assertEquals(parsed['sensor'], 3)
+        self.assertEquals(parsed['subscribe'], True)
+
     def test_register_callback(self):
         def foo(response):
             pass
@@ -167,3 +187,19 @@ class TestJouliaWebsocketClient(unittest.TestCase):
         self.client.on_message("")
 
         self.assertEquals(counters['foo'], 1)
+
+    def test_on_message_callback_closed_connection(self):
+        counters = {"foo": 0}
+
+        def foo(response):
+            counters["foo"] += 1
+
+        self.client.register_callback(foo)
+
+        self.client.on_message(None)
+
+        self.assertEquals(counters['foo'], 0)
+
+
+if __name__ == '__main__':
+    unittest.main()

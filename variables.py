@@ -1,85 +1,19 @@
 import datetime
 import json
-from _weakrefset import WeakSet
-from weakref import WeakKeyDictionary
-
+import logging
 import pytz
 import requests
-from tornado import gen, ioloop
-from tornado.websocket import websocket_connect
+from tornado import ioloop
+from weakref import WeakKeyDictionary
+from _weakrefset import WeakSet
 
+from joulia_webserver_client import JouliaWebsocketClient
 import settings
 from utils import rgetattr
-import logging
+from utils import exists_and_not_none
+
 
 LOGGER = logging.getLogger(__name__)
-
-
-class UnregisteredVariableError(Exception):
-    """Represents the case where a method on a managed variable was called that
-    required subscription or registration to the server, but subscription and/
-    or registration had not yet occurred.
-    """
-    pass
-
-
-def subscribed(func):
-    """Decorator function to check that the currently called instance is
-    already subscribed to the server before making a call to send to the
-    server
-    """
-    def subscribed_wrapper(self, instance, *args, **kwargs):
-        """The wrapping function for the ``subscribed`` decorator."""
-        if instance in self.subscribed:
-            return func(self, instance, *args, **kwargs)
-        else:
-            raise UnregisteredVariableError(
-                "Variable {} in {} was never subscribed to the server before"
-                " calling {}."
-                "".format(self.sensor_name, instance, func)
-            )
-
-    return subscribed_wrapper
-
-
-def registered(func):
-    """Decorator function to check that the currently called instance is
-    already registered to the server before making a call to send to the
-    server
-    """
-    def registered_wrapper(self, instance, *args, **kwargs):
-        """The wrapping function for the ``registered`` decorator."""
-        if instance in self.registered:
-            return func(self, instance, *args, **kwargs)
-        else:
-            raise UnregisteredVariableError(
-                "Variable {} in {} was never registered to the server before"
-                " calling {}."
-                "".format(self.sensor_name, instance, func)
-            )
-
-    return registered_wrapper
-
-
-def subscribed_or_registered(func):
-    """Decorator function to check that the currently called instance is
-    already subscribed to or registered with the server before making a call to
-    send to the server.
-    """
-    def subscribed_or_registered_wrapper(self, instance, *args, **kwargs):
-        """The wrapping function for the ``subscribed_or_registered``
-        decorator.
-        """
-        if instance in self.subscribed or instance in self.registered:
-            return func(self, instance, *args, **kwargs)
-        else:
-            raise UnregisteredVariableError(
-                "Variable {} in {} was never subscribed or registered to the"
-                " server before calling {}."
-                "".format(self.sensor_name, instance, func)
-            )
-
-    return subscribed_or_registered_wrapper
 
 
 class ManagedVariable(object):
@@ -93,28 +27,38 @@ class ManagedVariable(object):
         default: Value to use for get's before any other process has set it
         sensor_name: The name of the sensor to use for handshakes with the
             server.
+        clients: A dictionary that maps an object to it's instances client for
+            communicating with the server.
         data: A dictionary that maps an object to its instance's value. This
             is necessary, because this variable needs to be assigned at the
             class level in order for get/set to work correctly.
+        ids: A dictionary that maps an object to its identifier on the server.
         authtokens: A dictionary that maps an object to its instance's
             authorization token.
+        callbacks: A callback to be called when a related frame is received
+            from the server.
+        registered: A set of the instances of the class containing the instance
+            of the ManagedVariable that have registered.
+        registered: A set of the instances of the class containing the instance
+            of the ManagedVariable that have subscribed.
     """
 
     def __init__(self, sensor_name, default=None):
         self.default = default
-
         self.sensor_name = sensor_name
+
+        self.clients = WeakKeyDictionary()
         self.recipe_instances = WeakKeyDictionary()
         self.data = WeakKeyDictionary()
         self.ids = WeakKeyDictionary()
-
+        self.authtokens = WeakKeyDictionary()
+        self.callbacks = WeakKeyDictionary()
         self.registered = WeakSet()
-        self.subscribed = WeakSet()
 
         # External APIs exposed for mocking and replacing
         self._requests_service = requests
 
-    def __get__(self, obj, objtype):
+    def __get__(self, obj, obj_type):
         """Retrieves the current value for the object requested"""
         # Allows us to be able to access the property directly to get
         # at its methods like register, subscribe, etc.
@@ -135,35 +79,48 @@ class ManagedVariable(object):
         """Sets the current value for the object requested"""
         self.data[obj] = value
 
-    def register(self, instance, authtoken=None):
+    def register(self, client, instance, recipe_instance,
+                 authtoken=None, callback=None):
         """Registers this instance with the appropriate authentication.
+        Indicates this ManagedVariable is ready to participate in interactions
+        with the server. Subclasses will dictate the behavior of registered
+        instances.
 
         Args:
-            instance: The instance to register.
+            client: The http/ws client to pass requests through.
+            instance: The instance to subscribe.
+            recipe_instance: The recipe_instance id from the server for the
+                current recipe execution.
             authtoken: The authentication token to authenticate with API
+            callback: Function that should be called when an update is
+                retrieved. Useful if additional action should be taken
+                to validate the servers's feedback.
         """
+        self.clients[instance] = client
         self.authtokens[instance] = authtoken
+        self.callbacks[instance] = callback
+
+        self.identify(instance, recipe_instance)
 
         self.registered.add(instance)
 
-    def subscribe(self, instance, authtoken=None):
-        """Subscribes this instance with the appropriate authentication.
+    def identify(self, instance, recipe_instance):
+        """Requests the sensor id from the server for the current instance of
+        the variable and stores it for future use.
 
-        Args:
-            instance: The instance to subscribe.
-            authtoken: The authentication token to authenticate with API
+        Arguments:
+            instance: the instance the variable is associated with.
+            recipe_instance: the recipe identifier for the session of brewing.
         """
-        self.authtokens[instance] = authtoken
-
-        self.subscribed.add(instance)
+        client = self.clients[instance]
+        id_sensor = client.identify(instance, recipe_instance)
+        self.ids[instance] = id_sensor
 
 
 class WebsocketVariable(ManagedVariable):
     """A variable that has a websocket connection established for it.
 
     Attributes:
-        callback: A callback to be called when a related frame is received
-            from the server.
         websocket: A class-level websocket connection with the server used
             for exchanging data to/from the server.
     """
@@ -172,20 +129,8 @@ class WebsocketVariable(ManagedVariable):
         super(WebsocketVariable, self).__init__(*args, **kwargs)
         self.callback = WeakKeyDictionary()
 
-    def connect(self, instance, callback=None):
-        """Establishes a websocket connection for the variable.
-
-        Args:
-            instance: The object this variable instance is a property of
-            callback: Function that should be called when an update is
-                retrieved. Useful if additional action should be taken
-                to validate the servers's feedback.
-        """
-        self.callback[instance] = callback
-
     websocket_address = (settings.WS_PREFIX + ":" + settings.HOST
                          + "/live/timeseries/socket/")
-    websocket = WebsocketHelper(websocket_address)
 
 
 class SubscribableVariable(WebsocketVariable):
@@ -193,24 +138,14 @@ class SubscribableVariable(WebsocketVariable):
     on the server, and uses the values received to set the property.
     """
 
-    def subscribe(self, instance, recipe_instance,
-                  authtoken=None, callback=None):
-        """Establishes the subscription information for the instance of
-        this variable.
+    def register(self, client, instance, recipe_instance,
+                 authtoken=None, callback=None):
+        assert isinstance(client, JouliaWebsocketClient)
 
-        Args:
-            instance: The object this variable instance is a property of
-            recipe_instance: The recipe_instance id from the server for the
-                current recipe execution.
-            authtoken: The authorization token used to authenticate activity
-                with the server.
-            callback: Function that should be called when an update is
-                retreived. Useful if additional action should be taken
-                to validate the servers's feedback.
-        """
-        super(SubscribableVariable, self).subscribe(instance, authtoken)
-        self.websocket.register_callback(self.__class__.on_message)
-        self.connect(instance, callback)
+        super(SubscribableVariable, self).register(
+            client, instance, recipe_instance, authtoken=authtoken,
+            callback=callback)
+        client.register_callback(self.__class__.on_message)
         self._subscribe(instance, self.sensor_name, recipe_instance)
 
     def _subscribe(self, instance, sensor_name, recipe_instance,
@@ -237,52 +172,44 @@ class SubscribableVariable(WebsocketVariable):
             LOGGER.info('Subscribing to %s, instance %s',
                         self.sensor_name, recipe_instance)
 
-            id_sensor = self.identify(instance, recipe_instance)
+            client = self.clients[instance]
+            sensor = self.ids[instance]
             subscriber = {'descriptor': self,
                           'instance': instance,
                           'var_type': variable_type}
-            self.subscribers[(id_sensor, recipe_instance)] = subscriber
+            self.subscribers[(sensor, recipe_instance)] = subscriber
 
-            msg_string = json.dumps({'recipe_instance': recipe_instance,
-                                     'sensor': id_sensor,
-                                     'subscribe': True})
-
-            self.websocket.write_message(msg_string)
+            client = self.clients[instance]
+            client.subscribe(recipe_instance, sensor)
 
     @classmethod
-    def on_message(cls, response, *_, **__):
+    def on_message(cls, response):
         """A generic callback to handle the response from a websocket
         communication back, which will receive the data and set it
 
         Args:
             response: The websocket response
-            *_: not used, but just here to accept the websocket's call
-            **__: not used, but just here to accept the websocket's call
         """
-        if response is not None:
-            response_data = json.loads(response)
-            sensor = response_data['sensor']
-            recipe_instance = response_data['recipe_instance']
-            subscriber_key = (sensor, recipe_instance)
-            subscriber = cls.subscribers[subscriber_key]
+        response_data = json.loads(response)
+        sensor = response_data['sensor']
+        recipe_instance = response_data['recipe_instance']
+        subscriber_key = (sensor, recipe_instance)
+        subscriber = cls.subscribers[subscriber_key]
 
-            response_value = response_data['value']
+        response_value = response_data['value']
 
-            descriptor = subscriber['descriptor']
-            instance = subscriber['instance']
+        descriptor = subscriber['descriptor']
+        instance = subscriber['instance']
 
-            if subscriber['var_type'] == 'value':
-                current_value = descriptor.data[instance]
-                current_type = type(current_value)
-                descriptor.data[instance] = current_type(response_value)
-                if (instance in descriptor.callback
-                    and descriptor.callback[instance] is not None):
-                    callback = descriptor.callback[instance]
-                    callback(response_value)
-            elif subscriber['var_type'] == 'override':
-                descriptor.overridden[instance] = bool(response_value)
-        else:
-            LOGGER.warning('Websocket closed unexpectedly.')
+        if subscriber['var_type'] == 'value':
+            current_value = descriptor.data[instance]
+            current_type = type(current_value)
+            descriptor.data[instance] = current_type(response_value)
+            if exists_and_not_none(descriptor.callback, instance):
+                callback = descriptor.callback[instance]
+                callback(response_value)
+        elif subscriber['var_type'] == 'override':
+            descriptor.overridden[instance] = bool(response_value)
 
     subscribers = {}
 
@@ -303,25 +230,12 @@ class StreamingVariable(WebsocketVariable):
             value: The value to set
         """
         super(StreamingVariable, self).__set__(instance, value)
-        self.send_sensor_value(instance)
+        client = self.clients[instance]
+        client.send_sensor_value(instance)
 
-    def register(self, instance, recipe_instance,
+    def register(self, client, instance, recipe_instance,
                  authtoken=None, callback=None):
-        """Registers the sensor with the server and retrieves the id for
-        the sensor
-
-        Args:
-            instance: The object this variable instance is a property of
-            recipe_instance: The recipe_instance id from the server for the
-                current recipe execution.
-            authtoken: The authorization token used to authenticate activity
-                with the server.
-            callback: Function that should be called if the server sends
-                a frame identifying the registered variable.
-        """
-        LOGGER.debug('Registering %s', self.sensor_name)
         super(StreamingVariable, self).register(instance, authtoken=authtoken)
-        self.connect(instance, callback)
         self.recipe_instances[instance] = recipe_instance
         self.identify(instance, recipe_instance)
 
@@ -338,24 +252,17 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
         super(OverridableVariable, self).__init__(sensor_name)
         self.overridden = WeakKeyDictionary()
 
-    def subscribe(self, instance, recipe_instance,
-                  authtoken=None, callback=None):
+    def register(self, client, instance, recipe_instance,
+                 authtoken=None, callback=None):
         """Subscribes to the feed for the variable as well as the
         complementing override.
-
-        Args:
-            instance: The instance subscribe
-            recipe_instance: the recipe instance for subscription
-            authtoken: The authentication token to communicate over the API
-            callback: A function to be called after new data is received
-                from the server.
         """
-        super(OverridableVariable, self).subscribe(instance, recipe_instance,
-                                                   authtoken=authtoken)
+        super(OverridableVariable, self).register(instance, recipe_instance,
+                                                  authtoken=authtoken)
 
         self.overridden[instance] = False
-        super(OverridableVariable, self).subscribe(instance, recipe_instance,
-                                                   callback=callback)
+        super(OverridableVariable, self).register(instance, recipe_instance,
+                                                  callback=callback)
 
         self._subscribe(instance, self.sensor_name + "Override",
                         recipe_instance, 'override')
@@ -366,9 +273,13 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
         """override the __set__ function to check if an override is not in
         place on the variable before allowing to go to the normal __set__
         """
-        if not self.overridden.get(obj):
-            super(OverridableVariable, self).__set__(obj, value)
-            self.send_sensor_value(obj)
+        # See if the controls are allowed to set this value at the moment.
+        if self.overridden.get(obj):
+            return
+
+        super(OverridableVariable, self).__set__(obj, value)
+        client = self.clients[obj]
+        client.update_sensor_value(obj)
 
 
 class DataStreamer(object):

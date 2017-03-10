@@ -26,6 +26,9 @@ class JouliaWebserverClientBase(object):
         self.address = address
         self.auth_token = auth_token
 
+    def identify(self, sensor_name, recipe_instance):
+        raise NotImplementedError()
+
 
 class JouliaHTTPClient(JouliaWebserverClientBase):
     """Client for interacting with Joulia Webserver REST endpoints and websocket
@@ -159,6 +162,15 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
                 'sensor': sensor}
         self.websocket.write_message(json.dumps(data))
 
+    def identify(self, sensor_name, recipe_instance):
+        return self.http_client.identify(sensor_name, recipe_instance)
+
+    def subscribe(self, recipe_instance, sensor):
+        msg_string = json.dumps({'recipe_instance': recipe_instance,
+                                 'sensor': sensor,
+                                 'subscribe': True})
+        self.websocket.write_message(msg_string)
+
     def register_callback(self, callback):
         """Registers a callback function to be called when a new message is
         received from the websocket.
@@ -178,5 +190,9 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
         Arguments:
             message: the message received from the websocket peer.
         """
+        if message is None:
+            LOGGER.error('Websocket closed unexpectedly.')
+            return
+
         for callback in self.callbacks:
             callback(message)

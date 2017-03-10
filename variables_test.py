@@ -2,10 +2,10 @@
 """
 
 import os
-import json
 import requests
+import unittest
 
-from unittest import TestCase
+from testing.stub_requests import StubRequests
 
 # TODO(Will): Make these settings injected for test cases in a more general way.
 os.environ['JOULIA_WEBSERVER_BREWHOUSE_ID'] = "1"
@@ -14,7 +14,8 @@ os.environ['JOULIA_WEBSERVER_AUTHTOKEN'] = "badtoken"
 
 import variables
 
-class TestManagedVariable(TestCase):
+
+class TestManagedVariable(unittest.TestCase):
     """Tests for the variables.ManagedVariable class.
     """
     def test_unset_get_no_default(self):
@@ -179,3 +180,7 @@ class TestManagedVariable(TestCase):
 #     def test_websocket_connect(self):
 #         class TestClass(object):
 #             foo = variables.WebsocketVariable("websocket_variable")
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -40,4 +40,11 @@ def rgetattr(obj, attr):
     return functools.reduce(getattr, [obj] + attr.split('__'))
 
 
+def exists_and_not_none(obj, key):
+    """Checks if `key` is in `obj` and if it is not None. Returns boolean
+    indicating the key exists and is not None.
+    """
+    return key in obj and obj[key] is not None
+
+
 GPIO_MOCK_API_ACTIVE = 'gpio_mock' in dir(gpiocrust)
