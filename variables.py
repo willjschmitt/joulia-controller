@@ -66,12 +66,13 @@ class ManagedVariable(object):
             return self
 
         # Set the value to the default if it doesn't have a value yet
-        if obj not in self.data and self.default is not None:
+        if obj not in self.data:
+            if self.default is None:
+                raise AttributeError(
+                    "Variable {} attempted to be accessed on {} prior to"
+                    " initialization and no default was set."
+                    "".format(self.sensor_name, obj))
             self.data[obj] = self.default
-        elif obj not in self.data and self.default is None:
-            raise AttributeError("Variable {} attempted to be accessed on {}"
-                                 " prior to initialization and no default was"
-                                 " set.".format(self.sensor_name, obj))
 
         return self.data.get(obj)
 
@@ -97,6 +98,8 @@ class ManagedVariable(object):
                 to validate the servers's feedback.
         """
         self.clients[instance] = client
+
+        self.recipe_instances[instance] = recipe_instance
         self.authtokens[instance] = authtoken
         self.callbacks[instance] = callback
 
@@ -125,8 +128,8 @@ class WebsocketVariable(ManagedVariable):
             for exchanging data to/from the server.
     """
 
-    def __init__(self, *args, **kwargs):
-        super(WebsocketVariable, self).__init__(*args, **kwargs)
+    def __init__(self, sensor_name, default=None):
+        super(WebsocketVariable, self).__init__(sensor_name, default=default)
         self.callback = WeakKeyDictionary()
 
     def register(self, client, instance, recipe_instance,
@@ -157,39 +160,29 @@ class StreamingVariable(WebsocketVariable):
         sensor = self.ids[instance]
         client.update_sensor_value(recipe_instance, value, sensor)
 
-    def register(self, client, instance, recipe_instance,
-                 authtoken=None, callback=None):
-        super(StreamingVariable, self).register(
-            client, instance, recipe_instance, authtoken=authtoken,
-            callback=callback)
-        self.recipe_instances[instance] = recipe_instance
-        self.identify(instance, recipe_instance)
-
 
 class SubscribableVariable(WebsocketVariable):
     """A version of `ManagedVariable` that subscribes to a sensor stream
     on the server, and uses the values received to set the property.
     """
 
+    def __init__(self, sensor_name, default=None):
+        super(SubscribableVariable, self).__init__(sensor_name, default=default)
+        self.subscribers = {}
+
     def register(self, client, instance, recipe_instance,
                  authtoken=None, callback=None):
         super(SubscribableVariable, self).register(
             client, instance, recipe_instance, authtoken=authtoken,
             callback=callback)
-        client.register_callback(self.__class__.on_message)
-        self._subscribe(instance, self.sensor_name, recipe_instance)
+        client.register_callback(self.on_message)
+        self._subscribe(instance, recipe_instance)
 
-    def _subscribe(self, instance, sensor_name, recipe_instance,
-                   variable_type="value"):
+    def _subscribe(self, instance, recipe_instance, variable_type="value"):
         """Creates a subscription given a sensor name and recipe instance
-
-        This is separated mostly for functions that want to create many
-        sensors from one, like for an ``OverridableVariable``.
 
         Args:
             instance: The instance that is subscribing to the stream
-            sensor_name: The string name for the variable to send a
-                subscription request to the server
             recipe_instance: The id for the recipe instance the subscription
                 is for
             variable_type: Indicates if the stream is for a "value" or
@@ -199,21 +192,20 @@ class SubscribableVariable(WebsocketVariable):
 
         # If we don't have a subscription setup yet, send a subscribe
         # request through the websocket
-        if (sensor_name, recipe_instance,) not in self.subscribers:
+        sensor = self.ids[instance]
+        subscription_key = (sensor, variable_type, recipe_instance)
+        if subscription_key not in self.subscribers:
             LOGGER.info('Subscribing to %s, instance %s',
                         self.sensor_name, recipe_instance)
 
             sensor = self.ids[instance]
-            subscriber = {'descriptor': self,
-                          'instance': instance,
-                          'var_type': variable_type}
-            self.subscribers[(sensor, recipe_instance)] = subscriber
+            subscriber = {'instance': instance}
+            self.subscribers[subscription_key] = subscriber
 
             client = self.clients[instance]
             client.subscribe(recipe_instance, sensor)
 
-    @classmethod
-    def on_message(cls, response):
+    def on_message(self, response):
         """A generic callback to handle the response from a websocket
         communication back, which will receive the data and set it
 
@@ -222,26 +214,29 @@ class SubscribableVariable(WebsocketVariable):
         """
         response_data = json.loads(response)
         sensor = response_data['sensor']
+        variable_type = response_data.get('variable_type', "value")
         recipe_instance = response_data['recipe_instance']
-        subscriber_key = (sensor, recipe_instance)
-        subscriber = cls.subscribers[subscriber_key]
+        subscriber_key = (sensor, variable_type, recipe_instance)
+        subscriber = self.subscribers[subscriber_key]
 
         response_value = response_data['value']
 
-        descriptor = subscriber['descriptor']
         instance = subscriber['instance']
 
-        if subscriber['var_type'] == 'value':
-            current_value = descriptor.data[instance]
-            current_type = type(current_value)
-            descriptor.data[instance] = current_type(response_value)
-            if exists_and_not_none(descriptor.callback, instance):
-                callback = descriptor.callback[instance]
-                callback(response_value)
-        elif subscriber['var_type'] == 'override':
-            descriptor.overridden[instance] = bool(response_value)
+        if variable_type == 'value':
+            # Attempts to convert data to the variable type of currently stored
+            # data if it exists. Otherwise, just sets it to the default parsed
+            # type from the json object.
+            if instance in self.data:
+                current_value = self.data[instance]
+                current_type = type(current_value)
+                self.data[instance] = current_type(response_value)
+            else:
+                self.data[instance] = response_value
 
-    subscribers = {}
+            if exists_and_not_none(self.callbacks, instance):
+                callback = self.callbacks[instance]
+                callback(response_value)
 
 
 class OverridableVariable(StreamingVariable, SubscribableVariable):
@@ -250,10 +245,7 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
     to control
     """
     def __init__(self, sensor_name, default=None):
-        StreamingVariable.__init__(self, sensor_name, default=default)
-        SubscribableVariable.__init__(self, sensor_name, default=default)
-
-        super(OverridableVariable, self).__init__(sensor_name)
+        super(OverridableVariable, self).__init__(sensor_name, default=default)
         self.overridden = WeakKeyDictionary()
 
     def register(self, client, instance, recipe_instance,
@@ -261,29 +253,40 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
         """Subscribes to the feed for the variable as well as the
         complementing override.
         """
-        super(OverridableVariable, self).register(instance, recipe_instance,
-                                                  authtoken=authtoken)
+        super(OverridableVariable, self).register(
+            client, instance, recipe_instance, authtoken=authtoken,
+            callback=callback)
 
         self.overridden[instance] = False
-        super(OverridableVariable, self).register(instance, recipe_instance,
-                                                  callback=callback)
-
-        self._subscribe(instance, self.sensor_name + "Override",
-                        recipe_instance, 'override')
-
-        self.register(instance, recipe_instance)
+        self._subscribe(instance, recipe_instance, variable_type='override')
 
     def __set__(self, obj, value):
         """override the __set__ function to check if an override is not in
         place on the variable before allowing to go to the normal __set__
         """
         # See if the controls are allowed to set this value at the moment.
-        if self.overridden.get(obj):
+        if self.overridden[obj]:
             return
 
         super(OverridableVariable, self).__set__(obj, value)
-        client = self.clients[obj]
-        client.update_sensor_value(obj)
+
+    def on_message(self, response):
+        response_data = json.loads(response)
+        sensor = response_data['sensor']
+        variable_type = response_data.get('variable_type', "value")
+        recipe_instance = response_data['recipe_instance']
+        subscriber_key = (sensor, variable_type, recipe_instance)
+        subscriber = self.subscribers[subscriber_key]
+
+        response_value = response_data['value']
+
+        instance = subscriber['instance']
+
+        if variable_type == 'override':
+            self.overridden[instance] = bool(response_value)
+            return
+        else:
+            return super(OverridableVariable, self).on_message(response)
 
 
 class DataStreamer(object):

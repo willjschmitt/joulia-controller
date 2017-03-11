@@ -1,8 +1,8 @@
 """Tests for the variables module.
 """
 
+import json
 import os
-import requests
 import unittest
 
 from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
@@ -192,11 +192,23 @@ class TestStreamingVariable(unittest.TestCase):
             foo = variables.StreamingVariable("foo")
 
         instance = TestClass()
-        recipe_instance = 0
+        recipe_instance = 1
+        self.ws_client.http_client.identifier = 3
         TestClass.foo.register(self.ws_client, instance, recipe_instance)
 
-        instance.foo = 1
-        self.assertEquals(instance.foo, 1)
+        instance.foo = 2
+        self.assertEquals(instance.foo, 2)
+
+        date_regexp = r'\d{4}[-/]\d{2}[-/]\d{2}'
+        time_regexp = r'\d{2}:\d{2}:\d{2}.\d{6}\+\d{2}:\d{2}'
+        datetime_regexp = "{}T{}".format(date_regexp, time_regexp)
+
+        got = self.ws_client.websocket.written_messages[0]
+        parsed = json.loads(got)
+        self.assertRegexpMatches(parsed['time'], datetime_regexp)
+        self.assertEquals(parsed['recipe_instance'], recipe_instance)
+        self.assertEquals(parsed['value'], 2)
+        self.assertEquals(parsed['sensor'], 3)
 
 
 class TestSubscribableVariable(unittest.TestCase):
@@ -210,7 +222,231 @@ class TestSubscribableVariable(unittest.TestCase):
         self.ws_client = StubJouliaWebsocketClient(
             self.ws_address, self.http_client)
 
-        # TODO(will): Add rest of tests for SubscribableVariable
+    def test_register(self):
+        class TestClass(object):
+            foo = variables.SubscribableVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.ws_client.http_client.identifier = 3
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        self.assertIn(TestClass.foo.on_message, self.ws_client.callbacks)
+
+    def test_subscribe(self):
+        class TestClass(object):
+            foo = variables.SubscribableVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        sensor_id = 11
+        self.http_client.identifier = sensor_id
+
+        # Calls _subscribe
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        self.assertIn((sensor_id, "value", recipe_instance),
+                      TestClass.foo.subscribers)
+        got = TestClass.foo.subscribers[(sensor_id, "value", recipe_instance)]
+        want = {"instance": instance}
+        self.assertEquals(got, want)
+
+    def test_on_message_nothing_set(self):
+        class TestClass(object):
+            foo = variables.SubscribableVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.http_client.identifier = 11
+
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        message = '{"sensor":11,"recipe_instance":1,"value":2}'
+        TestClass.foo.on_message(message)
+
+        self.assertEquals(instance.foo, 2)
+
+    def test_on_message_int_set(self):
+        class TestClass(object):
+            foo = variables.SubscribableVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.http_client.identifier = 11
+
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        instance.foo = 3
+
+        message = '{"sensor":11,"recipe_instance":1,"value":2.0}'
+        TestClass.foo.on_message(message)
+
+        self.assertIsInstance(instance.foo, int)
+        self.assertEquals(instance.foo, 2)
+
+    def test_on_message_bool_set(self):
+        class TestClass(object):
+            foo = variables.SubscribableVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.http_client.identifier = 11
+
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        instance.foo = True
+
+        message = '{"sensor":11,"recipe_instance":1,"value":0}'
+        TestClass.foo.on_message(message)
+
+        self.assertIsInstance(instance.foo, bool)
+        self.assertEquals(instance.foo, False)
+
+    def test_on_message_calls_callback(self):
+        class TestClass(object):
+            foo = variables.SubscribableVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.http_client.identifier = 11
+
+        counters = {"bar": 0}
+
+        def bar(self):
+            counters['bar'] += 1
+
+        TestClass.foo.register(self.ws_client, instance, recipe_instance,
+                               callback=bar)
+
+        message = '{"sensor":11,"recipe_instance":1,"value":0}'
+        TestClass.foo.on_message(message)
+
+        self.assertEquals(counters["bar"], 1)
+
+
+class TestOverridableVariable(unittest.TestCase):
+    """Tests for OverridableVariable."""
+
+    def setUp(self):
+        self.http_address = "http://fakehost"
+        self.ws_address = "ws://fakehost"
+        self.http_client = StubJouliaHTTPClient(
+            self.http_address, auth_token=None)
+        self.ws_client = StubJouliaWebsocketClient(
+            self.ws_address, self.http_client)
+
+    def test_register(self):
+        class TestClass(object):
+            foo = variables.OverridableVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        sensor_id = 3
+        self.ws_client.http_client.identifier = sensor_id
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        self.assertIn((sensor_id, "value", recipe_instance),
+                      TestClass.foo.subscribers)
+        self.assertIn((sensor_id, "override", recipe_instance),
+                      TestClass.foo.subscribers)
+
+    def test_set_not_overridden(self):
+        class TestClass(object):
+            foo = variables.OverridableVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.ws_client.http_client.identifier = 3
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        instance.foo = 2
+        self.assertEquals(instance.foo, 2)
+
+        date_regexp = r'\d{4}[-/]\d{2}[-/]\d{2}'
+        time_regexp = r'\d{2}:\d{2}:\d{2}.\d{6}\+\d{2}:\d{2}'
+        datetime_regexp = "{}T{}".format(date_regexp, time_regexp)
+
+        # First two messages are for subscribing value and override. Third is
+        # the actual sending of a new value
+        self.assertEquals(len(self.ws_client.websocket.written_messages), 3)
+        got = self.ws_client.websocket.written_messages[2]
+        parsed = json.loads(got)
+        self.assertRegexpMatches(parsed['time'], datetime_regexp)
+        self.assertEquals(parsed['recipe_instance'], recipe_instance)
+        self.assertEquals(parsed['value'], 2)
+        self.assertEquals(parsed['sensor'], 3)
+
+    def test_set_is_overridden(self):
+        class TestClass(object):
+            foo = variables.OverridableVariable("foob", default=2)
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.ws_client.http_client.identifier = 3
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        TestClass.foo.overridden[instance] = True
+
+        instance.foo = 22
+        self.assertEquals(instance.foo, 2)
+
+        # First two messages are for subscribing value and override. Third is
+        # the actual sending of a new value, which we shouldn't see, since this
+        # is overridden.
+        self.assertEquals(len(self.ws_client.websocket.written_messages), 2)
+        for message in self.ws_client.websocket.written_messages:
+            parsed = json.loads(message)
+            self.assertIn("subscribe", parsed)
+            self.assertTrue(parsed["subscribe"])
+
+    def test_on_message_override(self):
+        class TestClass(object):
+            foo = variables.OverridableVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.http_client.identifier = 11
+
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        self.assertFalse(TestClass.foo.overridden[instance])
+        message = ('{"sensor":11,"recipe_instance":1,"value":1,'
+                   '"variable_type":"override"}')
+        TestClass.foo.on_message(message)
+        self.assertTrue(TestClass.foo.overridden[instance])
+
+    def test_on_message(self):
+        class TestClass(object):
+            foo = variables.OverridableVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.http_client.identifier = 11
+
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        self.assertFalse(TestClass.foo.overridden[instance])
+        message = '{"sensor":11,"recipe_instance":1,"value":2}'
+        TestClass.foo.on_message(message)
+        self.assertFalse(TestClass.foo.overridden[instance])
+        self.assertEquals(instance.foo, 2)
+
+    def test_on_message_value(self):
+        class TestClass(object):
+            foo = variables.OverridableVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.http_client.identifier = 11
+
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        self.assertFalse(TestClass.foo.overridden[instance])
+        message = ('{"sensor":11,"recipe_instance":1,"value":2,'
+                   '"variable_type":"value"}')
+        TestClass.foo.on_message(message)
+        self.assertFalse(TestClass.foo.overridden[instance])
+        self.assertEquals(instance.foo, 2)
 
 if __name__ == '__main__':
     unittest.main()
