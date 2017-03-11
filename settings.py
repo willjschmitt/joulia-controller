@@ -1,19 +1,15 @@
-'''
-Created on Apr 30, 2016
-
-@author: William
-'''
+"""Global settings for configuring joulia-controller."""
 import os
 
-BREWHOUSE_ID = os.environ['JOULIA_WEBSERVER_BREWHOUSE_ID']
+BREWHOUSE_ID = os.environ.get('JOULIA_WEBSERVER_BREWHOUSE_ID', None)
 
-HOST = os.environ["JOULIA_WEBSERVER_HOST"]
-AUTHTOKEN = os.environ["JOULIA_WEBSERVER_AUTHTOKEN"]
+HOST = os.environ.get("JOULIA_WEBSERVER_HOST", None)
+AUTHTOKEN = os.environ.get("JOULIA_WEBSERVER_AUTHTOKEN", None)
 
 HTTP_PREFIX = "http"
 WS_PREFIX = "ws"
 
-DATASTREAM_FREQUENCY = 1000. #mS
+DATASTREAM_FREQUENCY = 1000.  # mS
 
 LOGGING_CONFIG = {
     'version': 1,

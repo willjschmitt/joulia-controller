@@ -2,17 +2,10 @@
 """
 
 import json
-import os
 import unittest
 
 from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 from testing.stub_joulia_webserver_client import StubJouliaWebsocketClient
-
-# TODO(Will): Make these settings injected for test cases in a more general way.
-os.environ['JOULIA_WEBSERVER_BREWHOUSE_ID'] = "1"
-os.environ['JOULIA_WEBSERVER_HOST'] = "badhost"
-os.environ['JOULIA_WEBSERVER_AUTHTOKEN'] = "badtoken"
-
 import variables
 
 
