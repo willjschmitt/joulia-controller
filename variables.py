@@ -290,132 +290,81 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
 
 
 class DataStreamer(object):
-    """A streaming class to stream data periodically. Has an internal
-    clock to send data at the frequency found in
-    ``settings.DATASTREAM_FREQUENCY``
+    """A streaming class to stream data periodically. A DataStreamer should be
+    instantiated for every object that will be streaming data.
+
+    Attributes:
+        client: JouliaWebserverClient object for performing simple HTTP requests
+            with a Joulia webserver.
+        instance: The object streaming data, which should be polled regularly
+            to send updates to the Joulia webserver.
+        recipe_instance: The brewing instance the datastream is associated with.
+        datastream_frequency: The period between automatic polling of data to be
+            sent to the Joulia webserver. (seconds)
+        ids: A dictionary mapping attribute names to server variable id.
+        attribute_to_name: A dictionary mapping attribute names to names used to
+            store on server.
+        id_to_attribute: A dictionary mapping the server variable id to
+            attribute address (relative to instance).
+        poller: The PeriodicCallback object that performs the async polling.
     """
-    time_out_wait = 10
+    # TODO(will): This should be deprecated as soon as the calculated variables
+    # can automatically send data like a ManagedVariable. Right now, there are
+    # variables, which are calculated, which are not explicitly set, so they are
+    # only evaluated when they are retrieved, which does not trigger an update
+    # action. Since we have not event-driven basis. This class polls at a
+    # regular interval and streams data regardless of change.
 
-    data_post_service = (settings.HTTP_PREFIX + ":" + settings.HOST
-                         + "/live/timeseries/new/")
-    data_identify_service = (settings.HTTP_PREFIX + ":" + settings.HOST
-                             + "/live/timeseries/identify/")
-
-    def __init__(self, streaming_class, recipe_instance):
-        self.streaming_class = streaming_class
+    def __init__(self, client, instance, recipe_instance, datastream_frequency):
+        self.client = client
+        self.instance = instance
         self.recipe_instance = recipe_instance
+        self.datastream_frequency = datastream_frequency
 
-        self.sensor_map = {}
-        self.time_out_counter = 0
+        self.ids = {}
+        self.attribute_to_name = {}
+        self.id_to_attribute = {}
 
-        callback = ioloop.PeriodicCallback(self.post_data,
-                                           settings.DATASTREAM_FREQUENCY)
-        callback.start()
+        self.poller = ioloop.PeriodicCallback(
+            self.post_data, self.datastream_frequency)
+
+    def start(self):
+        """Starts the polling process to stream data regularly."""
+        self.poller.start()
+
+    def stop(self):
+        """Stops the polling process to stream data regularly."""
+        self.poller.stop()
 
     def register(self, attr, name=None):
         """Registers variable with server
 
         Args:
-            attr: Name of the attribute to register with the server
-            name: Name to register the variable as with the server. Defaults
+            attr: Name of the attribute relative to `instance`, which should be
+                polled regularly and sent to the server. Use dunderscores to
+                indicate relationship. I.e: polling instance.foo.bar can be
+                achieved by passing "foo__bar".
+            name: Name to call the variable when sending to theserver. Defaults
                 to ``attr`` if not provided.
         """
         if name is None:  # Default to attribute as the name
             name = attr
-        if name in self.sensor_map:
+
+        identifier = self.client.identify(name, self.recipe_instance)
+        if identifier in self.id_to_attribute:
             # This makes sure we aren't overwriting anything
-            raise AttributeError('{} already exists in streaming service.'
-                                 ''.format(name))
-        # Map the attribute to the server var name
-        self.sensor_map[name] = {'attr':attr}
+            raise AttributeError(
+                '{} already exists in streaming service.'.format(name))
+
+        self.ids[attr] = identifier
+        self.attribute_to_name[attr] = name
+        self.id_to_attribute[identifier] = attr
 
     def post_data(self):
         """Posts the current values of the data to the server"""
-        if self.time_out_counter > 0:
-            self.time_out_counter -= 1
-        else:
-            LOGGER.debug('Data streamer %r sending data.',self)
+        LOGGER.debug('Data streamer %r sending data.', self)
 
-            # Post temperature updates to server
-            sample_time = datetime.datetime.now(tz=pytz.utc).isoformat()
-
-            for sensor_name, sensor in self.sensor_map.iteritems():
-                try:
-                    self.post_sensor_data(sensor_name, sensor, sample_time)
-                except requests.exceptions.RequestException:
-                    LOGGER.error("Failed to post sensor %s. Will retry later.",
-                                 sensor_name)
-                    continue
-
-    def post_sensor_data(self, sensor_name, sensor, sample_time):
-        # Get the sensor ID if we don't have it already
-        if 'id' not in sensor:
-            self.get_sensor_id(sensor_name, sensor)
-
-        # Send the data
-        try:
-            value = rgetattr(self.streaming_class, sensor['attr'])
-            if value is None:  # TODO: make server accept None
-                value = "0"
-            if value is True:
-                value = 'true'
-            if value is False:
-                value = 'false'
-            data = {'time': sample_time,
-                    'recipe_instance': self.recipe_instance,
-                    'value': value,
-                    'sensor': sensor['id']}
-            # TODO: add authorization
-            # if self.authtokens[instance] is not None:
-            #     headers = {
-            #         'Authorization': 'Token ' + self.authtokens[instance]
-            #     }
-            # else:
-            #     headers = {}
-            headers = {}
-            request = requests.post(self.data_post_service,
-                                    data=data, headers=headers)
-        except requests.exceptions.ConnectionError as e:
-            LOGGER.info("Server not there. Will retry later.")
-            self.time_out_counter = self.time_out_wait
-            raise e
-
-        try:
-            request.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            LOGGER.info("Server returned error status. Will retry later. (%s)",
-                        request.text)
-            self.time_out_counter = self.time_out_wait
-            raise e
-
-        return
-
-    def get_sensor_id(self, sensor_name, sensor):
-        try:
-            data = {'recipe_instance': self.recipe_instance,
-                    'name': sensor_name}
-            # TODO: add authorization
-            # if self.authtokens[instance] is not None:
-            #     headers = {
-            #         'Authorization': 'Token ' + self.authtokens[instance]
-            #     }
-            # else:
-            #     headers = {}
-            headers = {}
-
-            request = requests.post(self.data_identify_service,
-                                    data=data, headers=headers)
-        except requests.exceptions.ConnectionError as e:
-            LOGGER.error("Server not there. Will retry later.")
-            self.time_out_counter = self.time_out_wait
-            raise e
-
-        try:
-            request.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            LOGGER.error("Server returned error status. Will retry later. (%s)",
-                         request.text)
-            self.time_out_counter = self.time_out_wait
-            raise e
-
-        sensor['id'] = request.json()['sensor']
+        for sensor_id, attr in self.id_to_attribute.iteritems():
+            value = rgetattr(self.instance, attr)
+            self.client.update_sensor_value(
+                self.recipe_instance, value, sensor_id)

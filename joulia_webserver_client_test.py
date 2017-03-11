@@ -44,6 +44,43 @@ class TestJouliaWebserverClientBase(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             self.client.identify(sensor_name, recipe_instance)
 
+    def test_update_sensor_value(self):
+        recipe_instance = 0
+        value = 0
+        sensor = 0
+        with self.assertRaises(NotImplementedError):
+            self.client.update_sensor_value(recipe_instance, value, sensor)
+
+    def test_clean_value_none(self):
+        value = None
+        got = self.client.clean_value(value)
+        want = 0
+        self.assertEquals(got, want)
+
+    def test_clean_value_true(self):
+        value = True
+        got = self.client.clean_value(value)
+        want = 1
+        self.assertEquals(got, want)
+
+    def test_clean_value_false(self):
+        value = False
+        got = self.client.clean_value(value)
+        want = 0
+        self.assertEquals(got, want)
+
+    def test_clean_value_int(self):
+        value = 11
+        got = self.client.clean_value(value)
+        want = 11
+        self.assertEquals(got, want)
+
+    def test_clean_value_float(self):
+        value = 13.2
+        got = self.client.clean_value(value)
+        want = 13.2
+        self.assertAlmostEquals(got, want, 6)
+
 
 class TestJouliaHttpClient(unittest.TestCase):
     """Tests JouliaHttpClient."""
@@ -101,36 +138,6 @@ class TestJouliaWebsocketClient(unittest.TestCase):
         got = self.client.websocket.written_messages
         want = ["foo"]
         self.assertEquals(got, want)
-
-    def test_clean_value_none(self):
-        value = None
-        got = self.client.clean_value(value)
-        want = 0
-        self.assertEquals(got, want)
-
-    def test_clean_value_true(self):
-        value = True
-        got = self.client.clean_value(value)
-        want = 1
-        self.assertEquals(got, want)
-
-    def test_clean_value_false(self):
-        value = False
-        got = self.client.clean_value(value)
-        want = 0
-        self.assertEquals(got, want)
-
-    def test_clean_value_int(self):
-        value = 11
-        got = self.client.clean_value(value)
-        want = 11
-        self.assertEquals(got, want)
-
-    def test_clean_value_float(self):
-        value = 13.2
-        got = self.client.clean_value(value)
-        want = 13.2
-        self.assertAlmostEquals(got, want, 6)
 
     def test_update_sensor_value_correct_written_message(self):
         recipe_instance = 1

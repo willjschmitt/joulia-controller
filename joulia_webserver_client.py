@@ -29,6 +29,28 @@ class JouliaWebserverClientBase(object):
     def identify(self, sensor_name, recipe_instance):
         raise NotImplementedError()
 
+    def update_sensor_value(self, recipe_instance, value, sensor):
+        """Sends the current sensor value for the sensor to the server
+
+        Args:
+            recipe_instance: The recipe instance id to associate the measurement
+                with
+            value: The sampled value
+            sensor: The sensor id for the equipment being sampled
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def clean_value(value):
+        """Returns a cleaned value that will be appropriately interpreted."""
+        if value is None:  # TODO: make server accept None
+            return 0
+        if value is True:
+            return 1
+        if value is False:
+            return 0
+        return value
+
 
 class JouliaHTTPClient(JouliaWebserverClientBase):
     """Client for interacting with Joulia Webserver REST endpoints and websocket
@@ -82,6 +104,19 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
         LOGGER.debug("Identified %s as %d", sensor_name, identifier)
         return identifier
 
+    @property
+    def _update_sensor_value_url(self):
+        return self.address + "/live/timeseries/new/"
+
+    def update_sensor_value(self, recipe_instance, value, sensor):
+        sample_time = datetime.datetime.now(tz=pytz.utc).isoformat()
+
+        data = {'time': sample_time,
+                'recipe_instance': recipe_instance,
+                'value': self.clean_value(value),
+                'sensor': sensor}
+        self._post(self._update_sensor_value_url, data=data)
+
 
 class JouliaWebsocketClient(JouliaWebserverClientBase):
     """A Helper class for handling a synchronous connection to the websocket
@@ -130,27 +165,7 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
         """
         self.websocket.write_message(message)
 
-    @staticmethod
-    def clean_value(value):
-        """Returns a cleaned value that will be appropriately interpreted.
-        """
-        if value is None:  # TODO: make server accept None
-            return 0
-        if value is True:
-            return 1
-        if value is False:
-            return 0
-        return value
-
     def update_sensor_value(self, recipe_instance, value, sensor):
-        """Sends the current sensor value for the sensor to the server
-
-        Args:
-            recipe_instance: The recipe instance id to associate the measurement
-                with
-            value: The sampled value
-            sensor: The sensor id for the equipment being sampled
-        """
         LOGGER.debug("Sending data sample for sensor %s, recipe instance %s: "
                      "%g", sensor, recipe_instance, value)
 

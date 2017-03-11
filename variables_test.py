@@ -448,5 +448,102 @@ class TestOverridableVariable(unittest.TestCase):
         self.assertFalse(TestClass.foo.overridden[instance])
         self.assertEquals(instance.foo, 2)
 
+
+class TestDataStreamer(unittest.TestCase):
+    """Tests for DataStreamer."""
+
+    def setUp(self):
+        self.http_address = "http://fakehost"
+        self.http_client = StubJouliaHTTPClient(
+            self.http_address, auth_token=None)
+
+    def test_start_stop(self):
+        class TestClass(object):
+            foo = 1
+        instance = TestClass()
+        recipe_instance = 0
+        streamer = variables.DataStreamer(
+            self.http_client, instance, recipe_instance, 1)
+
+        streamer.start()
+        streamer.stop()
+
+    def test_register(self):
+        class TestClass(object):
+            foo = 1
+        instance = TestClass()
+        recipe_instance = 0
+        self.http_client.identifier = 11
+        streamer = variables.DataStreamer(
+            self.http_client, instance, recipe_instance, 1)
+
+        streamer.register("foo", "bar")
+
+        self.assertEquals(streamer.attribute_to_name["foo"], "bar")
+        self.assertEquals(streamer.ids["foo"], 11)
+        self.assertEquals(streamer.id_to_attribute[11], "foo")
+
+    def test_register_no_name(self):
+        class TestClass(object):
+            foo = 1
+        instance = TestClass()
+        recipe_instance = 0
+        self.http_client.identifier = 11
+        streamer = variables.DataStreamer(
+            self.http_client, instance, recipe_instance, 1)
+
+        streamer.register("foo")
+
+        self.assertEquals(streamer.attribute_to_name["foo"], "foo")
+        self.assertEquals(streamer.ids["foo"], 11)
+        self.assertEquals(streamer.id_to_attribute[11], "foo")
+
+    def test_register_double_register_fails(self):
+        class TestClass(object):
+            foo = 1
+        instance = TestClass()
+        recipe_instance = 0
+        self.http_client.identifier = 11
+        streamer = variables.DataStreamer(
+            self.http_client, instance, recipe_instance, 1)
+
+        streamer.register("foo")
+
+        with self.assertRaises(AttributeError):
+            streamer.register("foo")
+
+    def test_post_data(self):
+        class TestClass(object):
+            foo = 1
+            bar = 2
+        instance = TestClass()
+        recipe_instance = 0
+        streamer = variables.DataStreamer(
+            self.http_client, instance, recipe_instance, 1)
+
+        self.http_client.identifier = 11
+        streamer.register("foo")
+
+        self.http_client.identifier = 12
+        streamer.register("bar")
+
+        streamer.post_data()
+
+        # Enforces order of updates, which is not guaranteed, since the
+        # production code iterates over a dict, which does not guarantee order.
+        updates = sorted(self.http_client.update_sensor_value_posts,
+                         key=lambda update: update['sensor'])
+        got = updates[0]
+        want = {"recipe_instance": recipe_instance,
+                "value": 1,
+                "sensor": 11}
+        self.assertEquals(got, want)
+
+        got = updates[1]
+        want = {"recipe_instance": recipe_instance,
+                "value": 2,
+                "sensor": 12}
+        self.assertEquals(got, want)
+
 if __name__ == '__main__':
     unittest.main()
