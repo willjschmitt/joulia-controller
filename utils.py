@@ -22,7 +22,15 @@ def rsetattr(obj, attr, val):
         val: value to set
     """
     pre, _, post = attr.rpartition('__')
-    return setattr(rgetattr(obj, pre) if pre else obj, post, val)
+
+    leaf_obj = rgetattr(obj, pre) if pre else obj
+
+    if not hasattr(leaf_obj, post):
+        raise AttributeError(
+            "{}.{} has no attribute {} on it, and rsetattr does not initialize"
+            "values.".format(obj, pre, post))
+
+    return setattr(leaf_obj, post, val)
 
 
 def rgetattr(obj, attr):
