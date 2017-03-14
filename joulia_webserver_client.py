@@ -100,7 +100,6 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
 
         request = self._post(self._identify_url, data=data)
         identifier = request.json()['sensor']
-        # self.ids[instance] =
         LOGGER.debug("Identified %s as %d", sensor_name, identifier)
         return identifier
 

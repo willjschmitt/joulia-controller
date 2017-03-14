@@ -121,6 +121,18 @@ class TestJouliaHttpClient(unittest.TestCase):
         want = 11
         self.assertEqual(got, want)
 
+    def test_update_sensor_value_url(self):
+        got = self.client._update_sensor_value_url
+        want = "http://fakehost/live/timeseries/new/"
+        self.assertEqual(got, want)
+
+    def test_update_sensor_value(self):
+        self.client._requests_service.response_string = '{"sensor":11}'
+        recipe_instance = 1
+        value = 2.0
+        sensor_id = 3
+        self.client.update_sensor_value(recipe_instance, value, sensor_id)
+
 
 class TestJouliaWebsocketClient(unittest.TestCase):
     """Tests JouliaWebsocketClient."""
