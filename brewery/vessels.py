@@ -1,26 +1,15 @@
-'''
-Created on Apr 5, 2016
-
-@author: William
-'''
+"""Classes for representing and interacting with brewing vessels like Boil
+Kettles, Mash Tuns, etc.
+"""
 
 import logging
 import time
 
-from gpiocrust import OutputPin
-try:
-    import RPi.GPIO as GPIO
-    GPIO.setmode(GPIO.BCM)
-except:
-    # This is to catch when we are not on the raspberry pi. The gpiocrust
-    # library doesn't provide this?
-    pass
-
-from dsp.dsp import Integrator, Regulator
-from dsp.regulator import Regulator
+from dsp.dsp import Integrator
+from dsp.dsp import Regulator
 from measurement.rtd_sensor import RtdSensor
-from utils import GPIO_MOCK_API_ACTIVE
-from variables import StreamingVariable, OverridableVariable
+from variables import OverridableVariable
+from variables import StreamingVariable
 
 LOGGER = logging.getLogger(__name__)
 
@@ -29,9 +18,9 @@ class SimpleVessel(object):
     """An abstract class to represent a vessel that contains liquid.
 
     Attributes:
-        volume: Volume of liquid that is in the vessel
+        volume: Volume of liquid that is in the vessel. Units: gallons.
     """
-    def __init__(self, volume, **_):
+    def __init__(self, volume):
         self.volume = volume
 
     def set_liquid_level(self, volume):
@@ -42,19 +31,6 @@ class SimpleVessel(object):
         """
         self.volume = volume
 
-    def register(self, recipe_instance):
-        """Registers this instance with the properties by submitting the
-        ``recipe_instance`` to them.
-
-        This abstract base class does not have any properties to register,
-        but maintains this method to maintain the interface for class users.
-
-        Args:
-            recipe_instance: The id for the recipe instance we are
-                connecting with
-        """
-        pass
-
 
 class TemperatureMonitoredVessel(SimpleVessel):
     """A vessel that has a temperature sensor monitoring the temperature
@@ -64,38 +40,15 @@ class TemperatureMonitoredVessel(SimpleVessel):
         temperature_sensor: an RtdSensor object to retrieve measurements from
     """
 
-    def __init__(self, volume, rtd_parameters):
+    def __init__(self, volume, temperature_sensor):
         super(TemperatureMonitoredVessel, self).__init__(volume)
 
-        self.temperature_sensor = RtdSensor(*rtd_parameters)
-
-        # For simulation environment make an Integrator to represent the
-        # absorption of energy
-        if GPIO_MOCK_API_ACTIVE:
-            self.liquid_temperature_simulator = Integrator(init=68.)
-
-    def register(self, recipe_instance):
-        """Registers this instance with the properties by submitting the
-        ``recipe_instance`` to them.
-
-        This abstract base class does not have any properties to register,
-        but maintains this method to maintain the interface for class users.
-
-        Args:
-            recipe_instance: The id for the recipe instance we are
-                connecting with
-        """
-        pass
+        self.temperature_sensor = temperature_sensor
 
     @property
     def temperature(self):
-        """Gets the current temperature of the vessel. If GPIO is mocked,
-        it will use a simulated value.
-        """
-        if GPIO_MOCK_API_ACTIVE:
-            return self.liquid_temperature_simulator.integrated
-        else:
-            return self.temperature_sensor.temperature
+        """Gets the current temperature of the vessel."""
+        return self.temperature_sensor.temperature
 
     def measure_temperature(self):
         """Samples the temperature from the measurement circuit."""
