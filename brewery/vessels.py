@@ -58,37 +58,44 @@ class TemperatureMonitoredVessel(SimpleVessel):
 class HeatedVessel(TemperatureMonitoredVessel):
     """A vessel with temperature monitoring and a heating method"""
 
-    temperature_set_point = OverridableVariable('boil_kettle__temperature_set_point', default=0.)
-    element_status = OverridableVariable('boil_kettle__element_status', default=False)
+    temperature_set_point = OverridableVariable(
+        'boil_kettle__temperature_set_point', default=0.)
+    element_status = OverridableVariable(
+        'boil_kettle__element_status', default=False)
     duty_cycle = StreamingVariable('boil_kettle__duty_cycle')
 
-    def __init__(self, rating, volume, rtd_params, pin, **kwargs):
+    def __init__(self, client, recipe_instance,
+                 rating, volume, temperature_sensor, heating_pin):
+        super(HeatedVessel, self).__init__(volume, temperature_sensor)
+        self._register(client, recipe_instance)
+
         self.rating = rating  # Watts (heating element)
-        self.temperature_set_point = 0.
+        self.heating_pin = heating_pin
 
-        self.Regulator = kwargs.get('regulatorClass', Regulator)(maxQ=1.0, minQ=0.0)
-
+        self.temperature_set_point = 0.0
         self.duty_cycle = 0.0
         self.duty_period = 1.0  # Seconds
 
-        self.pin = OutputPin(pin, value=0)
-
-        super(HeatedVessel, self).__init__(volume, rtd_params)
-
+        # No gains at first. Just need to set them before calculating them.
+        gain_proportional = None
+        gain_integral = None
+        self.regulator = Regulator(time, gain_proportional, gain_integral,
+                                   max_output=1.0, min_output=0.0)
         self.recalculate_gains()
 
-    def register(self, recipe_instance):
+    def _register(self, client, recipe_instance):
         """Registers this instance with the properties by submitting the
         ``recipe_instance`` to them.
 
         Args:
+            client: The websocket client used for communicated with the server.
             recipe_instance: The id for the recipe instance we are
                 connecting with
         """
-        HeatedVessel.element_status.subscribe(self, recipe_instance)
-        HeatedVessel.temperature_set_point.subscribe(self, recipe_instance)
-        HeatedVessel.duty_cycle.register(self, recipe_instance)
-        super(HeatedVessel, self).register(recipe_instance)
+        HeatedVessel.element_status.register(client, self, recipe_instance)
+        HeatedVessel.temperature_set_point.register(
+            client, self, recipe_instance)
+        HeatedVessel.duty_cycle.register(client, self, recipe_instance)
 
     def set_temperature(self, value):
         """Sets the temperature set point for the heating element controls.
@@ -99,47 +106,39 @@ class HeatedVessel(TemperatureMonitoredVessel):
     def turn_off(self):
         """Disables the heating element on this vessel"""
         LOGGER.debug('Request heated vessel turn off.')
-        self.element_status = self.pin.value = False
-        self.Regulator.disable()
+        self.element_status = False
+        self.heating_pin.set_off()
+        self.regulator.disable()
 
     def turn_on(self):
         """Turns off the heating element on this vessel"""
         LOGGER.debug('Request heated vessel turn on.')
-        self.element_status = self.pin.value = True
-        self.Regulator.enable()
+        self.element_status = True
+        self.heating_pin.set_on()
+        self.regulator.enable()
 
     def set_liquid_level(self, volume):
         """Adjusts the liquid volume of the vessel, which then recalculates
         the control gains based on the new liquid volume.
         """
-        self.volume = volume
+        super(HeatedVessel, self).set_liquid_level(volume)
         self.recalculate_gains()
 
     def recalculate_gains(self):
         """Calculates control gains based on the amount of liquid and
         heating rating of the heating element
         """
-        self.Regulator.KP = 10.*(self.volume/self.rating)
-        self.Regulator.KI = 100.*(self.volume/self.rating)
+        self.regulator.gain_proportional = 10.0 * (self.volume / self.rating)
+        self.regulator.gain_integral = 100.0 * (self.volume / self.rating)
 
     def regulate(self):
         """Executes regulation action to control the temperature of the
-        vessel by adjusting the duty_cycle of the heating eleement
+        vessel by adjusting the duty_cycle of the heating element.
         """
-        LOGGER.debug("Temp: %f, SP: %f",
-                     self.temperature, self.temperature_set_point)
-        self.duty_cycle = self.Regulator.calculate(self.temperature,
-                                                   self.temperature_set_point)
-
-    def measure_temperature(self):
-        """Samples the temperature from the measurement circuit. If GPIO
-        is mocked, we will simulate the heating action."""
-        # Let's here add heat to the vessel in simulation mode
-        if GPIO_MOCK_API_ACTIVE:
-            return self.liquid_temperature_simulator.integrate(
-                self.temperature_ramp)
-        else:
-            return super(HeatedVessel, self).measure_temperature()
+        LOGGER.debug(
+            "Temp: %f, SP: %f", self.temperature, self.temperature_set_point)
+        self.duty_cycle = self.regulator.calculate(
+            self.temperature, self.temperature_set_point)
 
     @property
     def power(self):
@@ -153,9 +152,15 @@ class HeatedVessel(TemperatureMonitoredVessel):
         """An estimated degF/sec rate of change of liquid based on ideal
         conditions. Does not include ambient losses.
         """
-        # TODO: add better energy loss to environment
-        return ((self.power - (self.temperature - 68.)*1.)
-                / (self.volume*4.184*1000.)*(9./5.)*(1./3.79))
+        # TODO: Calculate energy loss to environment.
+        net_power = self.power
+        volume = self.volume * 3.79  # L
+        density_water = 1000.0  # grams/L
+        mass = volume * density_water  # grams
+        specific_heat_water = 4.184  # J/(degC * grams)
+        specific_heat = mass * specific_heat_water  # J/degC
+        specific_heat_fahrenheit = specific_heat * (5.0 / 9.0)  # J/degF
+        return net_power / specific_heat_fahrenheit  # degF/second
 
 
 class HeatExchangedVessel(TemperatureMonitoredVessel):
