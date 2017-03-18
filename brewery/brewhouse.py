@@ -9,11 +9,11 @@ from tornado import ioloop
 from tornado.escape import json_decode
 from tornado.httpclient import AsyncHTTPClient
 
-from brewery.brewing.simple_pump import SimplePump
-from brewery.brewing.vessels import HeatedVessel, HeatExchangedVessel
+import settings
+from brewery.simple_pump import SimplePump
+from brewery.vessels import HeatExchangedVessel, HeatedVessel
 from dsp.state_machine import StateMachine
 from settings import HOST, HTTP_PREFIX
-import settings
 from variables import DataStreamer
 from variables import StreamingVariable
 from variables import SubscribableVariable
