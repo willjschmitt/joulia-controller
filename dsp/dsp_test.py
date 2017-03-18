@@ -5,6 +5,7 @@ import unittest
 from dsp.dsp import DSPBase
 from dsp.dsp import FirstOrderLag
 from dsp.dsp import Integrator
+from dsp.dsp import Regulator
 
 
 class StubClock(object):
@@ -70,3 +71,66 @@ class TestIntegrator(unittest.TestCase):
         for _ in range(10):
             integrator.integrate(10)
         self.assertAlmostEquals(integrator.integrated, 100.0, 9)
+
+
+class TestRegulator(unittest.TestCase):
+    """Tests for the Regulator class."""
+
+    def setUp(self):
+        self.regulator = Regulator(StubClock(), 1.0, 10.0)
+
+    def test_regulate_disabled(self):
+        self.regulator.disable()
+        feedback = 11.0
+        reference = 12.0
+        self.regulator.calculate(feedback, reference)
+
+        self.assertAlmostEquals(self.regulator.q_proportional, 0.0, 9)
+        self.assertAlmostEquals(self.regulator.q_integral, 0.0, 9)
+        self.assertAlmostEquals(self.regulator.q, 0.0, 9)
+
+    def test_regulate_enabled(self):
+        self.regulator.enable()
+        feedback = 11.0
+        reference = 12.0
+        self.regulator.calculate(feedback, reference)
+
+        self.assertAlmostEquals(self.regulator.q_proportional, 1.0, 9)
+        self.assertAlmostEquals(self.regulator.q_integral, 10.0, 9)
+        self.assertAlmostEquals(self.regulator.q, 11.0, 9)
+
+    def test_regulate_max_output(self):
+        self.regulator = Regulator(StubClock(), 1.0, 10.0, max_output=0.5)
+        self.regulator.enable()
+        feedback = 11.0
+        reference = 12.0
+        self.regulator.calculate(feedback, reference)
+
+        self.assertAlmostEquals(self.regulator.q_proportional, 1.0, 9)
+        self.assertAlmostEquals(self.regulator.q_integral, -0.5, 9)
+        self.assertAlmostEquals(self.regulator.q, 0.5, 9)
+
+    def test_regulate_min_output(self):
+        self.regulator = Regulator(StubClock(), 1.0, 10.0, min_output=-0.5)
+        self.regulator.enable()
+        feedback = 12.0
+        reference = 11.0
+        self.regulator.calculate(feedback, reference)
+
+        self.assertAlmostEquals(self.regulator.q_proportional, -1.0, 9)
+        self.assertAlmostEquals(self.regulator.q_integral, +0.5, 9)
+        self.assertAlmostEquals(self.regulator.q, -0.5, 9)
+
+    def test_bad_limits(self):
+        with self.assertRaises(AssertionError):
+            Regulator(StubClock(), 1.0, 10.0, min_output=0.5, max_output=-0.5)
+
+    def test_enable(self):
+        self.regulator.enabled = False
+        self.regulator.enable()
+        self.assertTrue(self.regulator.enabled)
+
+    def test_disable(self):
+        self.regulator.enabled = False
+        self.regulator.disable()
+        self.assertFalse(self.regulator.enabled)

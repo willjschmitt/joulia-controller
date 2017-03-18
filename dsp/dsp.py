@@ -72,46 +72,81 @@ class Integrator(DSPBase):
 class Regulator(DSPBase):
     """A proportional-integral (PI) Regulator.
 
-    Transfer function: H(s) = KP + KI/s
-    """
-    def __init__(self, clock, KP=1.,KI=1.,maxQ=0.,minQ=0.):
-        super(Regulator, self).__init__(clock)
-        self.KP = KP
-        self.KI = KI
-        self.maxQ = maxQ
-        self.minQ = minQ
+    Transfer function: H(s) = KP + KI/s.
 
-        self.QI = 0.
+    Output is limited by forcing the integral portion to offset the proportional
+    portion in order to keep the output within the limits. This achieves anti-
+    windup.
+
+    Attributes:
+        gain_proportional: Proportional gain KP.
+        gain_integral: Integral gain KI.
+        max_output: Upper limit on the output. Set to None disables limit.
+        min_output: Lower limit on the output. Set to None disables limit.
+        enabled: Boolean indicating if state should be reset to 0.0 and no
+            output should be produced.
+    """
+    def __init__(self, clock, gain_proportional, gain_integral,
+                 max_output=None, min_output=None):
+        super(Regulator, self).__init__(clock)
+
+        if max_output is not None and min_output is not None:
+            assert min_output < max_output
+
+        self.gain_proportional = gain_proportional
+        self.gain_integral = gain_integral
+        self.max_output = max_output
+        self.min_output = min_output
+
+        self.q_proportional = 0.0
+        self.q_integral = 0.0
+        self.q = 0.0
 
         self.time_last = 0.
 
         self.enabled = False
 
-    def calculate(self,xFbk,xRef):
-        now = time.time()
+    def calculate(self, feedback, reference):
+        """Solves the regulator block given a measured actual `feedback` and a
+        desired `reference` value.
+
+        Args:
+            feedback: The present measured value of the signal attempted to be
+                controlled.
+            reference: The desired value for the controlled signal.
+        """
+        now = self._time()
 
         if self.enabled:
-            self.QP  = (xRef-xFbk) * self.KP
-            self.QI += (xRef-xFbk) * self.KI * (now-self.time_last)
-            self.Q = self.QP + self.QI
+            delta = reference - feedback
+            delta_time = now - self.time_last
+            self.q_proportional = delta * self.gain_proportional
+            self.q_integral += delta * self.gain_integral * delta_time
+            self.q = self.q_proportional + self.q_integral
 
-            #limit with anti-windup applied to integrator
-            if self.Q > self.maxQ:
-                self.Q = self.maxQ
-                self.QI = self.maxQ - self.QP
-            elif self.Q < self.minQ:
-                self.Q = self.minQ
-                self.QI = self.minQ - self.QP
+            self._limit()
         else:
-            self.Q = self.QP = self.QI = 0.
+            self.q = self.q_proportional = self.q_integral = 0.
 
         self.time_last = now
-        return self.Q
+        return self.q
+
+    def _limit(self):
+        """Applies limit to output with anti-windup applied to integrator."""
+        if self.max_output is not None and self.q > self.max_output:
+            self.q = self.max_output
+            self.q_integral = self.max_output - self.q_proportional
+
+        if self.min_output is not None and self.q < self.min_output:
+            self.q = self.min_output
+            self.q_integral = self.min_output - self.q_proportional
 
     def enable(self):
+        """Enables the regulator."""
         self.enabled = True
 
     def disable(self):
+        """Disables the regulator."""
         self.enabled = False
 
 
