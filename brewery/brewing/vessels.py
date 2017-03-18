@@ -16,7 +16,7 @@ except:
     # library doesn't provide this?
     pass
 
-from dsp.integrator import Integrator
+from dsp.dsp import Integrator, Regulator
 from dsp.regulator import Regulator
 from measurement.rtd_sensor import RtdSensor
 from utils import GPIO_MOCK_API_ACTIVE
