@@ -151,40 +151,57 @@ class Regulator(DSPBase):
 
 
 class UpDownRegulator(DSPBase):
-    def __init__(self, clock, KPup,KIup,KPdown,KIdown,maximum,minimum):
+    """A Regulator, but with different gains based on the sign of the error.
+
+    Attributes:
+        gain_proportional_up: The proportional gain for the regulator when the
+            error (reference - feedback) is greater than zero.
+        gain_integral_up: The integral gain for the regulator when the error
+            (reference - feedback) is greater than zero.
+        gain_proportional_down: The proportional gain for the regulator when the
+            error (reference - feedback) is less than zero.
+        gain_integral_down: The integral gain for the regulator when the error
+            (reference - feedback) is less than zero.
+    """
+    def __init__(self, clock, gain_proportional_up, gain_integral_up,
+                 gain_proportional_down, gain_integral_down, max_output=None,
+                 min_output=None):
         super(UpDownRegulator, self).__init__(clock)
-        self.KPup = KPup
-        self.KIup = KIup
-        self.KPdown = KPdown
-        self.KIdown = KIdown
-        self.maximum = maximum
-        self.minimum = minimum
+        self.gain_proportional_up = gain_proportional_up
+        self.gain_integral_up = gain_integral_up
+        self.gain_proportional_down = gain_proportional_down
+        self.gain_integral_down = gain_integral_down
 
-        self.time_last = 0.
+        self._regulator = Regulator(
+            clock, gain_proportional_up, gain_integral_up,
+            max_output=max_output, min_output=min_output)
 
-    def calculate(self,xFbk,xRef):
-        now = time.time()
-        time_delta = now - self.time_last
+    def calculate(self, feedback, reference):
+        """Solves the regulator block given a measured actual `feedback` and a
+        desired `reference` value.
 
-        error = xRef - xFbk
+        Args:
+            feedback: The present measured value of the signal attempted to be
+                controlled.
+            reference: The desired value for the controlled signal.
+        """
+        # Calculate gains based on error sign
+        error = reference - feedback
         if error > 0.:
-            self.KP = self.KPup
-            self.KI = self.KIup
+            self._regulator.gain_proportional = self.gain_proportional_up
+            self._regulator.gain_integral = self.gain_integral_up
         else:
-            self.KP = self.KPdown
-            self.KI = self.KIdown
+            self._regulator.gain_proportional = self.gain_proportional_down
+            self._regulator.gain_integral = self.gain_integral_down
 
-        self.QP  = error * self.KP
-        self.QI += error * self.KI * time_delta
-        self.Q = self.QP + self.QI
+        return self._regulator.calculate(feedback, reference)
 
-        #limit with anti-windup applied to integrator
-        if self.Q > self.maximum:
-            self.Q = self.maximum
-            self.QI = self.maximum - self.QP
-        elif self.Q < self.minimum:
-            self.Q = self.minimum
-            self.QI = self.minimum - self.QP
+    @property
+    def gain_proportional(self):
+        """The last used gain_proportional for the internal regulator."""
+        return self._regulator.gain_proportional
 
-        self.time_last = now
-        return self.Q
+    @property
+    def gain_integral(self):
+        """The last used gain_integral for the internal regulator."""
+        return self._regulator.gain_integral

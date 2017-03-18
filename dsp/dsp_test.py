@@ -6,6 +6,7 @@ from dsp.dsp import DSPBase
 from dsp.dsp import FirstOrderLag
 from dsp.dsp import Integrator
 from dsp.dsp import Regulator
+from dsp.dsp import UpDownRegulator
 
 
 class StubClock(object):
@@ -134,3 +135,37 @@ class TestRegulator(unittest.TestCase):
         self.regulator.enabled = False
         self.regulator.disable()
         self.assertFalse(self.regulator.enabled)
+
+
+class TestUpDownRegulator(unittest.TestCase):
+    """Tests the UpDownRegulator class."""
+
+    def test_gains_positive_error(self):
+        gain_proportional_up = 12.0
+        gain_integral_up = 13.0
+        gain_proportional_down = 2.0
+        gain_integral_down = 3.0
+        regulator = UpDownRegulator(
+            StubClock(), gain_proportional_up, gain_integral_up,
+            gain_proportional_down, gain_integral_down)
+
+        regulator.calculate(10.0, 11.0)
+        self.assertAlmostEquals(
+            regulator.gain_proportional, gain_proportional_up, 9)
+        self.assertAlmostEquals(
+            regulator.gain_integral, gain_integral_up, 9)
+
+    def test_gains_negative_error(self):
+        gain_proportional_up = 12.0
+        gain_integral_up = 13.0
+        gain_proportional_down = 2.0
+        gain_integral_down = 3.0
+        regulator = UpDownRegulator(
+            StubClock(), gain_proportional_up, gain_integral_up,
+            gain_proportional_down, gain_integral_down)
+
+        regulator.calculate(11.0, 10.0)
+        self.assertAlmostEquals(
+            regulator.gain_proportional, gain_proportional_down, 9)
+        self.assertAlmostEquals(
+            regulator.gain_integral, gain_integral_down, 9)
