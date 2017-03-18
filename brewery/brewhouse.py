@@ -10,7 +10,7 @@ from tornado.escape import json_decode
 from tornado.httpclient import AsyncHTTPClient
 
 import settings
-from brewery.simple_pump import SimplePump
+from brewery.pump import SimplePump
 from brewery.vessels import HeatExchangedVessel, HeatedVessel
 from dsp.state_machine import StateMachine
 from settings import HOST, HTTP_PREFIX
