@@ -5,12 +5,19 @@ frequency-domain devices.
 import time
 
 
-class FirstOrderLag(object):
+class DSPBase(object):
+    """Abstract class for digital signal processing."""
+    def _time(self):
+        return time.time()
+
+
+class FirstOrderLag(DSPBase):
     """A first-order low pass filter.
 
     Transfer function: H(s) = 1/(1+st)
     """
     def __init__(self, tau, init=None):
+        super(FirstOrderLag, self).__init__()
         if init is not None:
             self.filtered_last = init
             self.filtered = init
@@ -21,9 +28,6 @@ class FirstOrderLag(object):
         self.time_last = self._time()
         self.tau = tau
 
-    def _time(self):
-        return time.time()
-
     def filter(self, unfiltered):
         """Performs the filtering of ``unfiltered``."""
         now = self._time()
@@ -32,12 +36,13 @@ class FirstOrderLag(object):
         self.filtered += (unfiltered - self.filtered) * (delta_time / self.tau)
 
 
-class Integrator(object):
+class Integrator(DSPBase):
     """Integrates an incoming signal
 
     Transfer function: H(s) = 1/s
     """
     def __init__(self, **kwargs):
+        super(Integrator, self).__init__()
         if 'init' in kwargs:
             self.integrated = kwargs['init']
         else:
@@ -54,12 +59,13 @@ class Integrator(object):
         self.integrated += signal * time_delta
 
 
-class Regulator(object):
+class Regulator(DSPBase):
     """A proportional-integral (PI) Regulator.
 
     Transfer function: H(s) = KP + KI/s
     """
     def __init__(self,KP=1.,KI=1.,maxQ=0.,minQ=0.):
+        super(Regulator, self).__init__()
         self.KP = KP
         self.KI = KI
         self.maxQ = maxQ
@@ -99,8 +105,9 @@ class Regulator(object):
         self.enabled = False
 
 
-class UpDownRegulator(object):
+class UpDownRegulator(DSPBase):
     def __init__(self, KPup,KIup,KPdown,KIdown,maximum,minimum):
+        super(UpDownRegulator, self).__init__()
         self.KPup = KPup
         self.KIup = KIup
         self.KPdown = KPdown

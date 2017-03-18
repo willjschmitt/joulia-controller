@@ -2,6 +2,7 @@
 
 import unittest
 
+from dsp.dsp import DSPBase
 from dsp.dsp import FirstOrderLag
 
 
@@ -13,6 +14,15 @@ class StubFirstOrderLag(FirstOrderLag):
     def _time(self):
         self._time_counter += 1.0
         return float(self._time_counter)
+
+
+class TestDSPBase(unittest.TestCase):
+    """Tests for the DSPBase class."""
+    def setUp(self):
+        self.dsp = DSPBase()
+
+    def test_time_succeeds(self):
+        self.assertIsNotNone(self.dsp._time())
 
 
 class TestFirstOrderLag(unittest.TestCase):
