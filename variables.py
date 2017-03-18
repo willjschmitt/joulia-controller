@@ -364,7 +364,7 @@ class DataStreamer(object):
         """Posts the current values of the data to the server"""
         LOGGER.debug('Data streamer %r sending data.', self)
 
-        for sensor_id, attr in self.id_to_attribute.iteritems():
+        for sensor_id, attr in self.id_to_attribute.items():
             value = rgetattr(self.instance, attr)
             self.client.update_sensor_value(
                 self.recipe_instance, value, sensor_id)

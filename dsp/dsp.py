@@ -1,4 +1,6 @@
-"""First Order Lag filters."""
+"""Digital Signal Processing blocks for processing time-domain inputs with
+frequency-domain devices.
+"""
 
 import time
 

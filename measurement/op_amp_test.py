@@ -2,9 +2,9 @@
 
 import unittest
 
-from op_amp import DifferentialAmplifier
-from op_amp import OpAmp
-from op_amp import VoltageFollower
+from measurement.op_amp import DifferentialAmplifier
+from measurement.op_amp import OpAmp
+from measurement.op_amp import VoltageFollower
 
 
 class TestOpAmp(unittest.TestCase):

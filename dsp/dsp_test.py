@@ -1,8 +1,8 @@
-"""Tests for first_order_lag module."""
+"""Tests for dsp module."""
 
 import unittest
 
-from dsp.first_order_lag import FirstOrderLag
+from dsp.dsp import FirstOrderLag
 
 
 class StubFirstOrderLag(FirstOrderLag):

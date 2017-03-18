@@ -2,8 +2,8 @@
 
 import unittest
 
-from rtd_sensor import RtdSensor
-from rtd_sensor import celsius_to_fahrenheit
+from measurement.rtd_sensor import RtdSensor
+from measurement.rtd_sensor import celsius_to_fahrenheit
 
 
 class StubArduinoService(object):

@@ -1,6 +1,6 @@
 """RTD Sensor module for resistance temperature devices"""
 
-from dsp.first_order_lag import FirstOrderLag
+from dsp.dsp import FirstOrderLag
 from measurement import arduino
 from measurement.circuits import VariableResistanceVoltageDivider
 from measurement.circuits import VoltageDivider
