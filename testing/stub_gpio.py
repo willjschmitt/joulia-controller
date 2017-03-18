@@ -19,7 +19,7 @@ class PinMode(Enum):
 
 
 class StubGPIO(object):
-    """A mock interface to the Rapsberry Pi GPIO, mocking the RPi.GPIO library.
+    """A mock interface to the Raspberry Pi GPIO, mocking the RPi.GPIO library.
 
     Enforces the use of GPIO constants for setting states like GPIO.LOW, etc...
     """
