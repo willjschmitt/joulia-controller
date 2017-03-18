@@ -1,5 +1,7 @@
 """RTD Sensor module for resistance temperature devices"""
 
+import time
+
 from dsp.dsp import FirstOrderLag
 from measurement import arduino
 from measurement.circuits import VariableResistanceVoltageDivider
@@ -71,7 +73,7 @@ class RtdSensor(object):
             offset_resistance_top - The resistance in the top of the
                 voltage divider for the offset voltage follower circuit (Ohms)
         """
-        self.temperature_filter = FirstOrderLag(tau)
+        self.temperature_filter = FirstOrderLag(time, tau)
 
         self.analog_in_pin = analog_pin
         self.analog_reference_voltage = analog_reference_voltage

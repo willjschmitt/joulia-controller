@@ -6,9 +6,17 @@ import time
 
 
 class DSPBase(object):
-    """Abstract class for digital signal processing."""
+    """Abstract class for digital signal processing.
+
+    Attributes:
+        clock: The timer object, which `.time()` can be called on to retrieve
+            the current time.
+    """
+    def __init__(self, clock):
+        self.clock = clock
+
     def _time(self):
-        return time.time()
+        return self.clock.time()
 
 
 class FirstOrderLag(DSPBase):
@@ -16,8 +24,8 @@ class FirstOrderLag(DSPBase):
 
     Transfer function: H(s) = 1/(1+st)
     """
-    def __init__(self, tau, init=None):
-        super(FirstOrderLag, self).__init__()
+    def __init__(self, clock, tau, init=None):
+        super(FirstOrderLag, self).__init__(clock)
         if init is not None:
             self.filtered_last = init
             self.filtered = init
@@ -41,8 +49,8 @@ class Integrator(DSPBase):
 
     Transfer function: H(s) = 1/s
     """
-    def __init__(self, **kwargs):
-        super(Integrator, self).__init__()
+    def __init__(self, clock, **kwargs):
+        super(Integrator, self).__init__(clock)
         if 'init' in kwargs:
             self.integrated = kwargs['init']
         else:
@@ -64,8 +72,8 @@ class Regulator(DSPBase):
 
     Transfer function: H(s) = KP + KI/s
     """
-    def __init__(self,KP=1.,KI=1.,maxQ=0.,minQ=0.):
-        super(Regulator, self).__init__()
+    def __init__(self, clock, KP=1.,KI=1.,maxQ=0.,minQ=0.):
+        super(Regulator, self).__init__(clock)
         self.KP = KP
         self.KI = KI
         self.maxQ = maxQ
@@ -106,8 +114,8 @@ class Regulator(DSPBase):
 
 
 class UpDownRegulator(DSPBase):
-    def __init__(self, KPup,KIup,KPdown,KIdown,maximum,minimum):
-        super(UpDownRegulator, self).__init__()
+    def __init__(self, clock, KPup,KIup,KPdown,KIdown,maximum,minimum):
+        super(UpDownRegulator, self).__init__(clock)
         self.KPup = KPup
         self.KIup = KIup
         self.KPdown = KPdown
