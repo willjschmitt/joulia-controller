@@ -4,6 +4,7 @@ import unittest
 
 from dsp.dsp import DSPBase
 from dsp.dsp import FirstOrderLag
+from dsp.dsp import Integrator
 
 
 class StubClock(object):
@@ -51,3 +52,21 @@ class TestFirstOrderLag(unittest.TestCase):
         for _ in range(300):
             fil.filter(10.0)
         self.assertAlmostEquals(fil.filtered, 9.5, 1)
+
+
+class TestIntegrator(unittest.TestCase):
+    """Tests for the Integrator class."""
+
+    def test_construct_without_init(self):
+        integrator = Integrator(StubClock())
+        self.assertAlmostEquals(integrator.integrated, 0.0, 9)
+
+    def test_construct_with_init(self):
+        integrator = Integrator(StubClock(), init=11.0)
+        self.assertAlmostEquals(integrator.integrated, 11.0, 9)
+
+    def test_integrate(self):
+        integrator = Integrator(StubClock())
+        for _ in range(10):
+            integrator.integrate(10)
+        self.assertAlmostEquals(integrator.integrated, 100.0, 9)

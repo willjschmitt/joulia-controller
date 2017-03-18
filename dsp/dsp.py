@@ -11,9 +11,11 @@ class DSPBase(object):
     Attributes:
         clock: The timer object, which `.time()` can be called on to retrieve
             the current time.
+        time_last: The last time the DSP block was calculated.
     """
     def __init__(self, clock):
         self.clock = clock
+        self.time_last = self._time()
 
     def _time(self):
         return self.clock.time()
@@ -30,10 +32,9 @@ class FirstOrderLag(DSPBase):
             self.filtered_last = init
             self.filtered = init
         else:
-            self.filtered_last = 0.
-            self.filtered = 0.
+            self.filtered_last = 0.0
+            self.filtered = 0.0
 
-        self.time_last = self._time()
         self.tau = tau
 
     def filter(self, unfiltered):
@@ -45,22 +46,23 @@ class FirstOrderLag(DSPBase):
 
 
 class Integrator(DSPBase):
-    """Integrates an incoming signal
+    """Integrates an incoming signal.
 
-    Transfer function: H(s) = 1/s
+    Transfer function: H(s) = 1/s.
+
+    Attributes:
+        integrated: The output (integrated input) of the block.
     """
-    def __init__(self, clock, **kwargs):
+    def __init__(self, clock, init=None):
         super(Integrator, self).__init__(clock)
-        if 'init' in kwargs:
-            self.integrated = kwargs['init']
+        if init is not None:
+            self.integrated = init
         else:
-            self.integrated = 0.
+            self.integrated = 0.0
 
-        self.time_last = time.time()
-
-    def integrate(self,signal):
-        """Integrates the incoming ``signal``"""
-        now = time.time()
+    def integrate(self, signal):
+        """Integrates the incoming ``signal``."""
+        now = self._time()
         time_delta = now - self.time_last
         self.time_last = now
 
