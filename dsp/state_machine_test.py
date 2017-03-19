@@ -12,7 +12,7 @@ class TestStateMachine(unittest.TestCase):
     """Tests the StateMachine class."""
 
     def setUp(self):
-        self.state_machine = StateMachine(self, [])
+        self.state_machine = StateMachine(self)
 
     def test_register_succeeds(self):
         http_client = StubJouliaHTTPClient("fake address")
@@ -21,20 +21,12 @@ class TestStateMachine(unittest.TestCase):
         self.state_machine.register(ws_client, recipe_instance)
 
     def test_add_state(self):
-        state = State(self)
-        self.state_machine.add_state(state)
+        # add_state is called by the creation of State
+        state = State(self.state_machine)
         self.assertIn(state, self.state_machine.states)
 
-    def test_add_states(self):
-        state1 = State(self)
-        state2 = State(self)
-        self.state_machine.add_states([state1, state2])
-        self.assertIn(state1, self.state_machine.states)
-        self.assertIn(state2, self.state_machine.states)
-
     def test_get_set_id(self):
-        state = State(self)
-        self.state_machine.add_state(state)
+        State(self.state_machine)
         self.assertIsNone(self.state_machine.id)
         self.state_machine.id = 0
         self.assertEquals(self.state_machine.id, 0)
@@ -47,9 +39,8 @@ class TestStateMachine(unittest.TestCase):
         self.assertIsNone(self.state_machine.state)
 
     def test_get_set_states(self):
-        state1 = State(self)
-        state2 = State(self)
-        self.state_machine.add_states([state1, state2])
+        state1 = State(self.state_machine)
+        state2 = State(self.state_machine)
 
         self.state_machine.state = state1
         self.assertIs(self.state_machine.state, state1)
@@ -57,25 +48,24 @@ class TestStateMachine(unittest.TestCase):
         self.assertIs(self.state_machine.state, state2)
 
     def test_bad_state(self):
-        state = State(self)
+        other_state_machine = StateMachine(self)
+        state = State(other_state_machine)
         with self.assertRaises(AssertionError):
             self.state_machine.state = state
 
     def test_evaluate(self):
         class Foo(State):
-            def __call__(self):
+            def __call__(self, instance):
                 return 12
-        foo = Foo(self)
-        self.state_machine.add_state(foo)
+        foo = Foo(self.state_machine)
         self.state_machine.state = foo
         self.assertEquals(self.state_machine.evaluate(), 12)
 
     def test_evaluate_no_state(self):
         class Foo(State):
-            def __call__(self):
+            def __call__(self, instance):
                 return 12  # pragma: no cover
-        foo = Foo(self)
-        self.state_machine.add_state(foo)
+        Foo(self.state_machine)
         self.assertIsNone(self.state_machine.evaluate())
 
 
@@ -83,6 +73,7 @@ class TestState(unittest.TestCase):
     """Tests the State class."""
 
     def test_call_unimplemented(self):
-        state = State(self)
+        state_machine = StateMachine(self)
+        state = State(state_machine)
         with self.assertRaises(NotImplementedError):
-            state()
+            state(self)
