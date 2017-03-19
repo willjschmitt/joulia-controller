@@ -138,7 +138,6 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
 
         self.callbacks = set()
         IOLoop.current().run_sync(lambda: self._connect(address))
-        self._connect(address)
 
     @gen.coroutine
     def _connect(self, url):
