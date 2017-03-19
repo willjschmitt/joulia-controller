@@ -350,6 +350,9 @@ class DataStreamer(object):
         if name is None:  # Default to attribute as the name
             name = attr
 
+        LOGGER.debug("%r registering %s as %s for data streaming.",
+                     self.instance, attr, name)
+
         identifier = self.client.identify(name, self.recipe_instance)
         if identifier in self.id_to_attribute:
             # This makes sure we aren't overwriting anything

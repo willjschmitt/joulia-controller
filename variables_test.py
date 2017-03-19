@@ -130,6 +130,7 @@ class TestManagedVariable(unittest.TestCase):
         recipe_instance = 0
         TestClass.foo.register(self.http_client, instance, recipe_instance)
 
+        self.http_client.identifier = 11
         TestClass.foo.identify(instance, recipe_instance)
 
         got = TestClass.foo.ids[instance]
@@ -502,6 +503,7 @@ class TestDataStreamer(unittest.TestCase):
 
         streamer.register("foo")
 
+        self.http_client.identifier = 11
         with self.assertRaises(AttributeError):
             streamer.register("foo")
 

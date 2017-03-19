@@ -10,7 +10,9 @@ class StubJouliaHTTPClient(JouliaHTTPClient):
 
     Attributes:
         identifier: The id number to be returned by the identify method as the
-            mocked response.
+            mocked response. Gets monotonically increased every time identify
+            is called so larger systems can work. Unittests should override
+            identifier every time it is expected to change.
     """
     def __init__(self, address, auth_token=None):
         super(StubJouliaHTTPClient, self).__init__(
@@ -19,7 +21,9 @@ class StubJouliaHTTPClient(JouliaHTTPClient):
         self.update_sensor_value_posts = []
 
     def identify(self, sensor_name, recipe_instance):
-        return self.identifier
+        result = self.identifier
+        self.identifier += 1
+        return result
 
     def update_sensor_value(self, recipe_instance, value, sensor):
         update = {"recipe_instance": recipe_instance,

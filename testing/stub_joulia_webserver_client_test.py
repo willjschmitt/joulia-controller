@@ -18,6 +18,7 @@ class TestStubJouliaHTTPClient(unittest.TestCase):
         recipe_instance = 1
         got = self.client.identify(sensor_name, recipe_instance)
         self.assertEquals(got, 11)
+        self.assertEquals(self.client.identifier, 12)
 
     def test_update_sensor_name(self):
         recipe_instance = 1
