@@ -59,4 +59,9 @@ class StubGPIO(object):
             raise RuntimeError("Pin mode must be set before setting value.")
 
         if self.pin_modes[pin] is not self.IN:
-            raise RuntimeError("Pin mode must be StubGPIO.IN to set value.")
+            raise RuntimeError("Pin mode must be StubGPIO.IN to get value.")
+
+        if pin in self.values:
+            return self.values[pin]
+        else:
+            return self.LOW
