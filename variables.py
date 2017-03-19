@@ -300,7 +300,7 @@ class DataStreamer(object):
             to send updates to the Joulia webserver.
         recipe_instance: The brewing instance the datastream is associated with.
         datastream_frequency: The period between automatic polling of data to be
-            sent to the Joulia webserver. (seconds)
+            sent to the Joulia webserver. (milliseconds)
         ids: A dictionary mapping attribute names to server variable id.
         attribute_to_name: A dictionary mapping attribute names to names used to
             store on server.
