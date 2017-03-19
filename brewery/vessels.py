@@ -174,7 +174,7 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
     def __init__(self, client, recipe_instance, volume, temperature_sensor,
                  heat_exchanger_conductivity=1.0, temperature_profile=None):
         super(HeatExchangedVessel, self).__init__(volume, temperature_sensor)
-        self.register(client, recipe_instance)
+        self._register(client, recipe_instance)
 
         self.heat_exchanger_conductivity = heat_exchanger_conductivity
         self.temperature_profile = temperature_profile
@@ -190,7 +190,7 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
 
         self.enabled = False
 
-    def register(self, client, recipe_instance):
+    def _register(self, client, recipe_instance):
         HeatExchangedVessel.temperature_set_point.register(
             client, self, recipe_instance)
 
