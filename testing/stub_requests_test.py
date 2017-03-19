@@ -1,5 +1,6 @@
 """Tests for the stub_requests module."""
 
+import requests
 import unittest
 
 from testing.stub_requests import StubRequests
@@ -13,7 +14,15 @@ class TestStubRequests(unittest.TestCase):
         self.requests = StubRequests()
 
     def test_post(self):
-        pass
+        response = self.requests.post("fake_url")
+        self.assertIsInstance(response, StubResponse)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.reason, "OK")
+
+    def test_post_server_not_there(self):
+        self.requests.server_there = False
+        with self.assertRaises(requests.exceptions.ConnectionError):
+            self.requests.post("fake_url")
 
 
 class TestStubResponse(unittest.TestCase):
