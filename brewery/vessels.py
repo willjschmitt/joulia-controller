@@ -152,7 +152,7 @@ class HeatedVessel(TemperatureMonitoredVessel):
         """An estimated degF/sec rate of change of liquid based on ideal
         conditions. Does not include ambient losses.
         """
-        # TODO: Calculate energy loss to environment.
+        # TODO(will): Calculate energy loss to environment.
         net_power = self.power
         volume = self.volume * 3.79  # L
         density_water = 1000.0  # grams/L
@@ -166,67 +166,111 @@ class HeatedVessel(TemperatureMonitoredVessel):
 class HeatExchangedVessel(TemperatureMonitoredVessel):
     """A vessel that can be heated by by a slow heat-exchanged process,
     which includes flow as a controllable parameter.
+
+    Attributes:
+        source_temperature: The temperature setpoint for our heat exchanger
+            source. If this is a Mash Tun, for example, this would be the boil
+            kettle temperature set point.
+        heat_exchanger_conductivity: Represents rate of heat exchange between
+            source liquid and target liquid as W/(delta degF).
     """
 
-    temperature_set_point = OverridableVariable('mash_tun__temperature_set_point')
+    temperature_set_point = OverridableVariable(
+        'mash_tun__temperature_set_point')
 
-    def __init__(self, volume, rtd_params, heat_exchanger_conductivity=1., **kwargs):
-        self.volume = volume
+    def __init__(self, client, recipe_instance, volume, temperature_sensor,
+                 heat_exchanger_conductivity=1.0, temperature_profile=None):
+        super(HeatExchangedVessel, self).__init__(volume, temperature_sensor)
+        self.register(client, recipe_instance)
+
+        self.heat_exchanger_conductivity = heat_exchanger_conductivity
+        self.temperature_profile = temperature_profile
 
         self.temperature_set_point = 0.
         self.source_temperature = self.temperature_set_point
 
-        self.heat_exchanger_conductivity = heat_exchanger_conductivity
-        self.Regulator = kwargs.get('regulatorClass', Regulator)(maxQ=15., minQ=-15.)
-
-        super(HeatExchangedVessel, self).__init__(volume, rtd_params)
+        gain_proportional = None
+        gain_integral = None
+        self.regulator = Regulator(time, gain_proportional, gain_integral,
+                                   max_output=15.0, min_output=-15.0)
         self.recalculate_gains()
 
         self.enabled = False
 
-        self.temperature_source = kwargs.get('temperature_source',None)
-        self.temperature_profile = kwargs.get('temperature_profile',None)
+    def register(self, client, recipe_instance):
+        HeatExchangedVessel.temperature_set_point.register(
+            client, self, recipe_instance)
 
-    def register(self, recipe_instance):
-        HeatExchangedVessel.temperature_set_point.subscribe(self, recipe_instance)
-        super(HeatExchangedVessel, self).register(recipe_instance)
+    def recalculate_gains(self):
+        """Calculates control gains based on the amount of liquid and
+        heating rating of the heating element.
+        """
+        self.regulator.gain_proportional = (
+            0.2 * (self.volume / self.heat_exchanger_conductivity))
+        self.regulator.gain_integral = (
+            0.002 * (self.volume / self.heat_exchanger_conductivity))
 
     def turn_off(self):
         """Disables the pump on this vessel along with its controls"""
         self.enabled = False
-        self.Regulator.disable()
+        self.regulator.disable()
 
     def turn_on(self):
         """Turns on the pump for this vessel along with its controls"""
         self.enabled = True
-        self.Regulator.enable()
+        self.regulator.enable()
 
-    def set_temperature(self, temp):
+    def set_temperature(self, temperature):
         """Sets the temperatures setpoint for the Regulator to control
         the vessel temperature.
         """
-        self.temperature_set_point = temp
+        self.temperature_set_point = temperature
 
-    def set_temperature_profile(self, time0):
+    def _absolute_temperature_profile(self):
+        """Creates a temperature profile where the times are relative to start
+        rather than the lengths of time for each segment. An additional segment
+        at the end is added with None for the temperature, indicating the end.
+
+        That is, `[(15.0, 150.), (15.0, 155.0)]` becomes
+        `[(0.0, 150.0), (15.0, 155.0), (30.0, None)]`.
+        """
+        profile = [(0.0, self.temperature_profile[0][1])]
+        for i, point in enumerate(self.temperature_profile):
+            time_sum = profile[-1][0] + point[0]
+            if i+1 == len(self.temperature_profile):
+                next_temperature = None
+            else:
+                next_temperature = self.temperature_profile[i+1][1]
+            profile.append((time_sum, next_temperature))
+        return profile
+
+    def set_temperature_profile(self, time_in_profile):
         """Sets the temperature setpoint for the controls based on the
         current time relative to the start of the temperature profile.
 
         Args:
-            time0: The time to reference as the beginning of the profile.
+            time_in_profile: The time to reference as the beginning of the
+                profile.
         """
-        if self.temperature_profile is not None:
-            for temp in self.temperature_profile:
-                if time.time() - time0 > temp[0]:
-                    self.set_temperature(temp[1])
-                    break
+        assert self.temperature_profile is not None
+
+        absolute_temperature_profile = self._absolute_temperature_profile()
+        assert time_in_profile >= absolute_temperature_profile[0][0]
+        assert time_in_profile < absolute_temperature_profile[-1][0]
+
+        for point in reversed(absolute_temperature_profile):
+            if time_in_profile >= point[0]:
+                self.set_temperature(point[1])
+                return
 
     @property
     def temperature_profile_length(self):
         """The total amount of time prescribed in the ``temperature_profile``
         """
-        return reduce(lambda x,y: x+y[0], self.temperature_profile,0.)
+        absolute_profile = self._absolute_temperature_profile()
+        return absolute_profile[-1][0]
 
-    def set_liquid_level(self,volume):
+    def set_liquid_level(self, volume):
         """Adjusts the liquid volume of the vessel, which then recalculates
         the control gains based on the new liquid volume.
         """
@@ -238,35 +282,25 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         vessel by adjusting the temperature set point of the vessel serving
         as the heat source.
         """
-        regulator_temperature = self.Regulator.calculate(
+        regulator_temperature = self.regulator.calculate(
             self.temperature, self.temperature_set_point)
         self.source_temperature = self.temperature + regulator_temperature
-
-    def recalculate_gains(self):
-        """Calculates control gains based on the amount of liquid and
-        heating rating of the heating element
-        """
-        self.Regulator.KP = 2.E-1*(self.volume/self.heat_exchanger_conductivity)
-        self.Regulator.KI = 2.E-3*(self.volume/self.heat_exchanger_conductivity)
-
-    def measure_temperature(self):
-        """Samples the temperature from the measurement circuit. If GPIO
-        is mocked, we will simulate the heating action.
-        """
-        if GPIO_MOCK_API_ACTIVE:
-            return self.liquid_temperature_simulator.integrate(
-                self.temperature_ramp)
-        else:
-            return super(HeatExchangedVessel, self).measure_temperature()
 
     @property
     def temperature_ramp(self):
         """An estimated degF/sec rate of change of liquid based on ideal
         conditions. Does not include ambient losses.
         """
-        # TODO: add better energy loss to environment
-        if self.temperature_source and self.enabled:
-            return ((self.temperature_source.temperature - self.temperature)
-                    * self.heat_exchanger_conductivity)
+        # TODO(will): Add energy loss to environment.
+        if self.enabled:
+            delta_temperature = self.source_temperature - self.temperature
+            net_power = delta_temperature * self.heat_exchanger_conductivity
+            volume = self.volume * 3.79  # L
+            density_water = 1000.0  # grams/L
+            mass = volume * density_water  # grams
+            specific_heat_water = 4.184  # J/(degC * grams)
+            specific_heat = mass * specific_heat_water  # J/degC
+            specific_heat_fahrenheit = specific_heat * (5.0 / 9.0)  # J/degF
+            return net_power / specific_heat_fahrenheit  # degF/second
         else:
-            return 0.
+            return 0.0
