@@ -241,3 +241,13 @@ class TestHeatExchangedVessel(unittest.TestCase):
         # 100degF delta with heat_exchanger_conductivity = 1 -> 100W.
         # 100W is 0.0112 degF/second for water.
         self.assertAlmostEquals(self.vessel.temperature_ramp, 0.0113, 2)
+
+    def test_temperature_ramp_disabled(self):
+        self.vessel.source_temperature = 200.0
+        self.temperature_sensor.temperature = 100.0
+        self.vessel.volume = 1.0
+        self.vessel.heat_exchanger_conductivity = 1.0  # W/delta degF
+        self.vessel.turn_off()
+        # 100degF delta with heat_exchanger_conductivity = 1 -> 100W.
+        # 100W is 0.0112 degF/second for water.
+        self.assertAlmostEquals(self.vessel.temperature_ramp, 0.0, 9)
