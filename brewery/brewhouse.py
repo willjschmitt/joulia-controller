@@ -42,7 +42,9 @@ class Brewhouse(object):
         self._register(client, recipe_instance)
 
         self.recipe_instance = recipe_instance
+
         self.data_streamer = DataStreamer(client, self, recipe_instance, 1000)
+        self._initialize_data_streamer()
 
         self.strike_temperature = 0.0
         self.mashout_temperature = 0.0
@@ -59,22 +61,8 @@ class Brewhouse(object):
 
         # Main State Machine Initialization
         self.state = StateMachine(self)
-        StatePrestart(self.state)
-        StatePremash(self.state)
-        StateStrike(self.state)
-        StatePostStrike(self.state)
-        StateMash(self.state)
-        StateMashoutRamp(self.state)
-        StateMashoutRecirculation(self.state)
-        StateSpargePrep(self.state)
-        StateSparge(self.state)
-        StatePreBoil(self.state)
-        StateMashToBoil(self.state)
-        StateBoilPreheat(self.state)
-        StateBoil(self.state)
-        StateCool(self.state)
-        StatePumpout(self.state)
-        self.state.id = 0
+        self.state.register(client, recipe_instance)
+        self._initialize_state_machine()
 
         boil_sensor_analog_pin = 0
         boil_sensor_rtd_alpha = 0.385
@@ -140,18 +128,8 @@ class Brewhouse(object):
         instance. This allows for the variables to be changed as native
         attributes of the `Brewhouse` and child elements, while
         streaming changes as they happen locally, or receiving changes
-        as they happen remotely."""
-
-        self.state.register(client, recipe_instance)
-
-        # Variables that are @properties and need to be streamed periodically
-        # still.
-        self.data_streamer.register('boil_kettle__temperature')
-        self.data_streamer.register('mash_tun__temperature')
-        self.data_streamer.register('boil_kettle__power')
-        self.data_streamer.register('system_energy_cost')
-        self.data_streamer.register('state__id', 'state')
-
+        as they happen remotely.
+        """
         # Register normal time series streaming
         Brewhouse.system_energy.register(client, self, recipe_instance)
         Brewhouse.timer.register(client, self, recipe_instance)
@@ -162,7 +140,38 @@ class Brewhouse(object):
                 self.state.id += 1
         Brewhouse.request_permission.register(client, self, recipe_instance)
         Brewhouse.grant_permission.register(
-            client, self, self.recipe_instance, callback=permission_granted)
+            client, self, recipe_instance, callback=permission_granted)
+
+    def _initialize_state_machine(self):
+        """Initializes state machine into fully populated state. Should be
+        called by __init__.
+        """
+        StatePrestart(self.state)
+        StatePremash(self.state)
+        StateStrike(self.state)
+        StatePostStrike(self.state)
+        StateMash(self.state)
+        StateMashoutRamp(self.state)
+        StateMashoutRecirculation(self.state)
+        StateSpargePrep(self.state)
+        StateSparge(self.state)
+        StatePreBoil(self.state)
+        StateMashToBoil(self.state)
+        StateBoilPreheat(self.state)
+        StateBoil(self.state)
+        StateCool(self.state)
+        StatePumpout(self.state)
+        self.state.id = 0
+
+    def _initialize_data_streamer(self):
+        """Registers variables that are @properties and need to be streamed
+        periodically still.
+        """
+        self.data_streamer.register('boil_kettle__temperature')
+        self.data_streamer.register('mash_tun__temperature')
+        self.data_streamer.register('boil_kettle__power')
+        self.data_streamer.register('system_energy_cost')
+        self.data_streamer.register('state__id', 'state')
 
     def start_brewing(self):
         """Initializes a new recipe instance on the `Brewhouse`.
