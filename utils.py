@@ -55,4 +55,17 @@ def exists_and_not_none(obj, key):
     return key in obj and obj[key] is not None
 
 
+def power_to_temperature_rate(power, volume):
+    """Converts power (in Watts) and volume of water (in gallons) into
+    temperature change rate (in degF/second).
+    """
+    volume *= 3.79  # L
+    density_water = 1000.0  # grams/L
+    mass = volume * density_water  # grams
+    specific_heat_water = 4.184  # J/(degC * grams)
+    specific_heat = mass * specific_heat_water  # J/degC
+    specific_heat_fahrenheit = specific_heat * (5.0 / 9.0)  # J/degF
+    return power / specific_heat_fahrenheit  # degF/second
+
+
 GPIO_MOCK_API_ACTIVE = 'gpio_mock' in dir(gpiocrust)

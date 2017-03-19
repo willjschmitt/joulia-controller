@@ -5,9 +5,8 @@ Kettles, Mash Tuns, etc.
 import logging
 import time
 
-from dsp.dsp import Integrator
 from dsp.dsp import Regulator
-from measurement.rtd_sensor import RtdSensor
+from utils import power_to_temperature_rate
 from variables import OverridableVariable
 from variables import StreamingVariable
 
@@ -154,13 +153,7 @@ class HeatedVessel(TemperatureMonitoredVessel):
         """
         # TODO(will): Calculate energy loss to environment.
         net_power = self.power
-        volume = self.volume * 3.79  # L
-        density_water = 1000.0  # grams/L
-        mass = volume * density_water  # grams
-        specific_heat_water = 4.184  # J/(degC * grams)
-        specific_heat = mass * specific_heat_water  # J/degC
-        specific_heat_fahrenheit = specific_heat * (5.0 / 9.0)  # J/degF
-        return net_power / specific_heat_fahrenheit  # degF/second
+        return power_to_temperature_rate(net_power, self.volume)
 
 
 class HeatExchangedVessel(TemperatureMonitoredVessel):
@@ -295,12 +288,6 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         if self.enabled:
             delta_temperature = self.source_temperature - self.temperature
             net_power = delta_temperature * self.heat_exchanger_conductivity
-            volume = self.volume * 3.79  # L
-            density_water = 1000.0  # grams/L
-            mass = volume * density_water  # grams
-            specific_heat_water = 4.184  # J/(degC * grams)
-            specific_heat = mass * specific_heat_water  # J/degC
-            specific_heat_fahrenheit = specific_heat * (5.0 / 9.0)  # J/degF
-            return net_power / specific_heat_fahrenheit  # degF/second
+            return power_to_temperature_rate(net_power, self.volume)
         else:
             return 0.0

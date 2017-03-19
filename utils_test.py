@@ -3,6 +3,7 @@
 import unittest
 
 from utils import exists_and_not_none
+from utils import power_to_temperature_rate
 from utils import rgetattr
 from utils import rsetattr
 
@@ -137,3 +138,14 @@ class TestExistsAndNotNone(unittest.TestCase):
     def test_exists_and_not_none(self):
         foo = {"foo": 1}
         self.assertTrue(exists_and_not_none(foo, "foo"))
+
+
+class TestPowerToTemperatureRate(unittest.TestCase):
+    """Tests for power_to_temperature_rate."""
+
+    def test(self):
+        power = 100.0  # Watts
+        volume = 1.0  # Gallons
+        got = power_to_temperature_rate(power, volume)
+        want = 0.0113  # degF/second
+        self.assertAlmostEquals(got, want, 2)
