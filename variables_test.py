@@ -537,6 +537,3 @@ class TestDataStreamer(unittest.TestCase):
                 "value": 2,
                 "sensor": 12}
         self.assertEquals(got, want)
-
-if __name__ == '__main__':
-    unittest.main()

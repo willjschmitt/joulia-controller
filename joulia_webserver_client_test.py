@@ -188,8 +188,8 @@ class TestJouliaWebsocketClient(unittest.TestCase):
         self.assertEquals(parsed['subscribe'], True)
 
     def test_register_callback(self):
-        def foo(response):
-            pass
+        def foo(_):
+            pass  # pragma: no cover
 
         self.client.register_callback(foo)
 
@@ -211,14 +211,10 @@ class TestJouliaWebsocketClient(unittest.TestCase):
         counters = {"foo": 0}
 
         def foo(response):
-            counters["foo"] += 1
+            counters["foo"] += 1  # pragma: no cover
 
         self.client.register_callback(foo)
 
         self.client.on_message(None)
 
         self.assertEquals(counters['foo'], 0)
-
-
-if __name__ == '__main__':
-    unittest.main()

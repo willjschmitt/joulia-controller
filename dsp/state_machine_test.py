@@ -73,7 +73,7 @@ class TestStateMachine(unittest.TestCase):
     def test_evaluate_no_state(self):
         class Foo(State):
             def __call__(self):
-                return 12
+                return 12  # pragma: no cover
         foo = Foo(self)
         self.state_machine.add_state(foo)
         self.assertIsNone(self.state_machine.evaluate())
