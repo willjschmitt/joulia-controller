@@ -192,7 +192,5 @@ def create_analog_reader():
     return AnalogReader(i2c_bus, i2c_address)
 
 
-
-
 if __name__ == "__main__":
     main()  # pragma: no cover
