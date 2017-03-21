@@ -1,4 +1,6 @@
 # joulia-controller
+[![Build Status](https://travis-ci.org/willjschmitt/joulia-controller.svg?branch=master)](https://travis-ci.org/willjschmitt/joulia-webserver) [![Coverage Status](https://coveralls.io/repos/github/willjschmitt/joulia-controller/badge.svg?branch=develop)](https://coveralls.io/github/willjschmitt/joulia-controller?branch=develop)
+
 Controller for the electric brewing hardware.
 
 ## Quickstart
