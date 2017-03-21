@@ -12,7 +12,6 @@ from brewery.vessels import HeatExchangedVessel
 from dsp.state_machine import State
 from dsp.state_machine import StateMachine
 from measurement.gpio import OutputPin
-from measurement.rtd_sensor import RtdSensor
 from variables import DataStreamer
 from variables import StreamingVariable
 from variables import SubscribableVariable
@@ -31,7 +30,8 @@ class Brewhouse(object):
     request_permission = StreamingVariable('request_permission')
     grant_permission = SubscribableVariable('grant_permission')
 
-    def __init__(self, client, gpio, analog_reader, recipe_instance):
+    def __init__(self, client, gpio, analog_reader, recipe_instance,
+                 boil_kettle, mash_tun, main_pump):
         """Creates the `Brewhouse` instance and waits for a command
         from the webserver to start a new instance.
 
@@ -42,6 +42,9 @@ class Brewhouse(object):
         self._register(client, recipe_instance)
 
         self.recipe_instance = recipe_instance
+        self.boil_kettle = boil_kettle
+        self.mash_tun = mash_tun
+        self.main_pump = main_pump
 
         self.data_streamer = DataStreamer(client, self, recipe_instance, 1000)
         self._initialize_data_streamer()
@@ -64,67 +67,6 @@ class Brewhouse(object):
         self.state = StateMachine(self)
         self.state.register(client, recipe_instance)
         self._initialize_state_machine()
-
-        boil_sensor_analog_pin = 0
-        boil_sensor_rtd_alpha = 0.385
-        boil_sensor_rtd_zero_resistance = 100.0
-        boil_sensor_analog_reference = 3.3
-        boil_sensor_vcc = 3.3
-        boil_sensor_tau_filter = 10.0
-        boil_sensor_rtd_top_resistance = 1.0E3
-        boil_sensor_amplifier_resistor_a = 15.0E3
-        boil_sensor_amplifier_resistor_b = 270.0E3
-        boil_offset_resistance_bottom = 10.0E3
-        boil_offset_resistance_top = 100.0E3
-        boil_kettle_temperature_sensor = RtdSensor(
-            analog_reader,
-            boil_sensor_analog_pin, boil_sensor_rtd_alpha,
-            boil_sensor_rtd_zero_resistance, boil_sensor_analog_reference,
-            boil_sensor_vcc, boil_sensor_tau_filter,
-            boil_sensor_rtd_top_resistance, boil_sensor_amplifier_resistor_a,
-            boil_sensor_amplifier_resistor_b, boil_offset_resistance_bottom,
-            boil_offset_resistance_top)
-
-        boil_kettle_heating_element_rating = 5500.0
-        boil_kettle_volume = 5.0
-        boil_kettle_heating_pin_number = 0
-        boil_kettle_heating_pin = OutputPin(
-            gpio, boil_kettle_heating_pin_number)
-        self.boil_kettle = HeatedVessel(
-            client, recipe_instance, boil_kettle_heating_element_rating,
-            boil_kettle_volume, boil_kettle_temperature_sensor,
-            boil_kettle_heating_pin)
-
-        mash_sensor_analog_pin = 0
-        mash_sensor_rtd_alpha = 0.385
-        mash_sensor_rtd_zero_resistance = 100.0
-        mash_sensor_analog_reference = 3.3
-        mash_sensor_vcc = 3.3
-        mash_sensor_tau_filter = 10.0
-        mash_sensor_rtd_top_resistance = 1.0E3
-        mash_sensor_amplifier_resistor_a = 15.0E3
-        mash_sensor_amplifier_resistor_b = 270.0E3
-        mash_offset_resistance_bottom = 10.0E3
-        mash_offset_resistance_top = 100.0E3
-        mash_tun_temperature_sensor = RtdSensor(
-            analog_reader,
-            mash_sensor_analog_pin, mash_sensor_rtd_alpha,
-            mash_sensor_rtd_zero_resistance, mash_sensor_analog_reference,
-            mash_sensor_vcc, mash_sensor_tau_filter,
-            mash_sensor_rtd_top_resistance, mash_sensor_amplifier_resistor_a,
-            mash_sensor_amplifier_resistor_b, mash_offset_resistance_bottom,
-            mash_offset_resistance_top)
-
-        mash_tun_volume = 5.0
-        mash_temperature_profile = [(60.0, 155.0)]
-        self.mash_tun = HeatExchangedVessel(
-            client, recipe_instance, mash_tun_volume,
-            mash_tun_temperature_sensor,
-            temperature_profile=mash_temperature_profile)
-
-        pump_pin_number = 2
-        pump_pin = OutputPin(gpio, pump_pin_number)
-        self.main_pump = SimplePump(pump_pin)
 
     def _register(self, client, recipe_instance):
         """Registers the tracked/managed variables with the recipe
@@ -246,7 +188,9 @@ class Brewhouse(object):
         self.boil_kettle.regulate()
 
         boil_power = self.boil_kettle.duty_cycle*self.boil_kettle.rating
-        delta_time_hours = (self.working_time-self.task1_lasttime)/(60.*60.)
+        seconds_per_hours = 60.0 * 60.0
+        delta_time_seconds = self.working_time - self.task1_lasttime
+        delta_time_hours = delta_time_seconds / seconds_per_hours
         self.system_energy += boil_power*delta_time_hours
 
         # Schedule next task 1 event
@@ -258,7 +202,7 @@ class StatePrestart(State):
     is filled in the boil kettle/HLT.
     """
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_prestart')
+        LOGGER.debug('In state Prestart')
 
         brewhouse.timer = None
 
@@ -272,7 +216,7 @@ class StatePrestart(State):
 class StatePremash(State):
     """Boil element brings water up to strike temperature."""
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_premash')
+        LOGGER.debug('In state Premash')
 
         brewhouse.timer = None
 
@@ -285,12 +229,14 @@ class StatePremash(State):
 
         if brewhouse.boil_kettle.temperature > brewhouse.strike_temperature:
             brewhouse.request_permission = True
+        else:
+            brewhouse.request_permission = False
 
 
 class StateStrike(State):
     """The addition of hot water to the grain."""
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_strike')
+        LOGGER.debug('In state Strike')
 
         brewhouse.timer = None
 
@@ -309,7 +255,7 @@ class StateStrike(State):
 class StatePostStrike(State):
     """Boil element brings water up to strike temperature."""
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_post_strike')
+        LOGGER.debug('In state PostStrike')
 
         brewhouse.timer = None
 
@@ -333,7 +279,7 @@ class StateMash(State):
     temperature.
     """
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_mash')
+        LOGGER.debug('In state Mash')
 
         brewhouse.timer = (
             brewhouse.state_t0
@@ -349,7 +295,7 @@ class StateMash(State):
         brewhouse.timeT0 = time.time()
 
         if brewhouse.timer <= 0.:
-            brewhouse.state.change_state('state_mashout_ramp')
+            self.state_machine.next_state()
 
 
 class StateMashoutRamp(State):
@@ -357,7 +303,7 @@ class StateMashoutRamp(State):
     to stop enzymatic processes and to prep sparge water
     """
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_mashout_ramp')
+        LOGGER.debug('In state MashoutRamp')
 
         brewhouse.timer = None
 
@@ -371,7 +317,7 @@ class StateMashoutRamp(State):
             brewhouse.mashout_temperature + 5.0)
 
         if brewhouse.boil_kettle.temperature > brewhouse.mashout_temperature:
-            brewhouse.state.change_state('state_mashout_recirculation')
+            self.state_machine.next_state()
 
 
 class StateMashoutRecirculation(State):
@@ -380,7 +326,7 @@ class StateMashoutRecirculation(State):
     just forces an amount of time of mashout at a higher temp of wort.
     """
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_mashout_recirculation')
+        LOGGER.debug('In state MashoutRecirculation')
 
         brewhouse.timer = (
             brewhouse.state_t0
@@ -400,7 +346,7 @@ class StateMashoutRecirculation(State):
 class StateSpargePrep(State):
     """Prep hoses for sparge process."""
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_sparge_prep')
+        LOGGER.debug('In state SpargePrep')
 
         brewhouse.timer = None
 
@@ -417,7 +363,7 @@ class StateSpargePrep(State):
 class StateSparge(State):
     """Slowly puts clean water onto grain bed as it is drained."""
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_sparge')
+        LOGGER.debug('In state Sparge')
 
         brewhouse.main_pump.turn_on()
         brewhouse.boil_kettle.turn_off()
@@ -436,7 +382,7 @@ class StatePreBoil(State):
     well as boil kettle draining.
     """
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_pre_boil')
+        LOGGER.debug('In state PreBoil')
 
         brewhouse.main_pump.turn_off()
         brewhouse.boil_kettle.turn_off()
@@ -454,7 +400,7 @@ class StateMashToBoil(State):
     """Turns off boil element and pumps wort from mash tun to the boil kettle.
     """
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_mash_to_boil')
+        LOGGER.debug('In state MashToBoil')
 
         brewhouse.timer = None
 
@@ -472,7 +418,7 @@ class StateBoilPreheat(State):
     """Heat wort up to temperature before starting to countdown timer in boil.
     """
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_boil_preheat')
+        LOGGER.debug('In state BoilPreheat')
 
         brewhouse.timer = None
 
@@ -485,7 +431,7 @@ class StateBoilPreheat(State):
 
         preheat_temperature = brewhouse.boil_kettle.temperature_set_point - 10.0
         if brewhouse.boil_kettle.temperature > preheat_temperature:
-            brewhouse.state.change_state('state_boil')
+            self.state_machine.next_state()
 
 
 class StateBoil(State):
@@ -493,7 +439,7 @@ class StateBoil(State):
     duration of boil.
     """
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_boil')
+        LOGGER.debug('In state Boil')
 
         brewhouse.main_pump.turn_off()
         brewhouse.boil_kettle.turn_on()
@@ -515,7 +461,7 @@ class StateBoil(State):
 class StateCool(State):
     """Cooling boil down to pitching temperature."""
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_cool')
+        LOGGER.debug('In state Cool')
 
         brewhouse.timer = None
 
@@ -533,7 +479,7 @@ class StateCool(State):
 class StatePumpout(State):
     """Pumping wort out into fermenter."""
     def __call__(self, brewhouse):
-        LOGGER.debug('In state_pumpout')
+        LOGGER.debug('In state Pumpout')
 
         brewhouse.timer = None
 
