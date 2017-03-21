@@ -31,7 +31,7 @@ class Brewhouse(object):
     request_permission = StreamingVariable('request_permission')
     grant_permission = SubscribableVariable('grant_permission')
 
-    def __init__(self, client, gpio, recipe_instance):
+    def __init__(self, client, gpio, analog_reader, recipe_instance):
         """Creates the `Brewhouse` instance and waits for a command
         from the webserver to start a new instance.
 
@@ -53,6 +53,7 @@ class Brewhouse(object):
         self.boil_time = 0.0  # Seconds
         self.cool_temperature = 0.0
         self.mash_temperature_profile = []
+        self.system_energy = 0.0
 
         self.working_time = None
         self.timers = {}
@@ -76,6 +77,7 @@ class Brewhouse(object):
         boil_offset_resistance_bottom = 10.0E3
         boil_offset_resistance_top = 100.0E3
         boil_kettle_temperature_sensor = RtdSensor(
+            analog_reader,
             boil_sensor_analog_pin, boil_sensor_rtd_alpha,
             boil_sensor_rtd_zero_resistance, boil_sensor_analog_reference,
             boil_sensor_vcc, boil_sensor_tau_filter,
@@ -105,6 +107,7 @@ class Brewhouse(object):
         mash_offset_resistance_bottom = 10.0E3
         mash_offset_resistance_top = 100.0E3
         mash_tun_temperature_sensor = RtdSensor(
+            analog_reader,
             mash_sensor_analog_pin, mash_sensor_rtd_alpha,
             mash_sensor_rtd_zero_resistance, mash_sensor_analog_reference,
             mash_sensor_vcc, mash_sensor_tau_filter,
@@ -217,7 +220,7 @@ class Brewhouse(object):
 
     def cancel_timers(self):
         """Stops all timers/scheduled control tasks."""
-        for timer in self.timers.itervalues():
+        for timer in self.timers.values():
             timer.stop()
 
     def task00(self):
