@@ -2,14 +2,14 @@
 import logging.config
 try:
     import RPi.GPIO as gpio
-except ImportError, RuntimeError:
+except (ImportError, RuntimeError):
     # TODO(will): Come up with a better hack for working on non-Raspberry Pi
     # systems.
     from testing.stub_gpio import StubGPIO
     gpio = StubGPIO()
 try:
     import smbus
-except ImportError, RuntimeError:
+except (ImportError, RuntimeError):
     # TODO(will): Come up with a better hack for working on non-Raspberry Pi
     # systems.
     from testing.stub_smbus import StubSmbus
