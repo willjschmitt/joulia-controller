@@ -68,6 +68,70 @@ class TestStateMachine(unittest.TestCase):
         Foo(self.state_machine)
         self.assertIsNone(self.state_machine.evaluate())
 
+    def test_next_state(self):
+        class Foo(State):
+            def __call__(self, instance):
+                return 10
+
+        class Bar(State):
+            def __call__(self, instance):
+                return 11
+
+        foo = Foo(self.state_machine)
+        bar = Bar(self.state_machine)
+
+        self.state_machine.id = None
+        self.assertIsNone(self.state_machine.state)
+        self.state_machine.next_state()
+        self.assertIs(self.state_machine.state, foo)
+        self.state_machine.next_state()
+        self.assertIs(self.state_machine.state, bar)
+
+    def test_next_state_at_end(self):
+        class Foo(State):
+            def __call__(self, instance):
+                return 10
+
+        foo = Foo(self.state_machine)
+
+        self.state_machine.id = 0
+        self.assertIs(self.state_machine.state, foo)
+        self.state_machine.next_state()
+        self.assertIsNone(self.state_machine.state)
+
+    def test_previous_state(self):
+        class Foo(State):
+            def __call__(self, instance):
+                return 10
+
+        class Bar(State):
+            def __call__(self, instance):
+                return 11
+
+        foo = Foo(self.state_machine)
+        bar = Bar(self.state_machine)
+
+        self.state_machine.id = 1
+        self.assertIs(self.state_machine.state, bar)
+        self.state_machine.previous_state()
+        self.assertIs(self.state_machine.state, foo)
+        self.state_machine.previous_state()
+        self.assertIsNone(self.state_machine.state)
+
+    def test_previous_state_at_start(self):
+        class Foo(State):
+            def __call__(self, instance):
+                return 10
+
+        foo = Foo(self.state_machine)
+
+        self.state_machine.id = 0
+        self.assertIs(self.state_machine.state, foo)
+        self.state_machine.previous_state()
+        self.assertIsNone(self.state_machine.state)
+        self.state_machine.previous_state()
+        self.assertIsNone(self.state_machine.state)
+
 
 class TestState(unittest.TestCase):
     """Tests the State class."""

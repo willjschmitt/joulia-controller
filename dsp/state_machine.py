@@ -62,7 +62,7 @@ class StateMachine(object):
 
     @id.setter
     def id(self, value):
-        assert value < len(self.states)
+        assert value is None or value < len(self.states)
 
         if self._id != value:
             self.parent.request_permission = False
@@ -93,6 +93,34 @@ class StateMachine(object):
 
     def _time(self):
         return self.clock.time()
+
+    def next_state(self):
+        """Advances the current state to the next state in the state machine.
+
+        If the current state is the last state, sets the current state to None.
+
+        If the current state is None, advances to the first state.
+        """
+        if self.id is None:
+            self.id = 0
+        elif self.id == len(self.states) - 1:
+            self.id = None
+        else:
+            self.id += 1
+
+    def previous_state(self):
+        """Moves the current state to the previous state in the state machine.
+
+        If the current state is the first state, sets the current state to None.
+
+        If the current state is None, keeps state set to None.
+        """
+        if self.id is None:
+            self.id = None
+        elif self.id == 0:
+            self.id = None
+        else:
+            self.id -= 1
 
 
 class State(object):
