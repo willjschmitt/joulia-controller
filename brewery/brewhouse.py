@@ -161,6 +161,9 @@ class Brewhouse(object):
         """Stops all timers/scheduled control tasks."""
         for timer in self.timers.values():
             timer.stop()
+        self.boil_kettle.turn_off()
+        self.mash_tun.turn_off()
+        self.main_pump.turn_off()
 
     def task00(self):
         """Fast task control execution for the brewhouse system."""

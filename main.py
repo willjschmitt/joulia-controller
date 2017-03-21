@@ -1,11 +1,28 @@
 """Main code for launching a Brewhouse joulia-controller."""
 import logging.config
-import RPi.GPIO as gpio
+try:
+    import RPi.GPIO as gpio
+except:
+    # TODO(will): Come up with a better hack for working on non-Raspberry Pi
+    # systems.
+    from testing.stub_gpio import StubGPIO
+    gpio = StubGPIO()
+try:
+    import smbus
+except:
+    # TODO(will): Come up with a better hack for working on non-Raspberry Pi
+    # systems.
+    from testing.stub_smbus import StubSmbus
+    smbus = StubSmbus()
 from tornado import ioloop
+import urllib
 
 from brewery.brewhouse import Brewhouse
+from brewery.pump import SimplePump
 from brewery.vessels import HeatedVessel
 from brewery.vessels import HeatExchangedVessel
+from joulia_webserver_client import JouliaHTTPClient
+from joulia_webserver_client import JouliaWebsocketClient
 from measurement.arduino import AnalogReader
 from measurement.gpio import OutputPin
 from measurement.rtd_sensor import RtdSensor
@@ -20,13 +37,16 @@ def main():
     """Main routine is for running as standalone controller on embedded
     hardware. Loads settings from module and env vars, and launches a
     controller instance."""
-    brewhouse = create_brewhouse()
+    address = "joulia.io"
+    http_client = JouliaHTTPClient("http://" + address)
+    ws_client = JouliaWebsocketClient("ws://" + address, http_client)
+    brewhouse = create_brewhouse(ws_client, recipe_instance)
     LOGGER.info('Brewery initialized.')
 
     ioloop.IOLoop.instance().start()
 
 
-def create_brewhouse():
+def create_brewhouse(ws_client, address, recipe_instance):
     analog_reader = create_analog_reader()
     gpio.setmode(gpio.BCM)
 
@@ -56,7 +76,7 @@ def create_brewhouse():
     boil_kettle_heating_pin = OutputPin(
         gpio, boil_kettle_heating_pin_number)
     boil_kettle = HeatedVessel(
-        client, recipe_instance, boil_kettle_heating_element_rating,
+        ws_client, recipe_instance, boil_kettle_heating_element_rating,
         boil_kettle_volume, boil_kettle_temperature_sensor,
         boil_kettle_heating_pin)
 
@@ -83,7 +103,7 @@ def create_brewhouse():
     mash_tun_volume = 5.0
     mash_temperature_profile = [(60.0, 155.0)]
     mash_tun = HeatExchangedVessel(
-        client, recipe_instance, mash_tun_volume,
+        ws_client, recipe_instance, mash_tun_volume,
         mash_tun_temperature_sensor,
         temperature_profile=mash_temperature_profile)
 
@@ -124,17 +144,13 @@ def watch_for_start(self):
             LOGGER.info("Got command to start")
             response = json_decode(response.body)
             messages = response['messages']
-            self.recipe_instance = messages['recipe_instance']
-            self.start_brewing()
-            self.watch_for_end()
+            recipe_instance = messages['recipe_instance']
 
     http_client = AsyncHTTPClient()
     post_data = {'brewhouse': settings.BREWHOUSE_ID}
-    uri = HTTP_PREFIX + ":" + HOST + "/live/recipeInstance/start/"
+    uri = "http://joulia.io/live/recipeInstance/start/"
     headers = {'Authorization': 'Token ' + self.authtoken}
-    http_client.fetch(uri, handle_start_request,
-                      headers=headers,
-                      method="POST",
+    http_client.fetch(uri, handle_start_request, headers=headers, method="POST",
                       body=urllib.urlencode(post_data))
 
 
@@ -159,12 +175,11 @@ def watch_for_end(self):
 
     http_client = AsyncHTTPClient()
     post_data = {'brewhouse': settings.BREWHOUSE_ID}
-    uri = HTTP_PREFIX + ":" + HOST + "/live/recipeInstance/end/"
+    uri = "http://joulia.io/live/recipeInstance/end/"
     headers = {'Authorization': 'Token ' + self.authtoken}
-    http_client.fetch(uri, handle_end_request,
-                      headers=headers,
-                      method="POST",
+    http_client.fetch(uri, handle_end_request, headers=headers, method="POST",
                       body=urllib.urlencode(post_data))
 
+
 if __name__ == "__main__":
-    main()
+    main()  # pragma: no cover

@@ -6,6 +6,7 @@ from enum import Enum
 
 class BoardMode(Enum):
     BOARD = 0
+    BCM = 1
 
 
 class PinState(Enum):
@@ -30,6 +31,7 @@ class StubGPIO(object):
     OUT = PinMode.OUT
 
     BOARD = BoardMode.BOARD
+    BCM = BoardMode.BCM
 
     def __init__(self):
         self.pin_modes = {}

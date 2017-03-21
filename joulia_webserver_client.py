@@ -129,7 +129,6 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
             from the websocket.
         websocket: The tornado websocket client
     """
-    _websocket_connect = websocket_connect
 
     def __init__(self, address, http_client, auth_token=None):
         super(JouliaWebsocketClient, self).__init__(address, auth_token)
@@ -153,6 +152,10 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
         self.websocket = yield self._websocket_connect(
             url, on_message_callback=self.on_message)
         LOGGER.info("Websocket connection established at %s", url)
+
+    @gen.coroutine
+    def _websocket_connect(self, url, on_message_callback=None):
+        yield websocket_connect(url, on_message_callback=on_message_callback)
 
     def write_message(self, message):
         """Serves as a ``write_message`` api to the websocket. Adds the new
