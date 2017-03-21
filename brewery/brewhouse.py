@@ -457,10 +457,11 @@ class StateBoil(State):
 
         brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_temperature)
-        brewhouse.timeT0 = time.time()
 
-        if brewhouse.timer <= 0.:
+        if brewhouse.timer <= 0.0:
             brewhouse.request_permission = True
+        else:
+            brewhouse.request_permission = False
 
 
 class StateCool(State):
