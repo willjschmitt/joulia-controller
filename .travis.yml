@@ -1,0 +1,19 @@
+language: python
+sudo: false
+python:
+  - 3.5
+  - 3.6
+cache:
+  directories:
+    - $HOME/.cache/pip
+  fast_finish: true
+install:
+  - travis_retry pip install -r requirements.txt
+  - travis_retry pip install coverage
+  - travis_retry pip install coveralls
+script:
+- nosetests --with-coverage --cover-package=.
+after_success: coveralls
+notifications:
+  email: false
+  slack: joulia:WNFyeuBeiJJAGjU6Gwj9rPnX
