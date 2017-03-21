@@ -182,4 +182,33 @@ class TestBrewhouse(unittest.TestCase):
         self.assertEquals(self.brewhouse.state.state.__class__.__name__,
                           "StateMashoutRecirculation")
 
+    def test_state_mashout_recirculation(self):
+        self.brewhouse.state.set_state_by_name("StateMashoutRecirculation")
+        self.brewhouse.working_time = 0
+        self.brewhouse.state.state_time_change = 0
+        self.brewhouse.mashout_temperature = 170.0
+        self.brewhouse.state.evaluate()
+        self.assertTrue(self.brewhouse.main_pump.enabled)
+        self.assertTrue(self.brewhouse.boil_kettle.element_status)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
+        self.assertAlmostEquals(
+            self.brewhouse.mash_tun.temperature_set_point, 170.0, 9)
+        self.assertAlmostEquals(
+            self.brewhouse.boil_kettle.temperature_set_point, 170.0, 9)
 
+    def test_state_mashout_recirculation_timer_start(self):
+        self.brewhouse.state.set_state_by_name("StateMashoutRecirculation")
+        self.brewhouse.working_time = 0
+        self.brewhouse.state.state_time_change = 0
+        self.brewhouse.mashout_time = 15.0
+        self.brewhouse.state.evaluate()
+        self.assertAlmostEquals(self.brewhouse.timer, 15.0, 9)
+
+    def test_state_mashout_recirculation_timer_done(self):
+        self.brewhouse.state.set_state_by_name("StateMashoutRecirculation")
+        self.brewhouse.working_time = 16.0
+        self.brewhouse.state.state_time_change = 0
+        self.brewhouse.mashout_time = 15.0
+        self.brewhouse.state.evaluate()
+        self.assertAlmostEquals(self.brewhouse.timer, -1.0, 9)
+        self.assertTrue(self.brewhouse.request_permission)

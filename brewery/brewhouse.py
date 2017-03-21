@@ -341,7 +341,7 @@ class StateMashoutRecirculation(State):
         brewhouse.mash_tun.turn_off()
 
         brewhouse.mash_tun.set_temperature(brewhouse.mashout_temperature)
-        brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
+        brewhouse.boil_kettle.set_temperature(brewhouse.mashout_temperature)
         if brewhouse.timer <= 0.:
             brewhouse.request_permission = True
 
