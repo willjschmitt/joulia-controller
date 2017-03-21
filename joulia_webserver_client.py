@@ -164,14 +164,16 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
         self.websocket.write_message(message)
 
     def update_sensor_value(self, recipe_instance, value, sensor):
+        clean_value = self.clean_value(value)
         LOGGER.debug("Sending data sample for sensor %s, recipe instance %s: "
-                     "%g", sensor, recipe_instance, value)
+                     "%g (raw: %s)", sensor, recipe_instance, clean_value,
+                     value)
 
         sample_time = datetime.datetime.now(tz=pytz.utc).isoformat()
 
         data = {'time': sample_time,
                 'recipe_instance': recipe_instance,
-                'value': self.clean_value(value),
+                'value': clean_value,
                 'sensor': sensor}
         self.websocket.write_message(json.dumps(data))
 
