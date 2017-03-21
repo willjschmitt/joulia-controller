@@ -4,14 +4,7 @@ import unittest
 
 from measurement.rtd_sensor import RtdSensor
 from measurement.rtd_sensor import celsius_to_fahrenheit
-
-
-class StubArduinoService(object):
-    def __init__(self):
-        self.counts = 0
-
-    def analog_read(self, channel):
-        return self.counts
+from testing.stub_arduino import StubAnalogReader
 
 
 class TestRtdSensor(unittest.TestCase):
@@ -42,34 +35,35 @@ class TestRtdSensor(unittest.TestCase):
         # 0.000V at Freezing
         # 1.826V at Boiling
 
+        i2c_bus = None
+        address = 0x0A
+        self.analog_reader = StubAnalogReader(i2c_bus, address)
         self.rtd = RtdSensor(
-            analog_pin, alpha, zero_resistance,
+            self.analog_reader, analog_pin, alpha, zero_resistance,
             analog_reference_voltage, tau, self.vcc, resistance_rtd_top,
             amplifier_resistance_a, amplifier_resistance_b,
             offset_resistance_bottom, offset_resistance_top)
-
-        self.rtd._arduino_service = StubArduinoService()
 
     def test_temperature_not_set(self):
         self.assertAlmostEquals(self.rtd.temperature_unfiltered, 0.0, 9)
 
     def test_measure_arduino_zero(self):
-        self.rtd._arduino_service.counts = 0
+        self.analog_reader.counts = 0
         measured = self.rtd._measure_arduino()
         self.assertAlmostEquals(measured, 0.0, 9)
 
     def test_measure_arduino_full(self):
-        self.rtd._arduino_service.counts = 1024
+        self.analog_reader.counts = 1024
         measured = self.rtd._measure_arduino()
         self.assertAlmostEquals(measured, self.vcc, 9)
 
     def test_measure_arduino_half(self):
-        self.rtd._arduino_service.counts = 512
+        self.analog_reader.counts = 512
         measured = self.rtd._measure_arduino()
         self.assertAlmostEquals(measured, self.vcc/2, 9)
 
     def test_measure_arduino_error(self):
-        self.rtd._arduino_service.counts = -1
+        self.analog_reader.counts = -1
         with self.assertRaises(RuntimeError):
             self.rtd._measure_arduino()
 
@@ -82,12 +76,12 @@ class TestRtdSensor(unittest.TestCase):
         self.assertAlmostEquals(measured, 212.0, 9)
 
     def test_measure_freezing(self):
-        self.rtd._arduino_service.counts = 0
+        self.analog_reader.counts = 0
         self.rtd.measure()
         self.assertAlmostEquals(self.rtd.temperature_unfiltered, 32.0, 9)
 
     def test_measure_boiling(self):
-        self.rtd._arduino_service.counts = 567
+        self.analog_reader.counts = 567
         self.rtd.measure()
         self.assertAlmostEquals(self.rtd.temperature_unfiltered, 212.0, 0)
 

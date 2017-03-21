@@ -30,31 +30,33 @@ class RtdSensor(object):
     useful, realistic range for measuring voltage.
 
     Attributes:
-        analog_in_pin - The analog in pin on the arduino pin, where the
+        analog_reader: The AnalogReader object used for requesting analog
+            measurements from.
+        analog_in_pin: The analog in pin on the arduino pin, where the
             voltage measurement should be made from the RTD amplifier circuit
-        alpha - The temperature coefficient of the RTD (Ohm/(Ohm*degC)).
+        alpha: The temperature coefficient of the RTD (Ohm/(Ohm*degC)).
             alpha is defined as (resistance @ 100degC- resistance @ 0degC)
             / (100 * resistance @ 100degC)
-        zero_resistance - The resistance of the tem
-        analog_reference_voltage - Reference voltage for the ADC
+        zero_resistance: The resistance of the tem
+        analog_reference_voltage: Reference voltage for the ADC
             measurement as set on the Arduino.
-        scale - Multiplier on the measured temperature (degF/degF) for
+        scale: Multiplier on the measured temperature (degF/degF) for
             calibration.
-        offset - Linear shift/offset on the measured temperature
+        offset: Linear shift/offset on the measured temperature
             (in degF) for calibration
-        tau - First order low pass filter time constant to remove high
+        tau: First order low pass filter time constant to remove high
             frequency noise from circuit measurement
-        amplifier - The differential amplifier amplifying the measured voltage.
-        offset_follower - The voltage follower for voltage offset.
-        offset_divider - The voltage divider generating the voltage offset.
-        rtd_follower - The voltage follower for the rtd input.
-        rtd_divider - The voltage divider generating a signal voltage from the
+        amplifier: The differential amplifier amplifying the measured voltage.
+        offset_follower: The voltage follower for voltage offset.
+        offset_divider: The voltage divider generating the voltage offset.
+        rtd_follower: The voltage follower for the rtd input.
+        rtd_divider: The voltage divider generating a signal voltage from the
             RTD.
-        temperature_unfiltered - The unfiltered raw temperature measured from
+        temperature_unfiltered: The unfiltered raw temperature measured from
             the RTD.
     """
 
-    def __init__(self, analog_pin, alpha, zero_resistance,
+    def __init__(self, analog_reader, analog_pin, alpha, zero_resistance,
                  analog_reference_voltage, tau, vcc, resistance_rtd_top,
                  amplifier_resistance_a, amplifier_resistance_b,
                  offset_resistance_bottom, offset_resistance_top, scale=1.0,
@@ -62,17 +64,19 @@ class RtdSensor(object):
         """Constructor
 
         Args:
-            vcc - The voltage input to the amplifier circuit, used for
+            vcc: The voltage input to the amplifier circuit, used for
                 reference, from the Arduino (Volts)
-            amplifier_resistance_a - The resistance that serves as the
+            amplifier_resistance_a: The resistance that serves as the
                 denominator in the gain of the difference amplifier (Ohms)
-            amplifier_resistance_b - The resistance that serves as the
+            amplifier_resistance_b: The resistance that serves as the
                 numerator in the gain of the difference amplifier (Ohms)
-            offset_resistance_bottom - The resistance in the bottom of the
+            offset_resistance_bottom: The resistance in the bottom of the
                 voltage divider for the offset voltage follower circuit (Ohms)
-            offset_resistance_top - The resistance in the top of the
+            offset_resistance_top: The resistance in the top of the
                 voltage divider for the offset voltage follower circuit (Ohms)
         """
+        self.analog_reader = analog_reader
+
         self.temperature_filter = FirstOrderLag(time, tau)
 
         self.analog_in_pin = analog_pin
@@ -98,9 +102,6 @@ class RtdSensor(object):
         self.vcc = vcc
 
         self.temperature_unfiltered = 0.0
-
-        # External APIs exposed for mocking and replacing
-        self._arduino_service = arduino
 
     @property
     def temperature(self):
@@ -130,7 +131,7 @@ class RtdSensor(object):
 
     def _measure_arduino(self):
         """Retrieves measured voltage into Arduino."""
-        counts = self._arduino_service.analog_read(self.analog_in_pin)
+        counts = self.analog_reader.read(self.analog_in_pin)
         if counts < 0:
             raise RuntimeError("Failed to read data from Arduino.")
         return self.analog_reference_voltage * (counts / 1024.)
