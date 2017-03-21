@@ -196,6 +196,10 @@ class Brewhouse(object):
         # Schedule next task 1 event
         self.task1_lasttime = self.working_time
 
+    @property
+    def state_t0(self):
+        return self.state.state_time_change
+
 
 class StatePrestart(State):
     """Everything is off. Waiting for user to initiate process after water
@@ -244,8 +248,6 @@ class StateStrike(State):
         brewhouse.boil_kettle.turn_on()
         brewhouse.mash_tun.turn_off()
 
-        brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
-
         first_temperature = brewhouse.mash_tun.temperature_profile[0][1]
         brewhouse.boil_kettle.set_temperature(first_temperature)
 
@@ -270,8 +272,10 @@ class StatePostStrike(State):
         brewhouse.boil_kettle.set_temperature(first_temperature)
 
         if (brewhouse.boil_kettle.temperature
-                > brewhouse.mash_tun.temperature_set_point):
+                > brewhouse.boil_kettle.temperature_set_point):
             brewhouse.request_permission = True
+        else:
+            brewhouse.request_permission = False
 
 
 class StateMash(State):
@@ -292,7 +296,6 @@ class StateMash(State):
 
         brewhouse.mash_tun.set_temperature_profile(brewhouse.state_t0)
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
-        brewhouse.timeT0 = time.time()
 
         if brewhouse.timer <= 0.:
             self.state_machine.next_state()
