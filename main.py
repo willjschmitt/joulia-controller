@@ -30,7 +30,7 @@ from measurement.gpio import OutputPin
 from measurement.rtd_sensor import RtdSensor
 import settings
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logging.config.dictConfig(settings.LOGGING_CONFIG)
 LOGGER = logging.getLogger(__name__)
 
