@@ -64,18 +64,18 @@ class TestStateMachine(unittest.TestCase):
     def test_evaluate_no_state(self):
         class Foo(State):
             def __call__(self, instance):
-                return 12  # pragma: no cover
+                pass  # pragma: no cover
         Foo(self.state_machine)
         self.assertIsNone(self.state_machine.evaluate())
 
     def test_next_state(self):
         class Foo(State):
             def __call__(self, instance):
-                return 10
+                pass  # pragma: no cover
 
         class Bar(State):
             def __call__(self, instance):
-                return 11
+                pass  # pragma: no cover
 
         foo = Foo(self.state_machine)
         bar = Bar(self.state_machine)
@@ -90,7 +90,7 @@ class TestStateMachine(unittest.TestCase):
     def test_next_state_at_end(self):
         class Foo(State):
             def __call__(self, instance):
-                return 10
+                pass  # pragma: no cover
 
         foo = Foo(self.state_machine)
 
@@ -102,11 +102,11 @@ class TestStateMachine(unittest.TestCase):
     def test_previous_state(self):
         class Foo(State):
             def __call__(self, instance):
-                return 10
+                pass  # pragma: no cover
 
         class Bar(State):
             def __call__(self, instance):
-                return 11
+                pass  # pragma: no cover
 
         foo = Foo(self.state_machine)
         bar = Bar(self.state_machine)
@@ -121,7 +121,7 @@ class TestStateMachine(unittest.TestCase):
     def test_previous_state_at_start(self):
         class Foo(State):
             def __call__(self, instance):
-                return 10
+                pass  # pragma: no cover
 
         foo = Foo(self.state_machine)
 
@@ -135,11 +135,11 @@ class TestStateMachine(unittest.TestCase):
     def test_set_state_by_name(self):
         class Foo(State):
             def __call__(self, instance):
-                return 10
+                pass  # pragma: no cover
 
         class Bar(State):
             def __call__(self, instance):
-                return 11
+                pass  # pragma: no cover
 
         foo = Foo(self.state_machine)
         bar = Bar(self.state_machine)
