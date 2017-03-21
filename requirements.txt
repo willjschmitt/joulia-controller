@@ -3,3 +3,5 @@ rpi.gpio
 gpiocrust
 pytz
 requests
+nose
+coverage
