@@ -6,12 +6,8 @@ import time
 
 from tornado import ioloop
 
-from brewery.pump import SimplePump
-from brewery.vessels import HeatedVessel
-from brewery.vessels import HeatExchangedVessel
 from dsp.state_machine import State
 from dsp.state_machine import StateMachine
-from measurement.gpio import OutputPin
 from variables import DataStreamer
 from variables import StreamingVariable
 from variables import SubscribableVariable
@@ -106,6 +102,7 @@ class Brewhouse(object):
         StateBoil(self.state)
         StateCool(self.state)
         StatePumpout(self.state)
+        StateDone(self.state)
         self.state.id = 0
 
     def _initialize_data_streamer(self):
@@ -480,6 +477,8 @@ class StateCool(State):
 
         if brewhouse.boil_kettle.temperature < brewhouse.cool_temperature:
             brewhouse.request_permission = True
+        else:
+            brewhouse.request_permission = False
 
 
 class StatePumpout(State):
@@ -497,3 +496,17 @@ class StatePumpout(State):
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
 
         brewhouse.request_permission = True
+
+
+class StateDone(State):
+    """Done state. All systems off."""
+    def __call__(self, brewhouse):
+        LOGGER.debug('In state Done')
+
+        brewhouse.timer = None
+
+        brewhouse.main_pump.turn_off()
+        brewhouse.boil_kettle.turn_off()
+        brewhouse.mash_tun.turn_off()
+
+        brewhouse.request_permission = False

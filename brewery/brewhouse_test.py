@@ -291,3 +291,40 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.boil_time = 60.0
         self.brewhouse.state.evaluate()
         self.assertTrue(self.brewhouse.request_permission)
+
+    def test_state_cool(self):
+        self.brewhouse.state.set_state_by_name("StateCool")
+        self.brewhouse.state.evaluate()
+        self.assertFalse(self.brewhouse.main_pump.enabled)
+        self.assertFalse(self.brewhouse.boil_kettle.element_status)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
+
+    def test_state_cool_not_done(self):
+        self.brewhouse.state.set_state_by_name("StateCool")
+        self.brewhouse.cool_temperature = 68.0
+        self.brewhouse.boil_kettle.temperature_sensor.temperature = 70.0
+        self.brewhouse.state.evaluate()
+        self.assertFalse(self.brewhouse.request_permission)
+
+    def test_state_cool_done(self):
+        self.brewhouse.state.set_state_by_name("StateCool")
+        self.brewhouse.cool_temperature = 68.0
+        self.brewhouse.boil_kettle.temperature_sensor.temperature = 67.0
+        self.brewhouse.state.evaluate()
+        self.assertTrue(self.brewhouse.request_permission)
+
+    def test_state_pumpout(self):
+        self.brewhouse.state.set_state_by_name("StatePumpout")
+        self.brewhouse.state.evaluate()
+        self.assertTrue(self.brewhouse.main_pump.enabled)
+        self.assertFalse(self.brewhouse.boil_kettle.element_status)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
+        self.assertTrue(self.brewhouse.request_permission)
+
+    def test_state_done(self):
+        self.brewhouse.state.set_state_by_name("StateDone")
+        self.brewhouse.state.evaluate()
+        self.assertFalse(self.brewhouse.main_pump.enabled)
+        self.assertFalse(self.brewhouse.boil_kettle.element_status)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
+        self.assertFalse(self.brewhouse.request_permission)
