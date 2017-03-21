@@ -132,6 +132,23 @@ class TestStateMachine(unittest.TestCase):
         self.state_machine.previous_state()
         self.assertIsNone(self.state_machine.state)
 
+    def test_set_state_by_name(self):
+        class Foo(State):
+            def __call__(self, instance):
+                return 10
+
+        class Bar(State):
+            def __call__(self, instance):
+                return 11
+
+        foo = Foo(self.state_machine)
+        bar = Bar(self.state_machine)
+
+        self.state_machine.set_state_by_name("Foo")
+        self.assertIs(self.state_machine.state, foo)
+        self.state_machine.set_state_by_name("Bar")
+        self.assertIs(self.state_machine.state, bar)
+
 
 class TestState(unittest.TestCase):
     """Tests the State class."""

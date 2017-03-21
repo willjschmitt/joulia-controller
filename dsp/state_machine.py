@@ -122,6 +122,12 @@ class StateMachine(object):
         else:
             self.id -= 1
 
+    def set_state_by_name(self, class_name):
+        """Sets the state by the class name of the state."""
+        for state in self.states:
+            if state.__class__.__name__ == class_name:
+                self.state = state
+
 
 class State(object):
     """A State that can be held by the StateMachine.
