@@ -203,6 +203,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.mashout_time = 15.0
         self.brewhouse.state.evaluate()
         self.assertAlmostEquals(self.brewhouse.timer, 15.0, 9)
+        self.assertFalse(self.brewhouse.request_permission)
 
     def test_state_mashout_recirculation_timer_done(self):
         self.brewhouse.state.set_state_by_name("StateMashoutRecirculation")
@@ -212,3 +213,53 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.evaluate()
         self.assertAlmostEquals(self.brewhouse.timer, -1.0, 9)
         self.assertTrue(self.brewhouse.request_permission)
+
+    def test_state_sparge_prep(self):
+        self.brewhouse.state.set_state_by_name("StateSpargePrep")
+        self.brewhouse.state.evaluate()
+        self.assertFalse(self.brewhouse.main_pump.enabled)
+        self.assertFalse(self.brewhouse.boil_kettle.element_status)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
+        self.assertTrue(self.brewhouse.request_permission)
+
+    def test_state_sparge(self):
+        self.brewhouse.state.set_state_by_name("StateSparge")
+        self.brewhouse.state.evaluate()
+        self.assertTrue(self.brewhouse.main_pump.enabled)
+        self.assertFalse(self.brewhouse.boil_kettle.element_status)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
+        self.assertTrue(self.brewhouse.request_permission)
+
+    def test_state_pre_boil(self):
+        self.brewhouse.state.set_state_by_name("StatePreBoil")
+        self.brewhouse.state.evaluate()
+        self.assertFalse(self.brewhouse.main_pump.enabled)
+        self.assertFalse(self.brewhouse.boil_kettle.element_status)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
+        self.assertTrue(self.brewhouse.request_permission)
+
+    def test_state_mash_to_boil(self):
+        self.brewhouse.state.set_state_by_name("StateMashToBoil")
+        self.brewhouse.state.evaluate()
+        self.assertTrue(self.brewhouse.main_pump.enabled)
+        self.assertFalse(self.brewhouse.boil_kettle.element_status)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
+        self.assertTrue(self.brewhouse.request_permission)
+
+    def test_state_boil_preheat(self):
+        self.brewhouse.state.set_state_by_name("StateBoilPreheat")
+        self.brewhouse.state.evaluate()
+        self.assertFalse(self.brewhouse.main_pump.enabled)
+        self.assertTrue(self.brewhouse.boil_kettle.element_status)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
+
+    def test_state_boil_preheat_next_state(self):
+        self.brewhouse.state.set_state_by_name("StateBoilPreheat")
+        self.brewhouse.boil_temperature = 210.0
+        self.brewhouse.boil_kettle.temperature_sensor.temperature = 201.0
+        self.brewhouse.state.evaluate()
+        self.assertFalse(self.brewhouse.main_pump.enabled)
+        self.assertTrue(self.brewhouse.boil_kettle.element_status)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
+        self.assertEquals(
+            self.brewhouse.state.state.__class__.__name__, "StateBoil")

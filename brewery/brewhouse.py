@@ -344,6 +344,8 @@ class StateMashoutRecirculation(State):
         brewhouse.boil_kettle.set_temperature(brewhouse.mashout_temperature)
         if brewhouse.timer <= 0.:
             brewhouse.request_permission = True
+        else:
+            brewhouse.request_permission = False
 
 
 class StateSpargePrep(State):
