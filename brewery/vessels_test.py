@@ -161,6 +161,11 @@ class TestHeatExchangedVessel(unittest.TestCase):
         self.vessel.turn_off()
         self.assertFalse(self.vessel.enabled)
 
+    def test_turn_on_with_emergency_stop(self):
+        self.vessel.emergency_stop = True
+        self.vessel.turn_on()
+        self.assertFalse(self.vessel.enabled)
+
     def test_absolute_temperature_profile(self):
         self.vessel.temperature_profile = [(15.0, 150.0),
                                            (30.0, 155.0),

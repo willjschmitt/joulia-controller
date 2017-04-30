@@ -177,6 +177,7 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
             source liquid and target liquid as W/(delta degF).
     """
 
+    emergency_stop = SubscribableVariable('emergency_stop', default=False)
     temperature_set_point = OverridableVariable(
         'mash_tun__temperature_set_point')
 
@@ -219,6 +220,10 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
 
     def turn_on(self):
         """Turns on the pump for this vessel along with its controls"""
+        if self.emergency_stop:
+            LOGGER.info('Emergency stop engaged. Redirecting to turn_off call.')
+            self.turn_off()
+            return
         self.enabled = True
         self.regulator.enable()
 
