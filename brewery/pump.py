@@ -1,6 +1,12 @@
 """This module models and interacts with pump objects for pumping liquids.
 """
 
+import logging
+
+from variables import SubscribableVariable
+
+LOGGER = logging.getLogger(__name__)
+
 
 class SimplePump(object):
     """A simple on/off pump.
@@ -9,9 +15,24 @@ class SimplePump(object):
         enabled: Boolean indicating the pump is being powered.
         pin: The gpio output pin number controlling the pump power.
     """
-    def __init__(self, pin):
+
+    emergency_stop = SubscribableVariable('emergency_stop', default=False)
+
+    def __init__(self, client, recipe_instance, pin):
+        self._register(client, recipe_instance)
         self.enabled = False
         self.pin = pin
+
+    def _register(self, client, recipe_instance):
+        """Registers this instance with the properties by submitting the
+        ``recipe_instance`` to them.
+
+        Args:
+            client: The websocket client used for communicated with the server.
+            recipe_instance: The id for the recipe instance we are
+                connecting with
+        """
+        SimplePump.emergency_stop.register(client, self, recipe_instance)
 
     def turn_off(self):
         """Turns pump off."""
@@ -20,5 +41,9 @@ class SimplePump(object):
 
     def turn_on(self):
         """Turns pump on."""
+        if self.emergency_stop:
+            LOGGER.info('Emergency stop engaged. Redirecting to turn_off call.')
+            self.turn_off()
+            return
         self.enabled = True
         self.pin.set_on()
