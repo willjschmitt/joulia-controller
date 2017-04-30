@@ -120,7 +120,7 @@ class System(object):
 
         pump_pin_number = 2
         pump_pin = OutputPin(gpio, pump_pin_number)
-        main_pump = SimplePump(pump_pin)
+        main_pump = SimplePump(self.ws_client, recipe_instance, pump_pin)
 
         brewhouse = Brewhouse(self.ws_client, gpio, analog_reader, recipe_instance,
                               boil_kettle, mash_tun, main_pump)

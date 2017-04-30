@@ -75,6 +75,12 @@ class TestHeatedVessel(unittest.TestCase):
         self.assertTrue(self.vessel.element_status)
         self.assertEquals(self.vessel.heating_pin.value, self.gpio.HIGH)
 
+    def test_turn_on_with_emergency_stop(self):
+        self.vessel.emergency_stop = True
+        self.vessel.turn_on()
+        self.assertFalse(self.vessel.element_status)
+        self.assertEquals(self.vessel.heating_pin.value, self.gpio.LOW)
+
     def test_set_liquid_level(self):
         self.vessel.set_liquid_level(5.0)
         proportional_gain = self.vessel.regulator.gain_proportional
@@ -153,6 +159,11 @@ class TestHeatExchangedVessel(unittest.TestCase):
 
     def test_turn_off(self):
         self.vessel.turn_off()
+        self.assertFalse(self.vessel.enabled)
+
+    def test_turn_on_with_emergency_stop(self):
+        self.vessel.emergency_stop = True
+        self.vessel.turn_on()
         self.assertFalse(self.vessel.enabled)
 
     def test_absolute_temperature_profile(self):

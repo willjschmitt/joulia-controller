@@ -9,6 +9,7 @@ from dsp.dsp import Regulator
 from utils import power_to_temperature_rate
 from variables import OverridableVariable
 from variables import StreamingVariable
+from variables import SubscribableVariable
 
 LOGGER = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ class TemperatureMonitoredVessel(SimpleVessel):
 class HeatedVessel(TemperatureMonitoredVessel):
     """A vessel with temperature monitoring and a heating method"""
 
+    emergency_stop = SubscribableVariable('emergency_stop', default=False)
     temperature_set_point = OverridableVariable(
         'boil_kettle__temperature_set_point', default=0.)
     element_status = OverridableVariable(
@@ -91,6 +93,7 @@ class HeatedVessel(TemperatureMonitoredVessel):
             recipe_instance: The id for the recipe instance we are
                 connecting with
         """
+        HeatedVessel.emergency_stop.register(client, self, recipe_instance)
         HeatedVessel.element_status.register(client, self, recipe_instance)
         HeatedVessel.temperature_set_point.register(
             client, self, recipe_instance)
@@ -110,8 +113,14 @@ class HeatedVessel(TemperatureMonitoredVessel):
         self.regulator.disable()
 
     def turn_on(self):
-        """Turns off the heating element on this vessel"""
+        """Turns on the heating element on this vessel. If the emergency stop
+        is engaged, call is routed to turn_off instead, which will reset
+        regulators as well."""
         LOGGER.debug('Request heated vessel turn on.')
+        if self.emergency_stop:
+            LOGGER.info('Emergency stop engaged. Redirecting to turn_off call.')
+            self.turn_off()
+            return
         self.element_status = True
         self.heating_pin.set_on()
         self.regulator.enable()
@@ -168,6 +177,7 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
             source liquid and target liquid as W/(delta degF).
     """
 
+    emergency_stop = SubscribableVariable('emergency_stop', default=False)
     temperature_set_point = OverridableVariable(
         'mash_tun__temperature_set_point')
 
@@ -210,6 +220,10 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
 
     def turn_on(self):
         """Turns on the pump for this vessel along with its controls"""
+        if self.emergency_stop:
+            LOGGER.info('Emergency stop engaged. Redirecting to turn_off call.')
+            self.turn_off()
+            return
         self.enabled = True
         self.regulator.enable()
 

@@ -44,7 +44,7 @@ class TestBrewhouse(unittest.TestCase):
             mash_tun_temperature_sensor)
 
         pump_pin = OutputPin(stub_gpio, 1)
-        self.main_pump = SimplePump(pump_pin)
+        self.main_pump = SimplePump(self.ws_client, recipe_instance, pump_pin)
 
         self.brewhouse = Brewhouse(
             self.ws_client, self.gpio, self.analog_reader, recipe_instance,
