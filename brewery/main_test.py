@@ -23,7 +23,8 @@ class TestCreateBrewhouse(unittest.TestCase):
         self.ws_client = StubJouliaWebsocketClient(
             "fake address", self.http_client)
         self.start_stop_client = StubAsyncHTTPClient()
-        self.system = System(self.ws_client, self.start_stop_client)
+        self.system = System(self.http_client, self.ws_client,
+                             self.start_stop_client)
 
     def test_create_brewhouse_succeeds(self):
         self.system.create_brewhouse(0)

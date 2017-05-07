@@ -32,6 +32,9 @@ class StubJouliaHTTPClient(JouliaHTTPClient):
         self.update_sensor_value_posts.append(update)
         return
 
+    def get_mash_points(self, recipe_instance_pk):
+        return []
+
 
 class StubJouliaWebsocketClient(JouliaWebsocketClient):
     """Stub class for JouliaWebsocketClient.

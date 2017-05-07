@@ -44,7 +44,7 @@ def main():
     http_client = JouliaHTTPClient("http://" + address)
     ws_client = JouliaWebsocketClient("ws://" + address, http_client)
     start_stop_client = AsyncHTTPClient()
-    system = System(ws_client, start_stop_client)
+    system = System(http_client, ws_client, start_stop_client)
     system.watch_for_start()
     LOGGER.info("Brewery initialized.")
 
@@ -52,7 +52,8 @@ def main():
 
 
 class System(object):
-    def __init__(self, ws_client, start_stop_client):
+    def __init__(self, http_client, ws_client, start_stop_client):
+        self.http_client = http_client
         self.ws_client = ws_client
         self.start_stop_client = start_stop_client
         self.brewhouse = None
@@ -112,7 +113,8 @@ class System(object):
             mash_offset_resistance_top)
 
         mash_tun_volume = 5.0
-        mash_temperature_profile = [(60.0, 155.0)]
+        mash_temperature_profile = self.http_client.get_mash_points(
+            recipe_instance)
         mash_tun = HeatExchangedVessel(
             self.ws_client, recipe_instance, mash_tun_volume,
             mash_tun_temperature_sensor,
