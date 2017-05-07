@@ -108,6 +108,11 @@ class TestJouliaHttpClient(unittest.TestCase):
         response = self.client._post("fakeurl", data={'baz': 1})
         self.assertEqual(response.json(), {"foo": "bar"})
 
+    def test_get(self):
+        self.client._requests_service.response_string = '{"foo":"bar"}'
+        response = self.client._get("fakeurl")
+        self.assertEqual(response.json(), {"foo": "bar"})
+
     def test_identify_url(self):
         got = self.client._identify_url
         want = "http://fakehost/live/timeseries/identify/"
@@ -132,6 +137,17 @@ class TestJouliaHttpClient(unittest.TestCase):
         value = 2.0
         sensor_id = 3
         self.client.update_sensor_value(recipe_instance, value, sensor_id)
+
+    def test_get_mash_points(self):
+        self.client._requests_service.response_map[
+            "http://fakehost/brewery/api/recipeInstance/3/"] = '{"recipe":10}'
+        self.client._requests_service.response_map[
+            "http://fakehost/brewery/api/mash_point/?recipe=10"] = (
+                '[{"time":60.0,"temperature":152.0},'
+                '{"time":15.0,"temperature":160.0}]')
+        got = self.client.get_mash_points(3)
+        want = [(60.0, 152.0), (15.0, 160.0)]
+        self.assertEquals(got, want)
 
 
 class TestJouliaWebsocketClient(unittest.TestCase):
