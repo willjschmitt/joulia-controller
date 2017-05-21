@@ -191,7 +191,8 @@ class System(object):
 def create_analog_reader():
     i2c_bus = smbus.Bus(1)
     i2c_address = 0x0A
-    return AnalogReader(i2c_bus, i2c_address)
+    analog_reference = 3.3  # Volts
+    return AnalogReader(i2c_bus, i2c_address, analog_reference)
 
 
 if __name__ == "__main__":

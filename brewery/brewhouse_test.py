@@ -24,7 +24,9 @@ class TestBrewhouse(unittest.TestCase):
         recipe_instance = 0
         i2c_bus = None
         i2c_address = 0x0A
-        self.analog_reader = StubAnalogReader(i2c_bus, i2c_address)
+        analog_reference = 5.0
+        self.analog_reader = StubAnalogReader(i2c_bus, i2c_address,
+                                              analog_reference)
 
         stub_gpio = StubGPIO()
 
