@@ -2,7 +2,7 @@
 
 import unittest
 
-from measurement.arduino import AnalogReader
+from measurement.analog_reader import ArduinoAnalogReader
 
 
 class StubSmbus(object):
@@ -19,12 +19,12 @@ class StubSmbus(object):
         return self.bytes_to_return[byte_number]
 
 
-class TestAnalogReader(unittest.TestCase):
-    """Tests for the analog_read function."""
+class TestArduinoAnalogReader(unittest.TestCase):
+    """Tests for the ArduinoAnalogReader class."""
 
     def setUp(self):
         self.smbus = StubSmbus(1)
-        self.reader = AnalogReader(self.smbus, 0x0A, 5.0)
+        self.reader = ArduinoAnalogReader(self.smbus, 0x0A, 5.0)
 
     def test_read(self):
         self.smbus.bytes_to_return = [0x01, 0x02]

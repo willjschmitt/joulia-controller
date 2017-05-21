@@ -25,7 +25,7 @@ from brewery.vessels import HeatedVessel
 from brewery.vessels import HeatExchangedVessel
 from joulia_webserver_client import JouliaHTTPClient
 from joulia_webserver_client import JouliaWebsocketClient
-from measurement.arduino import AnalogReader
+from measurement.analog_reader import ArduinoAnalogReader
 from measurement.gpio import OutputPin
 from measurement.rtd_sensor import RtdSensor
 import settings
@@ -192,7 +192,7 @@ def create_analog_reader():
     i2c_bus = smbus.Bus(1)
     i2c_address = 0x0A
     analog_reference = 3.3  # Volts
-    return AnalogReader(i2c_bus, i2c_address, analog_reference)
+    return ArduinoAnalogReader(i2c_bus, i2c_address, analog_reference)
 
 
 if __name__ == "__main__":

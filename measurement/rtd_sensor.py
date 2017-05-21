@@ -3,7 +3,6 @@
 import time
 
 from dsp.dsp import FirstOrderLag
-from measurement import arduino
 from measurement.circuits import VariableResistanceVoltageDivider
 from measurement.circuits import VoltageDivider
 from measurement.op_amp import DifferentialAmplifier
