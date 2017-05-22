@@ -4,7 +4,7 @@ import unittest
 
 from measurement.rtd_sensor import RtdSensor
 from measurement.rtd_sensor import celsius_to_fahrenheit
-from testing.stub_arduino import StubAnalogReader
+from testing.stub_analog_reader import StubAnalogReader
 
 
 class TestRtdSensor(unittest.TestCase):
@@ -35,9 +35,7 @@ class TestRtdSensor(unittest.TestCase):
         # 0.000V at Freezing
         # 1.826V at Boiling
 
-        i2c_bus = None
-        address = 0x0A
-        self.analog_reader = StubAnalogReader(i2c_bus, address)
+        self.analog_reader = StubAnalogReader()
         self.rtd = RtdSensor(
             self.analog_reader, analog_pin, alpha, zero_resistance,
             analog_reference_voltage, tau, self.vcc, resistance_rtd_top,
@@ -46,26 +44,6 @@ class TestRtdSensor(unittest.TestCase):
 
     def test_temperature_not_set(self):
         self.assertAlmostEquals(self.rtd.temperature_unfiltered, 0.0, 9)
-
-    def test_measure_arduino_zero(self):
-        self.analog_reader.counts = 0
-        measured = self.rtd._measure_arduino()
-        self.assertAlmostEquals(measured, 0.0, 9)
-
-    def test_measure_arduino_full(self):
-        self.analog_reader.counts = 1024
-        measured = self.rtd._measure_arduino()
-        self.assertAlmostEquals(measured, self.vcc, 9)
-
-    def test_measure_arduino_half(self):
-        self.analog_reader.counts = 512
-        measured = self.rtd._measure_arduino()
-        self.assertAlmostEquals(measured, self.vcc/2, 9)
-
-    def test_measure_arduino_error(self):
-        self.analog_reader.counts = -1
-        with self.assertRaises(RuntimeError):
-            self.rtd._measure_arduino()
 
     def test_resistance_to_temperature_freezing(self):
         measured = self.rtd._resistance_to_temperature(100.0)
@@ -76,12 +54,12 @@ class TestRtdSensor(unittest.TestCase):
         self.assertAlmostEquals(measured, 212.0, 9)
 
     def test_measure_freezing(self):
-        self.analog_reader.counts = 0
+        self.analog_reader.voltage = 0.0
         self.rtd.measure()
         self.assertAlmostEquals(self.rtd.temperature_unfiltered, 32.0, 9)
 
     def test_measure_boiling(self):
-        self.analog_reader.counts = 567
+        self.analog_reader.voltage = 1.827
         self.rtd.measure()
         self.assertAlmostEquals(self.rtd.temperature_unfiltered, 212.0, 0)
 

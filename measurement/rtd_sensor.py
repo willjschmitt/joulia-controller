@@ -3,7 +3,6 @@
 import time
 
 from dsp.dsp import FirstOrderLag
-from measurement import arduino
 from measurement.circuits import VariableResistanceVoltageDivider
 from measurement.circuits import VoltageDivider
 from measurement.op_amp import DifferentialAmplifier
@@ -113,7 +112,7 @@ class RtdSensor(object):
         the temperature. Applies the filter calculation to newly sampled
         temperature.
         """
-        voltage_measured = self._measure_arduino()
+        voltage_measured = self.analog_reader.read_voltage(self.analog_in_pin)
 
         # Back out the voltage at the RTD based on the amplifier circuit
         voltage_rtd = (-self.amplifier.v_in(voltage_measured)
@@ -128,13 +127,6 @@ class RtdSensor(object):
 
         self.temperature_unfiltered = temperature_calibrated
         self.temperature_filter.filter(temperature_calibrated)
-
-    def _measure_arduino(self):
-        """Retrieves measured voltage into Arduino."""
-        counts = self.analog_reader.read(self.analog_in_pin)
-        if counts < 0:
-            raise RuntimeError("Failed to read data from Arduino.")
-        return self.analog_reference_voltage * (counts / 1024.)
 
     def _resistance_to_temperature(self, resistance):
         """Converts RTD resistance into a temperature. Units: Fahrenheit. Uses

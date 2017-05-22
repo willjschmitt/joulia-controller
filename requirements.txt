@@ -5,3 +5,4 @@ pytz
 requests
 nose
 coverage
+Adafruit-GPIO>=0.6.5

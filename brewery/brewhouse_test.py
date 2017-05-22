@@ -7,7 +7,7 @@ from brewery.pump import SimplePump
 from brewery.vessels import HeatedVessel
 from brewery.vessels import HeatExchangedVessel
 from measurement.gpio import OutputPin
-from testing.stub_arduino import StubAnalogReader
+from testing.stub_analog_reader import StubAnalogReader
 from testing.stub_gpio import StubGPIO
 from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 from testing.stub_joulia_webserver_client import StubJouliaWebsocketClient
@@ -22,9 +22,7 @@ class TestBrewhouse(unittest.TestCase):
         http_client = StubJouliaHTTPClient("fake address")
         self.ws_client = StubJouliaWebsocketClient("fake address", http_client)
         recipe_instance = 0
-        i2c_bus = None
-        i2c_address = 0x0A
-        self.analog_reader = StubAnalogReader(i2c_bus, i2c_address)
+        self.analog_reader = StubAnalogReader()
 
         stub_gpio = StubGPIO()
 

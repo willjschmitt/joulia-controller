@@ -25,7 +25,7 @@ from brewery.vessels import HeatedVessel
 from brewery.vessels import HeatExchangedVessel
 from joulia_webserver_client import JouliaHTTPClient
 from joulia_webserver_client import JouliaWebsocketClient
-from measurement.arduino import AnalogReader
+from measurement.analog_reader import MCP3004AnalogReader
 from measurement.gpio import OutputPin
 from measurement.rtd_sensor import RtdSensor
 import settings
@@ -189,9 +189,22 @@ class System(object):
 
 
 def create_analog_reader():
-    i2c_bus = smbus.Bus(1)
-    i2c_address = 0x0A
-    return AnalogReader(i2c_bus, i2c_address)
+    spi_port = 0
+    spi_device = 0
+    # Adafuit_GPIO.SPI.SpiDev will throw an ImportError when instantiating a new
+    # instance, since they perform an import at runtime. Since this is the case,
+    # we catch the import error when instantiating the spi bus here.
+    try:
+        from Adafruit_GPIO.SPI import SpiDev
+        from Adafruit_MCP3008 import MCP3008
+        spi = SpiDev(spi_port, spi_device)
+    except ImportError:
+        from testing.stub_mcp3008 import StubSpiDev as SpiDev
+        from testing.stub_mcp3008 import StubMCP3008 as MCP3008
+        spi = SpiDev(spi_port, spi_device)
+    mcp = MCP3008(spi=spi)
+    analog_reference = 3.3  # Volts
+    return MCP3004AnalogReader(mcp, analog_reference)
 
 
 if __name__ == "__main__":
