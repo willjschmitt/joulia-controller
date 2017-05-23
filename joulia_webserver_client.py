@@ -8,6 +8,7 @@ import json
 import pytz
 import requests
 from tornado import gen
+from tornado.httpclient import HTTPRequest
 from tornado.ioloop import IOLoop
 from tornado.websocket import websocket_connect
 
@@ -51,13 +52,6 @@ class JouliaWebserverClientBase(object):
             return 0
         return value
 
-
-class JouliaHTTPClient(JouliaWebserverClientBase):
-    """Client for interacting with Joulia Webserver REST endpoints and websocket
-    endpoints.
-    """
-    _requests_service = requests
-
     def _authorization_headers(self):
         """Generates authorization headers for the instance."""
         if self.auth_token is not None:
@@ -65,6 +59,13 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
         else:
             headers = {}
         return headers
+
+
+class JouliaHTTPClient(JouliaWebserverClientBase):
+    """Client for interacting with Joulia Webserver REST endpoints and websocket
+    endpoints.
+    """
+    _requests_service = requests
 
     def _post(self, url, *args, **kwargs):
         """Helper function to help make posts to the server but add time
@@ -185,8 +186,9 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
             url: URL to the websocket endpoint.
         """
         LOGGER.info("Establishing websocket connection at %s", url)
+        http_request = HTTPRequest(url, headers=self._authorization_headers())
         self.websocket = yield self._websocket_connect(
-            url, on_message_callback=self.on_message)
+            http_request, on_message_callback=self.on_message)
         LOGGER.info("Websocket connection established at %s", url)
 
     @gen.coroutine

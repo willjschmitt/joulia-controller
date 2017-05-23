@@ -41,8 +41,10 @@ def main():
     controller instance."""
     LOGGER.info('Starting brewery.')
     address = "joulia.io"
-    http_client = JouliaHTTPClient("http://" + address)
-    ws_client = JouliaWebsocketClient("ws://" + address, http_client)
+    http_client = JouliaHTTPClient("http://" + address,
+                                   auth_token=settings.AUTHTOKEN)
+    ws_client = JouliaWebsocketClient("ws://" + address, http_client,
+                                      auth_token=settings.AUTHTOKEN)
     start_stop_client = AsyncHTTPClient()
     system = System(http_client, ws_client, start_stop_client)
     system.watch_for_start()
