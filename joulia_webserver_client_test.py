@@ -81,14 +81,6 @@ class TestJouliaWebserverClientBase(unittest.TestCase):
         want = 13.2
         self.assertAlmostEquals(got, want, 6)
 
-
-class TestJouliaHttpClient(unittest.TestCase):
-    """Tests JouliaHttpClient."""
-
-    def setUp(self):
-        self.address = "http://fakehost"
-        self.client = JouliaHTTPClientTest(self.address, auth_token=None)
-
     def test_auth_headers_with_token(self):
         client = JouliaHTTPClientTest(self.address, auth_token="faketoken")
 
@@ -102,6 +94,14 @@ class TestJouliaHttpClient(unittest.TestCase):
         got = client._authorization_headers()
         want = {}
         self.assertEqual(got, want)
+
+
+class TestJouliaHttpClient(unittest.TestCase):
+    """Tests JouliaHttpClient."""
+
+    def setUp(self):
+        self.address = "http://fakehost"
+        self.client = JouliaHTTPClientTest(self.address, auth_token=None)
 
     def test_post(self):
         self.client._requests_service.response_string = '{"foo":"bar"}'
