@@ -4,6 +4,7 @@ Kettles, Mash Tuns, etc.
 
 import logging
 import time
+from tornado.ioloop import IOLoop
 
 from dsp.dsp import Regulator
 from utils import power_to_temperature_rate
@@ -105,25 +106,36 @@ class HeatedVessel(TemperatureMonitoredVessel):
         LOGGER.debug("Setting temperature %f", value)
         self.temperature_set_point = value
 
-    def turn_off(self):
+    def disable(self):
         """Disables the heating element on this vessel"""
-        LOGGER.debug('Request heated vessel turn off.')
+        LOGGER.debug('Request heated vessel to be disabled.')
         self.element_status = False
         self.heating_pin.set_off()
         self.regulator.disable()
 
-    def turn_on(self):
+    def enable(self):
         """Turns on the heating element on this vessel. If the emergency stop
         is engaged, call is routed to turn_off instead, which will reset
         regulators as well."""
-        LOGGER.debug('Request heated vessel turn on.')
+        LOGGER.debug('Request heated vessel to be enabled.')
+        self.element_status = True
+        self.regulator.enable()
+
+    def turn_off(self):
+        """Turns the heating element pin off. Contrasting with ``turn_on``, it
+        does not matter if the element is disabled.
+        """
+        self.heating_pin.set_off()
+
+    def turn_on(self):
+        """Turns the heating element pin on if the element is enabled."""
         if self.emergency_stop:
             LOGGER.info('Emergency stop engaged. Redirecting to turn_off call.')
-            self.turn_off()
+            self.disable()
             return
-        self.element_status = True
-        self.heating_pin.set_on()
-        self.regulator.enable()
+
+        if self.element_status:
+            self.heating_pin.set_on()
 
     def set_liquid_level(self, volume):
         """Adjusts the liquid volume of the vessel, which then recalculates
@@ -139,7 +151,7 @@ class HeatedVessel(TemperatureMonitoredVessel):
         self.regulator.gain_proportional = 10.0 * (self.volume / self.rating)
         self.regulator.gain_integral = 100.0 * (self.volume / self.rating)
 
-    def regulate(self):
+    def regulate(self, this_timer):
         """Executes regulation action to control the temperature of the
         vessel by adjusting the duty_cycle of the heating element.
         """
@@ -147,6 +159,41 @@ class HeatedVessel(TemperatureMonitoredVessel):
             "Temp: %f, SP: %f", self.temperature, self.temperature_set_point)
         self.duty_cycle = self.regulator.calculate(
             self.temperature, self.temperature_set_point)
+
+        self.schedule_heating_element(this_timer)
+
+    def schedule_heating_element(self, this_timer):
+        """Schedules the heating element to turn on and off based off of the
+        currently scheduled PeriodicCallback timer and the duty_cycle calculated
+        for this heated vessel.
+
+        If the ``duty_cycle * this_timer.callback_time < 1/120``, the element is
+        kept off for the entire cycle, since the relay will stay on until the
+        next zero crossing which is between 0-1/120 of a second.
+
+        If the ``(1 - duty_cycle) * this_timer.callback_time < 1/120``, the
+        element is kept on for the entire cycle, since the relay will stay on
+        until the next zero crossing which is between 0-1/120 of a second.
+
+        Returns:
+            All timeouts generated.
+        """
+        timeouts = []
+        ioloop = IOLoop.current()
+        # TODO(willjschmitt): Figure out way to avoid using protected
+        # ``_next_timeout``.
+        t0 = this_timer._next_timeout
+        if self.duty_cycle * this_timer.callback_time < (1.0 / 120.0):
+            timeouts.append(ioloop.call_at(t0, self.turn_off))
+        elif (1.0 - self.duty_cycle) * this_timer.callback_time < (1.0 / 120.0):
+            timeouts.append(ioloop.call_at(t0, self.turn_on))
+        else:
+            off_time = t0 + self.duty_cycle * this_timer.callback_time
+            turn_on = ioloop.call_at(t0, self.turn_on)
+            turn_off = ioloop.call_at(off_time, self.turn_off)
+            timeouts.append(turn_on)
+            timeouts.append(turn_off)
+        return timeouts
 
     @property
     def power(self):
@@ -213,16 +260,16 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         self.regulator.gain_integral = (
             0.002 * (self.volume / self.heat_exchanger_conductivity))
 
-    def turn_off(self):
+    def disable(self):
         """Disables the pump on this vessel along with its controls"""
         self.enabled = False
         self.regulator.disable()
 
-    def turn_on(self):
+    def enable(self):
         """Turns on the pump for this vessel along with its controls"""
         if self.emergency_stop:
             LOGGER.info('Emergency stop engaged. Redirecting to turn_off call.')
-            self.turn_off()
+            self.disable()
             return
         self.enabled = True
         self.regulator.enable()

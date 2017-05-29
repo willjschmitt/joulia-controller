@@ -66,6 +66,7 @@ class TestBrewhouse(unittest.TestCase):
         # TODO(will): Add checks here
 
     def test_task00(self):
+        self.brewhouse.start_timers()
         self.brewhouse.task00()
         # TODO(will): Add checks here
 
