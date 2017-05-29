@@ -155,19 +155,22 @@ class Brewhouse(object):
         """
         self.timers['task00'] = ioloop.PeriodicCallback(
             self.task00, self.task1_rate*1000)
-        self.timers['task00'].start()
+
+        for timer in self.timers.values():
+            timer.start()
 
     def cancel_timers(self):
         """Stops all timers/scheduled control tasks."""
         for timer in self.timers.values():
             timer.stop()
-        self.boil_kettle.turn_off()
-        self.mash_tun.turn_off()
+        self.boil_kettle.disable()
+        self.mash_tun.disable()
         self.main_pump.turn_off()
 
     def task00(self):
         """Fast task control execution for the brewhouse system."""
         LOGGER.debug('Evaluating task 00')
+        this_timer = self.timers["task00"]
         self.working_time = time.time()
 
         # Evaluate state of controls (mash, pump, boil, etc)
@@ -185,7 +188,7 @@ class Brewhouse(object):
             self.boil_kettle.set_temperature(self.mash_tun.source_temperature)
 
         # Controls Calculations for Boil Kettle Element
-        self.boil_kettle.regulate()
+        self.boil_kettle.regulate(this_timer)
 
         boil_power = self.boil_kettle.duty_cycle*self.boil_kettle.rating
         seconds_per_hours = 60.0 * 60.0
@@ -211,8 +214,8 @@ class StatePrestart(State):
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()
-        brewhouse.boil_kettle.turn_off()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.disable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.request_permission = True
 
@@ -225,8 +228,8 @@ class StatePremash(State):
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()
-        brewhouse.boil_kettle.turn_on()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.enable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
         brewhouse.boil_kettle.set_temperature(brewhouse.strike_temperature)
@@ -245,8 +248,8 @@ class StateStrike(State):
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_on()
-        brewhouse.boil_kettle.turn_on()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.enable()
+        brewhouse.mash_tun.disable()
 
         first_temperature = brewhouse.mash_tun.temperature_profile[0][1]
         brewhouse.boil_kettle.set_temperature(first_temperature)
@@ -262,8 +265,8 @@ class StatePostStrike(State):
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()
-        brewhouse.boil_kettle.turn_on()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.enable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.mash_tun.set_temperature(
             brewhouse.mash_tun.temperature)
@@ -291,8 +294,8 @@ class StateMash(State):
             - brewhouse.working_time)
 
         brewhouse.main_pump.turn_on()
-        brewhouse.boil_kettle.turn_on()
-        brewhouse.mash_tun.turn_on()
+        brewhouse.boil_kettle.enable()
+        brewhouse.mash_tun.enable()
 
         brewhouse.mash_tun.set_temperature_profile(brewhouse.state_t0)
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
@@ -311,8 +314,8 @@ class StateMashoutRamp(State):
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_on()
-        brewhouse.boil_kettle.turn_on()
-        brewhouse.mash_tun.turn_on()
+        brewhouse.boil_kettle.enable()
+        brewhouse.mash_tun.enable()
 
         brewhouse.mash_tun.set_temperature(brewhouse.mashout_temperature)
         # Give a little extra push on boil set temp
@@ -337,8 +340,8 @@ class StateMashoutRecirculation(State):
             - brewhouse.working_time)
 
         brewhouse.main_pump.turn_on()
-        brewhouse.boil_kettle.turn_on()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.enable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.mash_tun.set_temperature(brewhouse.mashout_temperature)
         brewhouse.boil_kettle.set_temperature(brewhouse.mashout_temperature)
@@ -356,8 +359,8 @@ class StateSpargePrep(State):
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()
-        brewhouse.boil_kettle.turn_off()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.disable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
@@ -371,8 +374,8 @@ class StateSparge(State):
         LOGGER.debug('In state Sparge')
 
         brewhouse.main_pump.turn_on()
-        brewhouse.boil_kettle.turn_off()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.disable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.timer = None
 
@@ -390,8 +393,8 @@ class StatePreBoil(State):
         LOGGER.debug('In state PreBoil')
 
         brewhouse.main_pump.turn_off()
-        brewhouse.boil_kettle.turn_off()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.disable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.timer = None
 
@@ -410,8 +413,8 @@ class StateMashToBoil(State):
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_on()
-        brewhouse.boil_kettle.turn_off()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.disable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
@@ -428,8 +431,8 @@ class StateBoilPreheat(State):
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()
-        brewhouse.boil_kettle.turn_on()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.enable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_temperature)
@@ -447,8 +450,8 @@ class StateBoil(State):
         LOGGER.debug('In state Boil')
 
         brewhouse.main_pump.turn_off()
-        brewhouse.boil_kettle.turn_on()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.enable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.timer = (
             brewhouse.state_t0
@@ -472,8 +475,8 @@ class StateCool(State):
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()
-        brewhouse.boil_kettle.turn_off()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.disable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
@@ -492,8 +495,8 @@ class StatePumpout(State):
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_on()
-        brewhouse.boil_kettle.turn_off()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.disable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
@@ -509,7 +512,7 @@ class StateDone(State):
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()
-        brewhouse.boil_kettle.turn_off()
-        brewhouse.mash_tun.turn_off()
+        brewhouse.boil_kettle.disable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.request_permission = False
