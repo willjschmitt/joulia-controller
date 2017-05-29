@@ -158,7 +158,7 @@ class System(object):
                 recipe_instance = messages['recipe_instance']
                 self.create_brewhouse(recipe_instance)
 
-        LOGGER.info("Watching for recipe instance start on brewhouse %d.",
+        LOGGER.info("Watching for recipe instance start on brewhouse %s.",
                     settings.BREWHOUSE_ID)
         post_data = {'brewhouse': settings.BREWHOUSE_ID}
         uri = "http://joulia.io/live/recipeInstance/start/"
@@ -186,7 +186,7 @@ class System(object):
                 LOGGER.info("Got command to end brewing session.")
                 self.end_brewing()
 
-        LOGGER.info("Watching for recipe instance end on brewhouse %d.",
+        LOGGER.info("Watching for recipe instance end on brewhouse %s.",
                     settings.BREWHOUSE_ID)
         post_data = {'brewhouse': settings.BREWHOUSE_ID}
         uri = "http://joulia.io/live/recipeInstance/end/"
