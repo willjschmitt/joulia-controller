@@ -43,7 +43,8 @@ def main():
     address = "joulia.io"
     http_client = JouliaHTTPClient("http://" + address,
                                    auth_token=settings.AUTHTOKEN)
-    ws_client = JouliaWebsocketClient("ws://" + address, http_client,
+    ws_address = "ws://{}/live/timeseries/socket".format(address)
+    ws_client = JouliaWebsocketClient(ws_address, http_client,
                                       auth_token=settings.AUTHTOKEN)
     start_stop_client = AsyncHTTPClient()
     system = System(http_client, ws_client, start_stop_client)
