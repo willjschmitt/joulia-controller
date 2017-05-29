@@ -62,6 +62,8 @@ class System(object):
         self.brewhouse = None
 
     def create_brewhouse(self, recipe_instance):
+        LOGGER.info("Creating brewhouse with recipe instance %s.",
+                    recipe_instance)
         analog_reader = create_analog_reader()
         gpio.setmode(gpio.BCM)
 
@@ -156,6 +158,8 @@ class System(object):
                 recipe_instance = messages['recipe_instance']
                 self.create_brewhouse(recipe_instance)
 
+        LOGGER.info("Watching for recipe instance start on brewhouse %d.",
+                    settings.BREWHOUSE_ID)
         post_data = {'brewhouse': settings.BREWHOUSE_ID}
         uri = "http://joulia.io/live/recipeInstance/start/"
         self.start_stop_client.fetch(uri, handle_start_request, method="POST",
@@ -182,6 +186,8 @@ class System(object):
                 LOGGER.info("Got command to end brewing session.")
                 self.end_brewing()
 
+        LOGGER.info("Watching for recipe instance end on brewhouse %d.",
+                    settings.BREWHOUSE_ID)
         post_data = {'brewhouse': settings.BREWHOUSE_ID}
         uri = "http://joulia.io/live/recipeInstance/end/"
         self.start_stop_client.fetch(uri, handle_end_request, method="POST",
