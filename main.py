@@ -18,6 +18,7 @@ import json
 from tornado import ioloop
 from tornado.escape import json_decode
 from tornado.httpclient import AsyncHTTPClient
+from urllib.parse import urlencode
 
 from brewery.brewhouse import Brewhouse
 from brewery.pump import SimplePump
@@ -40,10 +41,9 @@ def main():
     hardware. Loads settings from module and env vars, and launches a
     controller instance."""
     LOGGER.info('Starting brewery.')
-    address = "joulia.io"
-    http_client = JouliaHTTPClient("http://" + address,
+    http_client = JouliaHTTPClient("http://" + settings.HOST,
                                    auth_token=settings.AUTHTOKEN)
-    ws_address = "ws://{}/live/timeseries/socket".format(address)
+    ws_address = "ws://{}/live/timeseries/socket/".format(settings.HOST)
     ws_client = JouliaWebsocketClient(ws_address, http_client,
                                       auth_token=settings.AUTHTOKEN)
     start_stop_client = AsyncHTTPClient()
@@ -62,6 +62,8 @@ class System(object):
         self.brewhouse = None
 
     def create_brewhouse(self, recipe_instance):
+        LOGGER.info("Creating brewhouse with recipe instance %s.",
+                    recipe_instance)
         analog_reader = create_analog_reader()
         gpio.setmode(gpio.BCM)
 
@@ -156,10 +158,12 @@ class System(object):
                 recipe_instance = messages['recipe_instance']
                 self.create_brewhouse(recipe_instance)
 
+        LOGGER.info("Watching for recipe instance start on brewhouse %s.",
+                    settings.BREWHOUSE_ID)
         post_data = {'brewhouse': settings.BREWHOUSE_ID}
-        uri = "http://joulia.io/live/recipeInstance/start/"
+        uri = "http://{}/live/recipeInstance/start/".format(settings.HOST)
         self.start_stop_client.fetch(uri, handle_start_request, method="POST",
-                                     body=json.dumps(post_data))
+                                     body=urlencode(post_data))
 
     def watch_for_end(self):
         """Makes a long-polling request to joulia-webserver to check
@@ -182,10 +186,12 @@ class System(object):
                 LOGGER.info("Got command to end brewing session.")
                 self.end_brewing()
 
+        LOGGER.info("Watching for recipe instance end on brewhouse %s.",
+                    settings.BREWHOUSE_ID)
         post_data = {'brewhouse': settings.BREWHOUSE_ID}
-        uri = "http://joulia.io/live/recipeInstance/end/"
+        uri = "http://{}/live/recipeInstance/end/".format(settings.HOST)
         self.start_stop_client.fetch(uri, handle_end_request, method="POST",
-                                     body=json.dumps(post_data))
+                                     body=urlencode(post_data))
 
     def end_brewing(self):
         self.brewhouse.cancel_timers()
