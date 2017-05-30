@@ -162,8 +162,9 @@ class System(object):
                     settings.BREWHOUSE_ID)
         post_data = {'brewhouse': settings.BREWHOUSE_ID}
         uri = "http://{}/live/recipeInstance/start/".format(settings.HOST)
-        self.start_stop_client.fetch(uri, handle_start_request, method="POST",
-                                     body=urlencode(post_data))
+        self.start_stop_client.fetch(
+            uri, handle_start_request, method="POST", body=urlencode(post_data),
+            headers={'Authorization': 'Token {}'.format(settings.AUTHTOKEN)})
 
     def watch_for_end(self):
         """Makes a long-polling request to joulia-webserver to check
@@ -190,8 +191,9 @@ class System(object):
                     settings.BREWHOUSE_ID)
         post_data = {'brewhouse': settings.BREWHOUSE_ID}
         uri = "http://{}/live/recipeInstance/end/".format(settings.HOST)
-        self.start_stop_client.fetch(uri, handle_end_request, method="POST",
-                                     body=urlencode(post_data))
+        self.start_stop_client.fetch(
+            uri, handle_end_request, method="POST", body=urlencode(post_data),
+            headers={'Authorization': 'Token {}'.format(settings.AUTHTOKEN)})
 
     def end_brewing(self):
         self.brewhouse.cancel_timers()
