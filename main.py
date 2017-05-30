@@ -18,6 +18,7 @@ import json
 from tornado import ioloop
 from tornado.escape import json_decode
 from tornado.httpclient import AsyncHTTPClient
+from urllib.parse import urlencode
 
 from brewery.brewhouse import Brewhouse
 from brewery.pump import SimplePump
@@ -162,7 +163,7 @@ class System(object):
         post_data = {'brewhouse': settings.BREWHOUSE_ID}
         uri = "http://{}/live/recipeInstance/start/".format(settings.HOST)
         self.start_stop_client.fetch(uri, handle_start_request, method="POST",
-                                     body=json.dumps(post_data))
+                                     body=urlencode(post_data))
 
     def watch_for_end(self):
         """Makes a long-polling request to joulia-webserver to check
@@ -190,7 +191,7 @@ class System(object):
         post_data = {'brewhouse': settings.BREWHOUSE_ID}
         uri = "http://{}/live/recipeInstance/end/".format(settings.HOST)
         self.start_stop_client.fetch(uri, handle_end_request, method="POST",
-                                     body=json.dumps(post_data))
+                                     body=urlencode(post_data))
 
     def end_brewing(self):
         self.brewhouse.cancel_timers()
