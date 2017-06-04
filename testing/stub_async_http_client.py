@@ -10,7 +10,7 @@ class StubAsyncHTTPClient(object):
         self.error = False
         self.messages = {}
 
-    def fetch(self, url, callback, method, body):
+    def fetch(self, url, callback, method, body, headers=None):
         response = StubAsyncHTTPClientResponse(self.error, self.messages)
         callback(response)
 
