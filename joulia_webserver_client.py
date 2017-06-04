@@ -98,6 +98,19 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
         return response
 
     @property
+    def _get_brewhouse_id_url(self):
+        return self.address + "/brewery/api/brewhouse_from_token/"
+
+    def get_brewhouse_id(self):
+        """Requests server for the brewhouse ID associated with this client via
+        the Token used for authenticating it.
+        """
+        response = self._get(self._get_brewhouse_id_url)
+        brewhouse = response.json()['brewhouse']
+        LOGGER.debug("Brewhouse identified as %d", brewhouse)
+        return brewhouse
+
+    @property
     def _identify_url(self):
         return self.address + "/live/timeseries/identify/"
 

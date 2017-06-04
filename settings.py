@@ -1,8 +1,6 @@
 """Global settings for configuring joulia-controller."""
 import os
 
-BREWHOUSE_ID = os.environ.get('JOULIA_WEBSERVER_BREWHOUSE_ID', None)
-
 HOST = os.environ.get("JOULIA_WEBSERVER_HOST", None)
 AUTHTOKEN = os.environ.get("JOULIA_WEBSERVER_AUTHTOKEN", None)
 

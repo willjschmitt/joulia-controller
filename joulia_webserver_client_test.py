@@ -113,6 +113,17 @@ class TestJouliaHttpClient(unittest.TestCase):
         response = self.client._get("fakeurl")
         self.assertEqual(response.json(), {"foo": "bar"})
 
+    def test_get_brewhouse_id_url(self):
+        got = self.client._get_brewhouse_id_url
+        want = "http://fakehost/brewery/api/brewhouse_from_token/"
+        self.assertEqual(got, want)
+
+    def test_get_brewhouse_id(self):
+        self.client._requests_service.response_string = '{"brewhouse":11}'
+        got = self.client.get_brewhouse_id()
+        want = 11
+        self.assertEqual(got, want)
+
     def test_identify_url(self):
         got = self.client._identify_url
         want = "http://fakehost/live/timeseries/identify/"

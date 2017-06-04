@@ -47,7 +47,8 @@ def main():
     ws_client = JouliaWebsocketClient(ws_address, http_client,
                                       auth_token=settings.AUTHTOKEN)
     start_stop_client = AsyncHTTPClient()
-    system = System(http_client, ws_client, start_stop_client)
+    brewhouse_id = http_client.get_brewhouse_id()
+    system = System(http_client, ws_client, start_stop_client, brewhouse_id)
     system.watch_for_start()
     LOGGER.info("Brewery initialized.")
 
@@ -55,11 +56,12 @@ def main():
 
 
 class System(object):
-    def __init__(self, http_client, ws_client, start_stop_client):
+    def __init__(self, http_client, ws_client, start_stop_client, brewhouse_id):
         self.http_client = http_client
         self.ws_client = ws_client
         self.start_stop_client = start_stop_client
         self.brewhouse = None
+        self.brewhouse_id = brewhouse_id
 
     def create_brewhouse(self, recipe_instance):
         LOGGER.info("Creating brewhouse with recipe instance %s.",
@@ -159,8 +161,8 @@ class System(object):
                 self.create_brewhouse(recipe_instance)
 
         LOGGER.info("Watching for recipe instance start on brewhouse %s.",
-                    settings.BREWHOUSE_ID)
-        post_data = {'brewhouse': settings.BREWHOUSE_ID}
+                    self.brewhouse_id)
+        post_data = {'brewhouse': self.brewhouse_id}
         uri = "http://{}/live/recipeInstance/start/".format(settings.HOST)
         self.start_stop_client.fetch(
             uri, handle_start_request, method="POST", body=urlencode(post_data),
@@ -188,8 +190,8 @@ class System(object):
                 self.end_brewing()
 
         LOGGER.info("Watching for recipe instance end on brewhouse %s.",
-                    settings.BREWHOUSE_ID)
-        post_data = {'brewhouse': settings.BREWHOUSE_ID}
+                    self.brewhouse_id)
+        post_data = {'brewhouse': self.brewhouse_id}
         uri = "http://{}/live/recipeInstance/end/".format(settings.HOST)
         self.start_stop_client.fetch(
             uri, handle_end_request, method="POST", body=urlencode(post_data),
