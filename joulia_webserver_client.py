@@ -206,7 +206,8 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
 
     @gen.coroutine
     def _websocket_connect(self, url, on_message_callback=None):
-        yield websocket_connect(url, on_message_callback=on_message_callback)
+        websocket = yield websocket_connect(url, on_message_callback=on_message_callback)
+        return websocket
 
     def write_message(self, message):
         """Serves as a ``write_message`` api to the websocket. Adds the new
