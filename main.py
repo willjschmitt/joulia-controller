@@ -156,8 +156,7 @@ class System(object):
             else:
                 LOGGER.info("Got command to start brewing session.")
                 response = json_decode(response.body)
-                messages = response['messages']
-                recipe_instance = messages['recipe_instance']
+                recipe_instance = response['recipe_instance']
                 self.create_brewhouse(recipe_instance)
 
         LOGGER.info("Watching for recipe instance start on brewhouse %s.",
