@@ -217,6 +217,14 @@ class SubscribableVariable(WebsocketVariable):
         variable_type = response_data.get('variable_type', "value")
         recipe_instance = response_data['recipe_instance']
         subscriber_key = (sensor, variable_type, recipe_instance)
+
+        # TODO(willjschmitt): Handle subscribers in client.
+        if subscriber_key not in self.subscribers:
+            return
+
+        LOGGER.debug("Received updated value for sensor %s(%s), variable_type"
+                     " %s, recipe_instance %s.", sensor, self.sensor_name,
+                     variable_type, recipe_instance)
         subscriber = self.subscribers[subscriber_key]
 
         response_value = response_data['value']
@@ -276,6 +284,14 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
         variable_type = response_data.get('variable_type', "value")
         recipe_instance = response_data['recipe_instance']
         subscriber_key = (sensor, variable_type, recipe_instance)
+
+        # TODO(willjschmitt): Handle subscribers in client.
+        if subscriber_key not in self.subscribers:
+            return
+
+        LOGGER.debug("Received updated value for sensor %s(%s), variable_type"
+                     " %s, recipe_instance %s.", sensor, self.sensor_name,
+                     variable_type, recipe_instance)
         subscriber = self.subscribers[subscriber_key]
 
         response_value = response_data['value']
