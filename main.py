@@ -158,6 +158,7 @@ class System(object):
                 response = json_decode(response.body)
                 recipe_instance = response['recipe_instance']
                 self.create_brewhouse(recipe_instance)
+                self.brewhouse.start_brewing()
 
         LOGGER.info("Watching for recipe instance start on brewhouse %s.",
                     self.brewhouse_id)
