@@ -112,7 +112,6 @@ class Brewhouse(object):
         self.data_streamer.register('boil_kettle__temperature')
         self.data_streamer.register('mash_tun__temperature')
         self.data_streamer.register('boil_kettle__power')
-        self.data_streamer.register('system_energy_cost')
         self.data_streamer.register('state__id', 'state')
 
     def start_brewing(self):
@@ -159,10 +158,14 @@ class Brewhouse(object):
         for timer in self.timers.values():
             timer.start()
 
+        self.data_streamer.start()
+
     def cancel_timers(self):
         """Stops all timers/scheduled control tasks."""
         for timer in self.timers.values():
             timer.stop()
+        self.data_streamer.stop()
+
         self.boil_kettle.disable()
         self.mash_tun.disable()
         self.main_pump.turn_off()
