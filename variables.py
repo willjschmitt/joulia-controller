@@ -158,6 +158,7 @@ class StreamingVariable(WebsocketVariable):
         client = self.clients[instance]
         recipe_instance = self.recipe_instances[instance]
         sensor = self.ids[instance]
+        LOGGER.debug("Sending new value for %s: %s.", self.sensor_name, value)
         client.update_sensor_value(recipe_instance, value, sensor)
 
 
@@ -385,5 +386,6 @@ class DataStreamer(object):
 
         for sensor_id, attr in self.id_to_attribute.items():
             value = rgetattr(self.instance, attr)
+            LOGGER.debug("Sending new value for %s: %s.", attr, value)
             self.client.update_sensor_value(
                 self.recipe_instance, value, sensor_id)
