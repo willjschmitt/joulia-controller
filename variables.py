@@ -116,7 +116,7 @@ class ManagedVariable(object):
             recipe_instance: the recipe identifier for the session of brewing.
         """
         client = self.clients[instance]
-        id_sensor = client.identify(instance, recipe_instance)
+        id_sensor = client.identify(self.sensor_name, recipe_instance)
         self.ids[instance] = id_sensor
 
 
