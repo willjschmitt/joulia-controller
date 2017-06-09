@@ -72,7 +72,7 @@ class System(object):
         gpio.setmode(gpio.BCM)
 
         boil_sensor_analog_pin = 0
-        boil_sensor_rtd_alpha = 0.385
+        boil_sensor_rtd_alpha = 0.00385
         boil_sensor_rtd_zero_resistance = 100.0
         boil_sensor_analog_reference = 3.3
         boil_sensor_vcc = 3.3
@@ -86,7 +86,7 @@ class System(object):
             analog_reader,
             boil_sensor_analog_pin, boil_sensor_rtd_alpha,
             boil_sensor_rtd_zero_resistance, boil_sensor_analog_reference,
-            boil_sensor_vcc, boil_sensor_tau_filter,
+            boil_sensor_tau_filter, boil_sensor_vcc,
             boil_sensor_rtd_top_resistance, boil_sensor_amplifier_resistor_a,
             boil_sensor_amplifier_resistor_b, boil_offset_resistance_bottom,
             boil_offset_resistance_top)
@@ -102,7 +102,7 @@ class System(object):
             boil_kettle_heating_pin)
 
         mash_sensor_analog_pin = 0
-        mash_sensor_rtd_alpha = 0.385
+        mash_sensor_rtd_alpha = 0.00385
         mash_sensor_rtd_zero_resistance = 100.0
         mash_sensor_analog_reference = 3.3
         mash_sensor_vcc = 3.3
@@ -116,7 +116,7 @@ class System(object):
             analog_reader,
             mash_sensor_analog_pin, mash_sensor_rtd_alpha,
             mash_sensor_rtd_zero_resistance, mash_sensor_analog_reference,
-            mash_sensor_vcc, mash_sensor_tau_filter,
+            mash_sensor_tau_filter, mash_sensor_vcc,
             mash_sensor_rtd_top_resistance, mash_sensor_amplifier_resistor_a,
             mash_sensor_amplifier_resistor_b, mash_offset_resistance_bottom,
             mash_offset_resistance_top)
