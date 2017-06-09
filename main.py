@@ -101,7 +101,7 @@ class System(object):
             boil_kettle_volume, boil_kettle_temperature_sensor,
             boil_kettle_heating_pin)
 
-        mash_sensor_analog_pin = 0
+        mash_sensor_analog_pin = 1
         mash_sensor_rtd_alpha = 0.00385
         mash_sensor_rtd_zero_resistance = 100.0
         mash_sensor_analog_reference = 3.3
@@ -161,6 +161,7 @@ class System(object):
                 recipe_instance = response['recipe_instance']
                 self.create_brewhouse(recipe_instance)
                 self.brewhouse.start_brewing()
+                self.watch_for_end()
 
         LOGGER.info("Watching for recipe instance start on brewhouse %s.",
                     self.brewhouse_id)
