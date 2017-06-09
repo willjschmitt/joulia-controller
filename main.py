@@ -191,6 +191,7 @@ class System(object):
             else:
                 LOGGER.info("Got command to end brewing session.")
                 self.end_brewing()
+                self.watch_for_start()
 
         LOGGER.info("Watching for recipe instance end on brewhouse %s.",
                     self.brewhouse_id)
