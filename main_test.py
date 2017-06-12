@@ -36,10 +36,11 @@ class TestCreateBrewhouse(unittest.TestCase):
         self.system.end_brewing()
 
     def test_watch_for_start(self):
-        self.start_stop_client.messages = {"recipe_instance": 11}
+        self.start_stop_client.responses = [{"recipe_instance": 11}, None]
         self.system.watch_for_start()
         self.assertEquals(self.system.brewhouse.recipe_instance, 11)
 
     def test_watch_for_end(self):
+        self.start_stop_client.responses = [{}, None]
         self.system.create_brewhouse(0)
         self.system.watch_for_end()

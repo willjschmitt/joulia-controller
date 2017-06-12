@@ -8,15 +8,27 @@ class StubAsyncHTTPClient(object):
 
     def __init__(self):
         self.error = False
-        self.messages = {}
+        self.response = {}
+
+        self.responses = []
+        self._response_count = 0
 
     def fetch(self, url, callback, method, body, headers=None):
-        response = StubAsyncHTTPClientResponse(self.error, self.messages)
-        callback(response)
+        # If a list of multiple responses has not been provided, fall back onto
+        # the single response.
+        if not self.responses:
+            if self.response is not None:
+                callback(StubAsyncHTTPClientResponse(self.error, self.response))
+        # Otherwise use the list of responses.
+        else:
+            response = self.responses[self._response_count]
+            self._response_count += 1
+            if response is not None:
+                callback(StubAsyncHTTPClientResponse(self.error, response))
 
 
 class StubAsyncHTTPClientResponse(object):
-    def __init__(self, error, messages):
+    def __init__(self, error, response):
         self.error = error
         if not self.error:
-            self.body = json.dumps({"messages": messages})
+            self.body = json.dumps(response)
