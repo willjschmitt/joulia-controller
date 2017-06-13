@@ -1,8 +1,11 @@
 """Tests for the main module."""
 
+from http import HTTPStatus
+from tornado.httpclient import HTTPError
 import unittest
 
 from brewery.brewhouse import Brewhouse
+from http_codes import HTTP_TIMEOUT
 from main import main
 from main import System
 from testing.stub_async_http_client import StubAsyncHTTPClient
@@ -36,11 +39,74 @@ class TestCreateBrewhouse(unittest.TestCase):
         self.system.end_brewing()
 
     def test_watch_for_start(self):
-        self.start_stop_client.responses = [{"recipe_instance": 11}, None]
+        self.start_stop_client.responses = [
+            {
+                'response': {"recipe_instance": 11},
+            },
+            None,
+        ]
+        self.system.watch_for_start()
+        self.assertEquals(self.system.brewhouse.recipe_instance, 11)
+
+    def test_watch_for_start_error(self):
+        self.start_stop_client.responses = [
+            {
+                'status_code': HTTPStatus.INTERNAL_SERVER_ERROR,
+                'error': HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR),
+                'response': None,
+            },
+        ]
+        with self.assertRaises(HTTPError):
+            self.system.watch_for_start()
+
+    def test_watch_for_start_timeout(self):
+        self.start_stop_client.responses = [
+            {
+                'status_code': HTTP_TIMEOUT,
+                'error': HTTPError(HTTP_TIMEOUT),
+                'response': None,
+            },
+            {
+                'response': {"recipe_instance": 11},
+            },
+            None,
+        ]
         self.system.watch_for_start()
         self.assertEquals(self.system.brewhouse.recipe_instance, 11)
 
     def test_watch_for_end(self):
-        self.start_stop_client.responses = [{}, None]
+        self.start_stop_client.responses = [
+            {
+                'response': {},
+            },
+            None,
+        ]
+        self.system.create_brewhouse(0)
+        self.system.watch_for_end()
+
+    def test_watch_for_end_error(self):
+        self.start_stop_client.responses = [
+            {
+                'status_code': HTTPStatus.INTERNAL_SERVER_ERROR,
+                'error': HTTPError(HTTPStatus.INTERNAL_SERVER_ERROR),
+                'response': None,
+            }
+        ]
+        self.system.create_brewhouse(0)
+        with self.assertRaises(HTTPError):
+            self.system.watch_for_start()
+
+    def test_watch_for_end_timeout(self):
+        self.start_stop_client.responses = [
+            {
+                'status_code': HTTP_TIMEOUT,
+                'error': HTTPError(HTTP_TIMEOUT),
+                'response': None,
+            },
+            {
+                'response': {},
+            },
+            None,
+        ]
         self.system.create_brewhouse(0)
         self.system.watch_for_end()

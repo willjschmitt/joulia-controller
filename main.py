@@ -24,6 +24,7 @@ from brewery.brewhouse import Brewhouse
 from brewery.pump import SimplePump
 from brewery.vessels import HeatedVessel
 from brewery.vessels import HeatExchangedVessel
+from http_codes import HTTP_TIMEOUT
 from joulia_webserver_client import JouliaHTTPClient
 from joulia_webserver_client import JouliaWebsocketClient
 from measurement.analog_reader import MCP3004AnalogReader
@@ -153,8 +154,12 @@ class System(object):
             logic for this Brewhouse
             """
             if response.error:
-                LOGGER.error(response)
-                self.watch_for_start()
+                if response.code == HTTP_TIMEOUT:
+                    LOGGER.warning("Lost connection to server. Retrying...")
+                    self.watch_for_start()
+                else:
+                    LOGGER.error(response)
+                    response.rethrow()
             else:
                 LOGGER.info("Got command to start brewing session.")
                 response = json_decode(response.body)
@@ -186,8 +191,12 @@ class System(object):
             logic for this Brewhouse
             """
             if response.error:
-                LOGGER.error(response)
-                self.watch_for_end()
+                if response.code == HTTP_TIMEOUT:
+                    LOGGER.warning("Lost connection to server. Retrying...")
+                    self.watch_for_end()
+                else:
+                    LOGGER.error(response)
+                    response.rethrow()
             else:
                 LOGGER.info("Got command to end brewing session.")
                 self.end_brewing()
@@ -215,7 +224,7 @@ def create_analog_reader():
         from Adafruit_GPIO.SPI import SpiDev
         from Adafruit_MCP3008 import MCP3008
         spi = SpiDev(spi_port, spi_device)
-    except ImportError:
+    except (ImportError, FileNotFoundError):
         LOGGER.warning("Falling back to test analog reader.")
         from testing.stub_mcp3008 import StubSpiDev as SpiDev
         from testing.stub_mcp3008 import StubMCP3008 as MCP3008
