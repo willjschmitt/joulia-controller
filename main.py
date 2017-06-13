@@ -224,7 +224,7 @@ def create_analog_reader():
         from Adafruit_GPIO.SPI import SpiDev
         from Adafruit_MCP3008 import MCP3008
         spi = SpiDev(spi_port, spi_device)
-    except ImportError:
+    except (ImportError, FileNotFoundError):
         LOGGER.warning("Falling back to test analog reader.")
         from testing.stub_mcp3008 import StubSpiDev as SpiDev
         from testing.stub_mcp3008 import StubMCP3008 as MCP3008
