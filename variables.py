@@ -248,6 +248,13 @@ class SubscribableVariable(WebsocketVariable):
                 callback(response_value)
 
 
+class BidirectionalVariable(StreamingVariable, SubscribableVariable):
+    """A variable that is bi-directional, but has no override logic. Only can
+    stream data in a two-way manner regardless of who made the update.
+    """
+    pass
+
+
 class OverridableVariable(StreamingVariable, SubscribableVariable):
     """A variable that is bi-directional. That is, it can be overridden
     by the user interface, but the override can be released for the controls

@@ -4,7 +4,7 @@ operate on an object.
 
 import time
 
-from variables import SubscribableVariable
+from variables import BidirectionalVariable
 
 
 class StateMachine(object):
@@ -25,7 +25,7 @@ class StateMachine(object):
             they state machine is to be evaluated in a serial
             manner.
     """
-    _id = SubscribableVariable('state')
+    _id = BidirectionalVariable('state')
 
     def __init__(self, parent):
         self.parent = parent
