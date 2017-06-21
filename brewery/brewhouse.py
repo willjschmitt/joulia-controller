@@ -60,8 +60,7 @@ class Brewhouse(object):
         self.task1_lasttime = time.time()
 
         # Main State Machine Initialization
-        self.state = StateMachine(self)
-        self.state.register(client, recipe_instance)
+        self.state = StateMachine(self, client, recipe_instance)
         self._initialize_state_machine()
 
     def _register(self, client, recipe_instance):
