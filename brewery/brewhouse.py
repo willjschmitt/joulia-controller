@@ -60,8 +60,7 @@ class Brewhouse(object):
         self.task1_lasttime = time.time()
 
         # Main State Machine Initialization
-        self.state = StateMachine(self)
-        self.state.register(client, recipe_instance)
+        self.state = StateMachine(self, client, recipe_instance)
         self._initialize_state_machine()
 
     def _register(self, client, recipe_instance):
@@ -112,7 +111,6 @@ class Brewhouse(object):
         self.data_streamer.register('boil_kettle__temperature')
         self.data_streamer.register('mash_tun__temperature')
         self.data_streamer.register('boil_kettle__power')
-        self.data_streamer.register('state__id', 'state')
 
     def start_brewing(self):
         """Initializes a new recipe instance on the `Brewhouse`.

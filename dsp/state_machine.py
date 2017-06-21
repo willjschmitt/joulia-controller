@@ -4,7 +4,8 @@ operate on an object.
 
 import time
 
-from variables import SubscribableVariable
+from variables import BidirectionalVariable
+
 
 
 class StateMachine(object):
@@ -25,9 +26,11 @@ class StateMachine(object):
             they state machine is to be evaluated in a serial
             manner.
     """
-    _id = SubscribableVariable('state')
+    _id = BidirectionalVariable('state')
 
-    def __init__(self, parent):
+    def __init__(self, parent, client, recipe_instance):
+        self._register(client, recipe_instance)
+
         self.parent = parent
         self.states = []
 
@@ -36,7 +39,7 @@ class StateMachine(object):
         self.clock = time
         self.state_time_change = self._time()
 
-    def register(self, client, recipe_instance):
+    def _register(self, client, recipe_instance):
         """Registers all `ManagedVariable`'s.
 
         Args:

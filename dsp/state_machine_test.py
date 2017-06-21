@@ -12,13 +12,11 @@ class TestStateMachine(unittest.TestCase):
     """Tests the StateMachine class."""
 
     def setUp(self):
-        self.state_machine = StateMachine(self)
-
-    def test_register_succeeds(self):
         http_client = StubJouliaHTTPClient("fake address")
-        ws_client = StubJouliaWebsocketClient("fake address", http_client)
-        recipe_instance = 1
-        self.state_machine.register(ws_client, recipe_instance)
+        self.ws_client = StubJouliaWebsocketClient("fake address", http_client)
+        self.recipe_instance = 0
+        self.state_machine = StateMachine(self, self.ws_client,
+                                          self.recipe_instance)
 
     def test_add_state(self):
         # add_state is called by the creation of State
@@ -48,7 +46,8 @@ class TestStateMachine(unittest.TestCase):
         self.assertIs(self.state_machine.state, state2)
 
     def test_bad_state(self):
-        other_state_machine = StateMachine(self)
+        other_state_machine = StateMachine(self, self.ws_client,
+                                           self.recipe_instance)
         state = State(other_state_machine)
         with self.assertRaises(AssertionError):
             self.state_machine.state = state
@@ -154,7 +153,10 @@ class TestState(unittest.TestCase):
     """Tests the State class."""
 
     def test_call_unimplemented(self):
-        state_machine = StateMachine(self)
+        http_client = StubJouliaHTTPClient("fake address")
+        ws_client = StubJouliaWebsocketClient("fake address", http_client)
+        recipe_instance = 0
+        state_machine = StateMachine(self, ws_client, recipe_instance)
         state = State(state_machine)
         with self.assertRaises(NotImplementedError):
             state(self)

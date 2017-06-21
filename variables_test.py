@@ -443,6 +443,75 @@ class TestOverridableVariable(unittest.TestCase):
         self.assertEquals(instance.foo, 2)
 
 
+class TestBidirectionalVariable(unittest.TestCase):
+    """Tests for BidirectionalVariable."""
+
+    def setUp(self):
+        self.http_address = "http://fakehost"
+        self.ws_address = "ws://fakehost"
+        self.http_client = StubJouliaHTTPClient(
+            self.http_address, auth_token=None)
+        self.ws_client = StubJouliaWebsocketClient(
+            self.ws_address, self.http_client)
+
+    def test_register(self):
+        class TestClass(object):
+            foo = variables.OverridableVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        sensor_id = 3
+        self.ws_client.http_client.identifier = sensor_id
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        self.assertIn((sensor_id, "value", recipe_instance),
+                      TestClass.foo.subscribers)
+        self.assertIn((sensor_id, "override", recipe_instance),
+                      TestClass.foo.subscribers)
+
+    def test_on_message_override(self):
+        class TestClass(object):
+            foo = variables.BidirectionalVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.http_client.identifier = 11
+
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        message = ('{"sensor":11,"recipe_instance":1,"value":1,'
+                   '"variable_type":"override"}')
+        TestClass.foo.on_message(message)
+
+    def test_on_message(self):
+        class TestClass(object):
+            foo = variables.BidirectionalVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.http_client.identifier = 11
+
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        message = '{"sensor":11,"recipe_instance":1,"value":2}'
+        TestClass.foo.on_message(message)
+        self.assertEquals(instance.foo, 2)
+
+    def test_on_message_value(self):
+        class TestClass(object):
+            foo = variables.BidirectionalVariable("foo")
+
+        instance = TestClass()
+        recipe_instance = 1
+        self.http_client.identifier = 11
+
+        TestClass.foo.register(self.ws_client, instance, recipe_instance)
+
+        message = ('{"sensor":11,"recipe_instance":1,"value":2}')
+        TestClass.foo.on_message(message)
+        self.assertEquals(instance.foo, 2)
+
+
 class TestDataStreamer(unittest.TestCase):
     """Tests for DataStreamer."""
 
