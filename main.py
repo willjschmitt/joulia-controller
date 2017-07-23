@@ -1,4 +1,5 @@
 """Main code for launching a Brewhouse joulia-controller."""
+import json
 import logging.config
 try:
     import RPi.GPIO as gpio
@@ -20,15 +21,10 @@ from tornado.httpclient import AsyncHTTPClient
 from urllib.parse import urlencode
 
 from brewery.brewhouse import Brewhouse
-from brewery.pump import SimplePump
-from brewery.vessels import HeatedVessel
-from brewery.vessels import HeatExchangedVessel
 from http_codes import HTTP_TIMEOUT
 from joulia_webserver.client import JouliaHTTPClient
 from joulia_webserver.client import JouliaWebsocketClient
 from measurement.analog_reader import MCP3004AnalogReader
-from measurement.gpio import OutputPin
-from measurement.rtd_sensor import RtdSensor
 import settings
 
 logging.basicConfig(
@@ -71,71 +67,14 @@ class System(object):
         analog_reader = create_analog_reader()
         gpio.setmode(gpio.BCM)
 
-        boil_sensor_analog_pin = 0
-        boil_sensor_rtd_alpha = 0.00385
-        boil_sensor_rtd_zero_resistance = 100.0
-        boil_sensor_analog_reference = 3.3
-        boil_sensor_vcc = 3.3
-        boil_sensor_tau_filter = 10.0
-        boil_sensor_rtd_top_resistance = 1.0E3
-        boil_sensor_amplifier_resistor_a = 15.0E3
-        boil_sensor_amplifier_resistor_b = 270.0E3
-        boil_offset_resistance_bottom = 10.0E3
-        boil_offset_resistance_top = 100.0E3
-        boil_kettle_temperature_sensor = RtdSensor(
-            analog_reader,
-            boil_sensor_analog_pin, boil_sensor_rtd_alpha,
-            boil_sensor_rtd_zero_resistance, boil_sensor_analog_reference,
-            boil_sensor_tau_filter, boil_sensor_vcc,
-            boil_sensor_rtd_top_resistance, boil_sensor_amplifier_resistor_a,
-            boil_sensor_amplifier_resistor_b, boil_offset_resistance_bottom,
-            boil_offset_resistance_top)
-
-        boil_kettle_heating_element_rating = 5500.0
-        boil_kettle_volume = 5.0
-        boil_kettle_heating_pin_number = 27
-        boil_kettle_heating_pin = OutputPin(
-            gpio, boil_kettle_heating_pin_number)
-        boil_kettle = HeatedVessel(
-            self.ws_client, recipe_instance, boil_kettle_heating_element_rating,
-            boil_kettle_volume, boil_kettle_temperature_sensor,
-            boil_kettle_heating_pin)
-
-        mash_sensor_analog_pin = 1
-        mash_sensor_rtd_alpha = 0.00385
-        mash_sensor_rtd_zero_resistance = 100.0
-        mash_sensor_analog_reference = 3.3
-        mash_sensor_vcc = 3.3
-        mash_sensor_tau_filter = 10.0
-        mash_sensor_rtd_top_resistance = 1.0E3
-        mash_sensor_amplifier_resistor_a = 15.0E3
-        mash_sensor_amplifier_resistor_b = 270.0E3
-        mash_offset_resistance_bottom = 10.0E3
-        mash_offset_resistance_top = 100.0E3
-        mash_tun_temperature_sensor = RtdSensor(
-            analog_reader,
-            mash_sensor_analog_pin, mash_sensor_rtd_alpha,
-            mash_sensor_rtd_zero_resistance, mash_sensor_analog_reference,
-            mash_sensor_tau_filter, mash_sensor_vcc,
-            mash_sensor_rtd_top_resistance, mash_sensor_amplifier_resistor_a,
-            mash_sensor_amplifier_resistor_b, mash_offset_resistance_bottom,
-            mash_offset_resistance_top)
-
         recipe = self.http_client.get_recipe(recipe_instance)
 
-        mash_tun_volume = 5.0
-        mash_temperature_profile = recipe.mash_temperature_profile
-        mash_tun = HeatExchangedVessel(
-            self.ws_client, recipe_instance, mash_tun_volume,
-            mash_tun_temperature_sensor,
-            temperature_profile=mash_temperature_profile)
+        with open("config.json", 'r') as configuration_file:
+            configuration = json.load(configuration_file)
 
-        pump_pin_number = 17
-        pump_pin = OutputPin(gpio, pump_pin_number)
-        main_pump = SimplePump(self.ws_client, recipe_instance, pump_pin)
-
-        brewhouse = Brewhouse(self.ws_client, gpio, analog_reader, recipe_instance,
-                              boil_kettle, mash_tun, main_pump, recipe)
+        brewhouse = Brewhouse.from_json(
+            self.ws_client, gpio, analog_reader, recipe_instance, recipe,
+            configuration)
 
         self.brewhouse = brewhouse
 

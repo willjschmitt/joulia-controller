@@ -8,6 +8,7 @@ from brewery.vessels import HeatExchangedVessel
 from brewery.vessels import SimpleVessel
 from brewery.vessels import TemperatureMonitoredVessel
 from measurement.gpio import OutputPin
+from testing.stub_analog_reader import StubAnalogReader
 from testing.stub_gpio import StubGPIO
 from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 from testing.stub_joulia_webserver_client import StubJouliaWebsocketClient
@@ -173,6 +174,35 @@ class TestHeatedVessel(unittest.TestCase):
         # 5500W -> 0.62 degF/1gal/second
         self.assertAlmostEquals(self.vessel.temperature_ramp, 0.62, 2)
 
+    def test_from_json(self):
+        analog_reader = StubAnalogReader()
+        configuration = {
+            "temperature_sensor": {
+                "analog_pin": 0,
+                "tau_filter": 10.0,
+                "analog_reference": 3.3,
+                "rtd": {
+                    "alpha": 0.00385,
+                    "zero_resistance": 100.0,
+                },
+                "amplifier": {
+                    "vcc": 3.3,
+                    "rtd_top_resistance": 1000.0,
+                    "amplifier_resistor_a": 15000.0,
+                    "amplifier_resistor_b": 270000.0,
+                    "offset_resistance_bottom": 10000.0,
+                    "offset_resistance_top": 100000.0,
+                }
+            },
+            "heating_element": {
+                "rating": 5500.0,
+                "pin": 27,
+            },
+            "volume": 5.0,
+        }
+        HeatedVessel.from_json(self.ws_client, self.gpio, analog_reader,
+                               self.recipe_instance, configuration)
+
 
 class TestHeatExchangedVessel(unittest.TestCase):
     """Tests for the HeadExchangedVessel class."""
@@ -183,8 +213,6 @@ class TestHeatExchangedVessel(unittest.TestCase):
         self.ws_client = StubJouliaWebsocketClient("fake address", http_client)
         volume = 5.0
         self.temperature_sensor = StubRtdSensor(70.0)
-        self.gpio = StubGPIO()
-        self.heating_pin = OutputPin(self.gpio, 0)
         self.vessel = HeatExchangedVessel(self.ws_client, self.recipe_instance,
                                           volume, self.temperature_sensor)
 
@@ -310,3 +338,29 @@ class TestHeatExchangedVessel(unittest.TestCase):
         # 100degF delta with heat_exchanger_conductivity = 1 -> 100W.
         # 100W is 0.0112 degF/second for water.
         self.assertAlmostEquals(self.vessel.temperature_ramp, 0.0, 9)
+
+    def test_from_json(self):
+        analog_reader = StubAnalogReader()
+        configuration = {
+            "temperature_sensor": {
+                "analog_pin": 1,
+                "tau_filter": 10.0,
+                "analog_reference": 3.3,
+                "rtd": {
+                    "alpha": 0.00385,
+                    "zero_resistance": 100.0,
+                },
+                "amplifier": {
+                    "vcc": 3.3,
+                    "rtd_top_resistance": 1000.0,
+                    "amplifier_resistor_a": 15000.0,
+                    "amplifier_resistor_b": 2700000.0,
+                    "offset_resistance_bottom": 10000.0,
+                    "offset_resistance_top": 100000.0,
+                },
+            },
+            "volume": 5.0,
+            "heat_exchanger_conductivity": 1.0,
+        }
+        HeatExchangedVessel.from_json(self.ws_client, analog_reader,
+                                      self.recipe_instance, configuration)

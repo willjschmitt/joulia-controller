@@ -1,0 +1,50 @@
+{
+  "boil_kettle": {
+    "temperature_sensor": {
+      "analog_pin": 0,
+      "tau_filter": 10.0,
+      "analog_reference": 3.3,
+      "rtd": {
+        "alpha": 0.00385,
+        "zero_resistance": 100.0
+      },
+      "amplifier": {
+        "vcc": 3.3,
+        "rtd_top_resistance": 1000.0,
+        "amplifier_resistor_a": 15000.0,
+        "amplifier_resistor_b": 270000.0,
+        "offset_resistance_bottom": 10000.0,
+        "offset_resistance_top": 100000.0
+      }
+    },
+    "heating_element": {
+      "rating": 5500.0,
+      "pin": 27
+    },
+    "volume": 5.0
+  },
+  "mash_tun": {
+    "temperature_sensor": {
+      "analog_pin": 1,
+      "tau_filter": 10.0,
+      "analog_reference": 3.3,
+      "rtd": {
+        "alpha": 0.00385,
+        "zero_resistance": 100.0
+      },
+      "amplifier": {
+        "vcc": 3.3,
+        "rtd_top_resistance": 1000.0,
+        "amplifier_resistor_a": 15000.0,
+        "amplifier_resistor_b": 2700000.0,
+        "offset_resistance_bottom": 10000.0,
+        "offset_resistance_top": 100000.0
+      }
+    },
+    "volume": 5.0,
+    "heat_exchanger_conductivity": 1.0
+  },
+  "main_pump": {
+    "pin": 17
+  }
+}

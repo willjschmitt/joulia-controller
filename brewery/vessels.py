@@ -6,6 +6,8 @@ import logging
 import time
 from tornado.ioloop import IOLoop
 
+from measurement.gpio import OutputPin
+from measurement.rtd_sensor import RtdSensor
 from dsp.dsp import Regulator
 from utils import power_to_temperature_rate
 from variables import OverridableVariable
@@ -84,6 +86,18 @@ class HeatedVessel(TemperatureMonitoredVessel):
         self.regulator = Regulator(time, gain_proportional, gain_integral,
                                    max_output=1.0, min_output=0.0)
         self.recalculate_gains()
+
+    @classmethod
+    def from_json(cls, client, gpio, analog_reader, recipe_instance,
+                  configuration):
+        """Factory for creating a HeatedVessel from JSON configuration."""
+        rating = configuration["heating_element"]["rating"]
+        volume = configuration["volume"]
+        temperature_sensor = RtdSensor.from_json(
+            analog_reader, configuration["temperature_sensor"])
+        heating_pin = OutputPin(gpio, configuration["heating_element"]["pin"])
+        return cls(client, recipe_instance, rating, volume, temperature_sensor,
+                   heating_pin)
 
     def _register(self, client, recipe_instance):
         """Registers this instance with the properties by submitting the
@@ -228,6 +242,7 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
     temperature_set_point = OverridableVariable(
         'mash_tun__temperature_set_point')
 
+    # TODO(willjschmitt): Make heat_exchanger_conductivity a required arg.
     def __init__(self, client, recipe_instance, volume, temperature_sensor,
                  heat_exchanger_conductivity=1.0, temperature_profile=None):
         super(HeatExchangedVessel, self).__init__(volume, temperature_sensor)
@@ -246,6 +261,19 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         self.recalculate_gains()
 
         self.enabled = False
+
+    @classmethod
+    def from_json(cls, client, analog_reader, recipe_instance,
+                  configuration):
+        """Factory for creating a HeatExchangedVessel from JSON configuration.
+        """
+        volume = configuration["volume"]
+        heat_exchanger_conductivity \
+            = configuration["heat_exchanger_conductivity"]
+        temperature_sensor = RtdSensor.from_json(
+            analog_reader, configuration["temperature_sensor"])
+        return cls(client, recipe_instance, volume, temperature_sensor,
+                   heat_exchanger_conductivity=heat_exchanger_conductivity)
 
     def _register(self, client, recipe_instance):
         HeatExchangedVessel.temperature_set_point.register(

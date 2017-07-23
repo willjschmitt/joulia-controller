@@ -102,6 +102,29 @@ class RtdSensor(object):
 
         self.temperature_unfiltered = 0.0
 
+    @classmethod
+    def from_json(cls, analog_reader, configuration):
+        """Factory for creating a RtdSensor from JSON configuration."""
+        analog_pin = configuration["analog_pin"]
+        alpha = configuration["rtd"]["alpha"]
+        zero_resistance = configuration["rtd"]["zero_resistance"]
+        analog_reference_voltage = configuration["analog_reference"]
+        tau = configuration["tau_filter"]
+        vcc = configuration["amplifier"]["vcc"]
+        resistance_rtd_top = configuration["amplifier"]["rtd_top_resistance"]
+        amplifier_resistance_a \
+            = configuration["amplifier"]["amplifier_resistor_a"]
+        amplifier_resistance_b \
+            = configuration["amplifier"]["amplifier_resistor_b"]
+        offset_resistance_bottom \
+            = configuration["amplifier"]["offset_resistance_bottom"]
+        offset_resistance_top \
+            = configuration["amplifier"]["offset_resistance_top"]
+        return cls(analog_reader, analog_pin, alpha, zero_resistance,
+                   analog_reference_voltage, tau, vcc, resistance_rtd_top,
+                   amplifier_resistance_a, amplifier_resistance_b,
+                   offset_resistance_bottom, offset_resistance_top)
+
     @property
     def temperature(self):
         """Filtered temperature measured from the RTD amplifier circuit."""

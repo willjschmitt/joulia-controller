@@ -66,6 +66,26 @@ class TestRtdSensor(unittest.TestCase):
     def test_temperature_property(self):
         self.assertAlmostEquals(self.rtd.temperature, 0.0, 9)
 
+    def test_from_json(self):
+        configuration = {
+            "analog_pin": 0,
+            "tau_filter": 10.0,
+            "analog_reference": 3.3,
+            "rtd": {
+                "alpha": 0.00385,
+                "zero_resistance": 100.0,
+            },
+            "amplifier": {
+                "vcc": 3.3,
+                "rtd_top_resistance": 1000.0,
+                "amplifier_resistor_a": 15000.0,
+                "amplifier_resistor_b": 270000.0,
+                "offset_resistance_bottom": 10000.0,
+                "offset_resistance_top": 100000.0,
+            },
+        }
+        RtdSensor.from_json(self.analog_reader, configuration)
+
 
 class TestCelsiusToFahrenheit(unittest.TestCase):
     """Tests the celsius_to_fahrenheit function."""
