@@ -27,7 +27,7 @@ class Brewhouse(object):
     grant_permission = SubscribableVariable('grant_permission')
 
     def __init__(self, client, gpio, analog_reader, recipe_instance,
-                 boil_kettle, mash_tun, main_pump):
+                 boil_kettle, mash_tun, main_pump, recipe):
         """Creates the `Brewhouse` instance and waits for a command
         from the webserver to start a new instance.
 
@@ -45,13 +45,12 @@ class Brewhouse(object):
         self.data_streamer = DataStreamer(client, self, recipe_instance, 1000)
         self._initialize_data_streamer()
 
-        self.strike_temperature = 0.0
-        self.mashout_temperature = 0.0
-        self.mashout_time = 0.0  # Seconds
-        self.boil_temperature = 0.0
-        self.boil_time = 0.0  # Seconds
-        self.cool_temperature = 0.0
-        self.mash_temperature_profile = []
+        self.strike_temperature = recipe.strike_temperature
+        self.mashout_temperature = recipe.mashout_temperature
+        self.mashout_time = recipe.mashout_time  # Seconds
+        self.boil_temperature = 217.0
+        self.boil_time = recipe.boil_time  # Seconds
+        self.cool_temperature = recipe.cool_temperature
         self.system_energy = 0.0
 
         self.working_time = None
@@ -120,31 +119,12 @@ class Brewhouse(object):
         """
         LOGGER.info('Beginning brewing instance.')
 
-        self.initialize_recipe()
-
         # Schedule task 1 execution
         self.task1_rate = 1.0  # Seconds
         self.task1_lasttime = time.time()
         self.timer = None
 
         self.start_timers()
-
-    def initialize_recipe(self):
-        """Sets all the temperature profiles and basic recipe settings
-        for the current `Brewhouse` instance.
-        """
-        # Initialize everything
-        self.strike_temperature = 162.
-        self.mashout_temperature = 170.
-        self.mashout_time = 10.*60.  # Seconds
-        self.boil_temperature = 217.
-        self.boil_time = 60.*60.  # Seconds
-        self.cool_temperature = 70.
-        self.mash_temperature_profile = [
-            [45.*60., 152.0],  # Start at 152
-            [15.*60., 155.0],  # At 45min step up to 155
-        ]
-        self.mash_tun.temperature_profile = self.mash_temperature_profile
 
     def start_timers(self):
         """Schedules the control tasks for a new recipe instance on

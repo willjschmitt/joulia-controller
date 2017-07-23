@@ -1,14 +1,14 @@
-"""Tests for joulia_webserver_client module."""
+"""Tests for joulia_webserver.client module."""
 
 import json
 import unittest
 
-from joulia_webserver_client import JouliaHTTPClient
-from joulia_webserver_client import JouliaWebsocketClient
-from joulia_webserver_client import JouliaWebserverClientBase
+from joulia_webserver.client import JouliaHTTPClient
+from joulia_webserver.client import JouliaWebserverClientBase
+from joulia_webserver.client import JouliaWebsocketClient
+from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 from testing.stub_requests import StubRequests
 from testing.stub_websocket import stub_websocket_connect
-from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 
 
 class JouliaHTTPClientTest(JouliaHTTPClient):
@@ -151,14 +151,38 @@ class TestJouliaHttpClient(unittest.TestCase):
 
     def test_get_mash_points(self):
         self.client._requests_service.response_map[
-            "http://fakehost/brewery/api/recipeInstance/3/"] = '{"recipe":10}'
-        self.client._requests_service.response_map[
             "http://fakehost/brewery/api/mash_point/?recipe=10"] = (
                 '[{"time":60.0,"temperature":152.0},'
                 '{"time":15.0,"temperature":160.0}]')
-        got = self.client.get_mash_points(3)
+        got = self.client.get_mash_points(10)
         want = [(60.0, 152.0), (15.0, 160.0)]
         self.assertEquals(got, want)
+
+    def test_get_recipe_instance(self):
+        self.client._requests_service.response_map[
+            "http://fakehost/brewery/api/recipeInstance/3/"] = (
+                '{"id":3,"recipe":10}')
+        got = self.client.get_recipe_instance(3)
+        self.assertEquals(got.pk, 3)
+        self.assertEquals(got.recipe_pk, 10)
+
+    def test_get_recipe(self):
+        self.client._requests_service.response_map[
+            "http://fakehost/brewery/api/mash_point/?recipe=10"] = (
+            '['
+                '{"time":60.0,"temperature":152.0},'
+                '{"time":15.0,"temperature":160.0}'
+            ']')
+        self.client._requests_service.response_map[
+            "http://fakehost/brewery/api/recipe/10/"] = (
+            '{'
+                '"id":10,'
+                '"strike_temperature":170.0,'
+                '"mashout_temperature":170.0,'
+                '"mashout_time":8000,'
+                '"boil_time":3600,'
+                '"cool_temperature":70.0'
+            '}')
 
 
 class TestJouliaWebsocketClient(unittest.TestCase):

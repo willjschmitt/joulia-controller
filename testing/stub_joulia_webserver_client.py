@@ -1,7 +1,7 @@
 """Stubs for the Joulia Webserver clients found in joulia_webserver_client"""
 
-from joulia_webserver_client import JouliaHTTPClient
-from joulia_webserver_client import JouliaWebsocketClient
+from joulia_webserver.client import JouliaHTTPClient
+from joulia_webserver.client import JouliaWebsocketClient
 from testing.stub_websocket import stub_websocket_connect
 
 
@@ -19,6 +19,9 @@ class StubJouliaHTTPClient(JouliaHTTPClient):
             address, auth_token=auth_token)
         self.identifier = 0
         self.update_sensor_value_posts = []
+        self.mash_points = []
+        self.recipe_instance = None
+        self.recipe = None
 
     def identify(self, sensor_name, recipe_instance):
         result = self.identifier
@@ -33,7 +36,17 @@ class StubJouliaHTTPClient(JouliaHTTPClient):
         return
 
     def get_mash_points(self, recipe_instance_pk):
-        return []
+        return self.mash_points
+
+    def get_recipe_instance(self, recipe_instance_pk):
+        return self.recipe_instance, \
+            "recipe_instance must be set on StubJouliaHTTPClient if using" \
+            " get_recipe_instance"
+
+    def get_recipe(self, recipe_pk):
+        assert self.recipe is not None, \
+            "recipe must be set on StubJouliaHTTPClient if using get_recipe"
+        return self.recipe
 
 
 class StubJouliaWebsocketClient(JouliaWebsocketClient):
