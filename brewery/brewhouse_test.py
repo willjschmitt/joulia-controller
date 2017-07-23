@@ -4,8 +4,9 @@ import unittest
 
 from brewery.brewhouse import Brewhouse
 from brewery.pump import SimplePump
-from brewery.vessels import HeatedVessel
 from brewery.vessels import HeatExchangedVessel
+from brewery.vessels import HeatedVessel
+from joulia_webserver.models import Recipe
 from measurement.gpio import OutputPin
 from testing.stub_analog_reader import StubAnalogReader
 from testing.stub_gpio import StubGPIO
@@ -44,16 +45,23 @@ class TestBrewhouse(unittest.TestCase):
         pump_pin = OutputPin(stub_gpio, 1)
         self.main_pump = SimplePump(self.ws_client, recipe_instance, pump_pin)
 
+        recipe_pk = 3
+        strike_temperature = 170.0
+        mashout_temperature = 170.0
+        mashout_time = 15.0 * 60.0
+        boil_time = 60.0 * 60.0
+        cool_temperature = 70.0
+        mash_temperature_profile = []
+        self.recipe = Recipe(
+            recipe_pk, strike_temperature, mashout_temperature, mashout_time,
+            boil_time, cool_temperature, mash_temperature_profile)
+
         self.brewhouse = Brewhouse(
             self.ws_client, self.gpio, self.analog_reader, recipe_instance,
-            self.boil_kettle, self.mash_tun, self.main_pump)
+            self.boil_kettle, self.mash_tun, self.main_pump, self.recipe)
 
     def test_start_brewing_succeeds(self):
         self.brewhouse.start_brewing()
-        # TODO(will): Add checks here
-
-    def test_initialize_recipe_succeeds(self):
-        self.brewhouse.initialize_recipe()
         # TODO(will): Add checks here
 
     def test_start_timers(self):

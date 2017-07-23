@@ -1,12 +1,14 @@
 """Tests for the main module."""
 
-from http import HTTPStatus
-from tornado.httpclient import HTTPError
 import unittest
+from http import HTTPStatus
+
+from tornado.httpclient import HTTPError
 
 from brewery.brewhouse import Brewhouse
 from http_codes import HTTP_TIMEOUT
-from main import main
+from joulia_webserver.models import Recipe
+from joulia_webserver.models import RecipeInstance
 from main import System
 from testing.stub_async_http_client import StubAsyncHTTPClient
 from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
@@ -22,9 +24,22 @@ class TestCreateBrewhouse(unittest.TestCase):
     """Tests for the create_brewhouse function."""
 
     def setUp(self):
-        self.http_client = StubJouliaHTTPClient("fake address")
+        self.http_client = StubJouliaHTTPClient("http://fake-address")
+        recipe_instance_pk = 0
+        recipe_pk = 0
+        self.http_client.recipe_instance = RecipeInstance(
+            recipe_instance_pk, recipe_pk)
+        strike_temperature = 162.0
+        mashout_temperature = 170.0
+        mashout_time = 15.0 * 60.0
+        boil_time = 60.0 * 60.0
+        cool_temperature = 70.0
+        mash_temperature_profile = []
+        self.http_client.recipe = Recipe(
+            recipe_pk, strike_temperature, mashout_temperature, mashout_time,
+            boil_time, cool_temperature, mash_temperature_profile)
         self.ws_client = StubJouliaWebsocketClient(
-            "fake address", self.http_client)
+            "ws://fake-address", self.http_client)
         self.start_stop_client = StubAsyncHTTPClient()
         brewhouse_id = 0
         self.system = System(self.http_client, self.ws_client,

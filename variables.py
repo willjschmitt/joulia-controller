@@ -1,17 +1,14 @@
-import datetime
 import json
 import logging
-import pytz
+from weakref import WeakKeyDictionary
+from weakref import WeakSet
+
 import requests
 from tornado import ioloop
-from weakref import WeakKeyDictionary
-from _weakrefset import WeakSet
 
-from joulia_webserver_client import JouliaWebsocketClient
-import settings
-from utils import rgetattr
+from joulia_webserver.client import JouliaWebsocketClient
 from utils import exists_and_not_none
-
+from utils import rgetattr
 
 LOGGER = logging.getLogger(__name__)
 

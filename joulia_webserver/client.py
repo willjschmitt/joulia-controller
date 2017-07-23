@@ -5,6 +5,10 @@ and stubbing the response from joulia-webserver.
 
 import datetime
 import json
+import logging
+
+from joulia_webserver.models import Recipe
+from joulia_webserver.models import RecipeInstance
 import pytz
 import requests
 from tornado import gen
@@ -12,7 +16,6 @@ from tornado.httpclient import HTTPRequest
 from tornado.ioloop import IOLoop
 from tornado.websocket import websocket_connect
 
-import logging
 LOGGER = logging.getLogger(__name__)
 
 
@@ -144,27 +147,55 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
                 'sensor': sensor}
         self._post(self._update_sensor_value_url, data=data)
 
-    def get_mash_points(self, recipe_instance_pk):
+    def _get_mash_points_url(self, recipe_pk):
+        return "{}/brewery/api/mash_point/?recipe={}".format(self.address,
+                                                             recipe_pk)
+
+    def get_mash_points(self, recipe_pk):
         """Retrieves the mash points associated with a recipe instance, which
         define the mash profile.
 
         Args:
-            recipe_instance_pk: the recipe instance id for the recipe interested
-                in for the mash profile.
+            recipe_pk: the id for the recipe interested in for the mash profile.
 
         Returns:
             Mash points as an array of (duration, temperature) pairs.
         """
-        recipe_instance_url = "{}/brewery/api/recipeInstance/{}/".format(
-            self.address, recipe_instance_pk)
-        recipe_instance_response = self._get(recipe_instance_url)
-        recipe_pk = recipe_instance_response.json()['recipe']
-
-        mash_points_url = "{}/brewery/api/mash_point/?recipe={}".format(
-            self.address, recipe_pk)
-        mash_points_response = self._get(mash_points_url)
+        mash_points_response = self._get(self._get_mash_points_url(recipe_pk))
         mash_points = mash_points_response.json()
         return [(pt["time"], pt["temperature"]) for pt in mash_points]
+
+    def _get_recipe_instance_url(self, recipe_instance_pk):
+        return "{}/brewery/api/recipeInstance/{}/".format(
+            self.address, recipe_instance_pk)
+
+    def get_recipe_instance(self, recipe_instance_pk):
+        url = self._get_recipe_instance_url(recipe_instance_pk)
+        response = self._get(url)
+        json_response = response.json()
+        return RecipeInstance.from_joulia_webserver_response(json_response)
+
+    def _get_recipe_url(self, recipe_pk):
+        return "{}/brewery/api/recipe/{}/".format(self.address, recipe_pk)
+
+    def get_recipe(self, recipe_pk):
+        """Retrieves the recipe associated with a recipe instance and loads it
+        into a Recipe object.
+
+        Args:
+            recipe_pk: the primary key/id for the recipe interested in for the
+                mash profile.
+
+        Returns:
+            Mash points as an array of (duration, temperature) pairs.
+        """
+        mash_points = self.get_mash_points(recipe_pk)
+
+        recipe_url = self._get_recipe_url(recipe_pk)
+        recipe_response = self._get(recipe_url)
+        recipe_json_response = recipe_response.json()
+
+        return Recipe.from_joulia_webserver(recipe_json_response, mash_points)
 
 
 class JouliaWebsocketClient(JouliaWebserverClientBase):

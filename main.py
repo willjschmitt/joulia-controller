@@ -14,7 +14,6 @@ except (ImportError, RuntimeError):
     # systems.
     from testing.stub_smbus import StubSmbus
     smbus = StubSmbus()
-import json
 from tornado import ioloop
 from tornado.escape import json_decode
 from tornado.httpclient import AsyncHTTPClient
@@ -25,8 +24,8 @@ from brewery.pump import SimplePump
 from brewery.vessels import HeatedVessel
 from brewery.vessels import HeatExchangedVessel
 from http_codes import HTTP_TIMEOUT
-from joulia_webserver_client import JouliaHTTPClient
-from joulia_webserver_client import JouliaWebsocketClient
+from joulia_webserver.client import JouliaHTTPClient
+from joulia_webserver.client import JouliaWebsocketClient
 from measurement.analog_reader import MCP3004AnalogReader
 from measurement.gpio import OutputPin
 from measurement.rtd_sensor import RtdSensor
@@ -122,9 +121,10 @@ class System(object):
             mash_sensor_amplifier_resistor_b, mash_offset_resistance_bottom,
             mash_offset_resistance_top)
 
+        recipe = self.http_client.get_recipe(recipe_instance)
+
         mash_tun_volume = 5.0
-        mash_temperature_profile = self.http_client.get_mash_points(
-            recipe_instance)
+        mash_temperature_profile = recipe.mash_temperature_profile
         mash_tun = HeatExchangedVessel(
             self.ws_client, recipe_instance, mash_tun_volume,
             mash_tun_temperature_sensor,
@@ -135,7 +135,7 @@ class System(object):
         main_pump = SimplePump(self.ws_client, recipe_instance, pump_pin)
 
         brewhouse = Brewhouse(self.ws_client, gpio, analog_reader, recipe_instance,
-                              boil_kettle, mash_tun, main_pump)
+                              boil_kettle, mash_tun, main_pump, recipe)
 
         self.brewhouse = brewhouse
 
