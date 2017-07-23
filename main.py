@@ -69,7 +69,7 @@ class System(object):
 
         recipe = self.http_client.get_recipe(recipe_instance)
 
-        with open("brewery/config.json", 'r') as configuration_file:
+        with open("config.json", 'r') as configuration_file:
             configuration = json.load(configuration_file)
 
         brewhouse = Brewhouse.from_json(
