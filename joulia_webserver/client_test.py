@@ -179,10 +179,17 @@ class TestJouliaHttpClient(unittest.TestCase):
                 '"id":10,'
                 '"strike_temperature":170.0,'
                 '"mashout_temperature":170.0,'
-                '"mashout_time":8000,'
-                '"boil_time":3600,'
+                '"mashout_time":15,'
+                '"boil_time":60,'
                 '"cool_temperature":70.0'
             '}')
+        recipe = self.client.get_recipe(10)
+        self.assertEquals(recipe.pk, 10)
+        self.assertEquals(recipe.strike_temperature, 170.0)
+        self.assertEquals(recipe.mashout_temperature, 170.0)
+        self.assertEquals(recipe.mashout_time, 15)
+        self.assertEquals(recipe.boil_time, 60)
+        self.assertEquals(recipe.cool_temperature, 70.0)
 
 
 class TestJouliaWebsocketClient(unittest.TestCase):
