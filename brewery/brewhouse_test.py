@@ -22,7 +22,7 @@ class TestBrewhouse(unittest.TestCase):
         self.gpio = StubGPIO()
         http_client = StubJouliaHTTPClient("fake address")
         self.ws_client = StubJouliaWebsocketClient("fake address", http_client)
-        recipe_instance = 0
+        self.recipe_instance = 0
         self.analog_reader = StubAnalogReader()
 
         stub_gpio = StubGPIO()
@@ -32,18 +32,18 @@ class TestBrewhouse(unittest.TestCase):
         boil_kettle_temperature_sensor = StubRtdSensor(70.0)
         boil_kettle_heating_pin = OutputPin(stub_gpio, 0)
         self.boil_kettle = HeatedVessel(
-            self.ws_client, recipe_instance, boil_kettle_heating_element_rating,
-            boil_kettle_volume, boil_kettle_temperature_sensor,
-            boil_kettle_heating_pin)
+            self.ws_client, self.recipe_instance,
+            boil_kettle_heating_element_rating, boil_kettle_volume,
+            boil_kettle_temperature_sensor, boil_kettle_heating_pin)
 
         mash_tun_volume = 5.0
         mash_tun_temperature_sensor = StubRtdSensor(70.0)
         self.mash_tun = HeatExchangedVessel(
-            self.ws_client, recipe_instance, mash_tun_volume,
+            self.ws_client, self.recipe_instance, mash_tun_volume,
             mash_tun_temperature_sensor)
 
         pump_pin = OutputPin(stub_gpio, 1)
-        self.main_pump = SimplePump(self.ws_client, recipe_instance, pump_pin)
+        self.main_pump = SimplePump(self.ws_client, self.recipe_instance, pump_pin)
 
         recipe_pk = 3
         strike_temperature = 170.0
@@ -57,7 +57,7 @@ class TestBrewhouse(unittest.TestCase):
             boil_time, cool_temperature, mash_temperature_profile)
 
         self.brewhouse = Brewhouse(
-            self.ws_client, self.gpio, self.analog_reader, recipe_instance,
+            self.ws_client, self.gpio, self.analog_reader, self.recipe_instance,
             self.boil_kettle, self.mash_tun, self.main_pump, self.recipe)
 
     def test_start_brewing_succeeds(self):
@@ -335,3 +335,57 @@ class TestBrewhouse(unittest.TestCase):
         self.assertFalse(self.brewhouse.boil_kettle.element_status)
         self.assertFalse(self.brewhouse.mash_tun.enabled)
         self.assertFalse(self.brewhouse.request_permission)
+
+    def test_from_json(self):
+        configuration = {
+            "boil_kettle": {
+                "temperature_sensor": {
+                    "analog_pin": 0,
+                    "tau_filter": 10.0,
+                    "analog_reference": 3.3,
+                    "rtd": {
+                        "alpha": 0.00385,
+                        "zero_resistance": 100.0,
+                    },
+                    "amplifier": {
+                        "vcc": 3.3,
+                        "rtd_top_resistance": 1000.0,
+                        "amplifier_resistor_a": 15000.0,
+                        "amplifier_resistor_b": 270000.0,
+                        "offset_resistance_bottom": 10000.0,
+                        "offset_resistance_top": 100000.0,
+                    }
+                },
+                "heating_element": {
+                    "rating": 5500.0,
+                    "pin": 27,
+                },
+                "volume": 5.0,
+            },
+            "mash_tun": {
+                "temperature_sensor": {
+                    "analog_pin": 1,
+                    "tau_filter": 10.0,
+                    "analog_reference": 3.3,
+                    "rtd": {
+                        "alpha": 0.00385,
+                        "zero_resistance": 100.0,
+                    },
+                    "amplifier": {
+                        "vcc": 3.3,
+                        "rtd_top_resistance": 1000.0,
+                        "amplifier_resistor_a": 15000.0,
+                        "amplifier_resistor_b": 2700000.0,
+                        "offset_resistance_bottom": 10000.0,
+                        "offset_resistance_top": 100000.0,
+                    }
+                },
+                "volume": 5.0,
+                "heat_exchanger_conductivity": 1.0,
+            },
+            "main_pump": {
+                "pin": 17,
+            },
+        }
+        Brewhouse.from_json(self.ws_client, self.gpio, self.analog_reader,
+                            self.recipe_instance, self.recipe, configuration)

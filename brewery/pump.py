@@ -3,6 +3,7 @@
 
 import logging
 
+from measurement.gpio import OutputPin
 from variables import SubscribableVariable
 
 LOGGER = logging.getLogger(__name__)
@@ -22,6 +23,12 @@ class SimplePump(object):
         self._register(client, recipe_instance)
         self.enabled = False
         self.pin = pin
+
+    @classmethod
+    def from_json(cls, client, gpio, recipe_instance, configuration):
+        """Factory for creating a SimplePump from JSON configuration."""
+        pin = OutputPin(gpio, configuration["pin"])
+        return cls(client, recipe_instance, pin)
 
     def _register(self, client, recipe_instance):
         """Registers this instance with the properties by submitting the

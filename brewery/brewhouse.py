@@ -6,6 +6,9 @@ import time
 
 from tornado import ioloop
 
+from brewery.pump import SimplePump
+from brewery.vessels import HeatedVessel
+from brewery.vessels import HeatExchangedVessel
 from dsp.state_machine import State
 from dsp.state_machine import StateMachine
 from variables import DataStreamer
@@ -26,6 +29,7 @@ class Brewhouse(object):
     request_permission = StreamingVariable('request_permission')
     grant_permission = SubscribableVariable('grant_permission')
 
+    # TODO(willjschmitt): Remove gpio and analog_reader as inputs.
     def __init__(self, client, gpio, analog_reader, recipe_instance,
                  boil_kettle, mash_tun, main_pump, recipe):
         """Creates the `Brewhouse` instance and waits for a command
@@ -61,6 +65,20 @@ class Brewhouse(object):
         # Main State Machine Initialization
         self.state = StateMachine(self, client, recipe_instance)
         self._initialize_state_machine()
+
+    @classmethod
+    def from_json(cls, client, gpio, analog_reader, recipe_instance, recipe,
+                  configuration):
+        """Factory for creating a Brewhouse from JSON configuration."""
+        boil_kettle = HeatedVessel.from_json(
+            client, gpio, analog_reader, recipe_instance,
+            configuration["boil_kettle"])
+        mash_tun = HeatExchangedVessel.from_json(
+            client, analog_reader, recipe_instance, configuration["mash_tun"])
+        main_pump = SimplePump.from_json(
+            client, gpio, recipe_instance, configuration["main_pump"])
+        return cls(client, gpio, analog_reader, recipe_instance, boil_kettle,
+                   mash_tun, main_pump, recipe)
 
     def _register(self, client, recipe_instance):
         """Registers the tracked/managed variables with the recipe

@@ -36,3 +36,10 @@ class TestSimplePump(unittest.TestCase):
         self.pump.turn_on()
         self.assertFalse(self.pump.enabled)
         self.assertEquals(self.pin.value, self.gpio.LOW)
+
+    def test_from_json(self):
+        configuration = {
+            "pin": 1,
+        }
+        SimplePump.from_json(self.ws_client, self.gpio, self.recipe_instance,
+                             configuration)
