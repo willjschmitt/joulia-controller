@@ -39,9 +39,10 @@ class StubJouliaHTTPClient(JouliaHTTPClient):
         return self.mash_points
 
     def get_recipe_instance(self, recipe_instance_pk):
-        return self.recipe_instance, \
+        assert self.recipe_instance is not None, \
             "recipe_instance must be set on StubJouliaHTTPClient if using" \
             " get_recipe_instance"
+        return self.recipe_instance
 
     def get_recipe(self, recipe_pk):
         assert self.recipe is not None, \

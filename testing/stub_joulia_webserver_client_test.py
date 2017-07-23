@@ -1,6 +1,7 @@
 """Test for the stub_joulia_webserver_client module."""
 
 import unittest
+from unittest.mock import Mock
 
 from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 from testing.stub_joulia_webserver_client import StubJouliaWebsocketClient
@@ -27,6 +28,37 @@ class TestStubJouliaHTTPClient(unittest.TestCase):
         self.client.update_sensor_value(recipe_instance, value, sensor)
         want = {"recipe_instance": 1, "value": 2.0, "sensor": 3}
         self.assertIn(want, self.client.update_sensor_value_posts)
+
+    def test_get_mash_points(self):
+        recipe_instance_pk = 3
+        mash_points = [(15.0, 170.0)]
+        self.client.mash_points = mash_points
+        got = self.client.get_mash_points(recipe_instance_pk)
+        self.assertEquals(got, mash_points)
+
+    def test_get_recipe_instance_assert_fails(self):
+        recipe_instance_pk = 10
+        with self.assertRaises(AssertionError):
+            self.client.get_recipe_instance(recipe_instance_pk)
+
+    def test_get_recipe_instance(self):
+        recipe_instance_pk = 10
+        recipe_instance = Mock()
+        self.client.recipe_instance = recipe_instance
+        got = self.client.get_recipe_instance(recipe_instance_pk)
+        self.assertIs(got, recipe_instance)
+
+    def test_get_recipe_assert_fails(self):
+        recipe_pk = 3
+        with self.assertRaises(AssertionError):
+            self.client.get_recipe(recipe_pk)
+
+    def test_get_recipe(self):
+        recipe_pk = 3
+        recipe = Mock()
+        self.client.recipe = recipe
+        got = self.client.get_recipe(recipe_pk)
+        self.assertIs(got, recipe)
 
 
 class TestStubJouliaWebsocketClient(unittest.TestCase):
