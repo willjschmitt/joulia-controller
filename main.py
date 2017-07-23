@@ -93,7 +93,7 @@ class System(object):
 
         boil_kettle_heating_element_rating = 5500.0
         boil_kettle_volume = 5.0
-        boil_kettle_heating_pin_number = 0
+        boil_kettle_heating_pin_number = 27
         boil_kettle_heating_pin = OutputPin(
             gpio, boil_kettle_heating_pin_number)
         boil_kettle = HeatedVessel(
@@ -130,7 +130,7 @@ class System(object):
             mash_tun_temperature_sensor,
             temperature_profile=mash_temperature_profile)
 
-        pump_pin_number = 2
+        pump_pin_number = 17
         pump_pin = OutputPin(gpio, pump_pin_number)
         main_pump = SimplePump(self.ws_client, recipe_instance, pump_pin)
 
