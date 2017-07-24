@@ -197,6 +197,20 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
 
         return Recipe.from_joulia_webserver(recipe_json_response, mash_points)
 
+    @property
+    def _get_joulia_controller_release_url(self):
+        return "{}/brewery/api/joulia_controller_release/".format(self.address)
+
+    def get_latest_joulia_controller_release(self):
+        """Gets the latest Joulia Controller Release. Queries for all of them,
+        then selects the last one. If there are no releases, returns a dict with
+        "commit_hash" populated as None."""
+        response = self._get(self._get_joulia_controller_release_url)
+        json_response = response.json()
+        if len(json_response) == 0:
+            return {"commit_hash": None}
+        return json_response[-1]
+
 
 class JouliaWebsocketClient(JouliaWebserverClientBase):
     """A Helper class for handling a synchronous connection to the websocket

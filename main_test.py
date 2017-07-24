@@ -13,11 +13,17 @@ from main import System
 from testing.stub_async_http_client import StubAsyncHTTPClient
 from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 from testing.stub_joulia_webserver_client import StubJouliaWebsocketClient
+from update import UpdateManager
 
 
 class TestMain(unittest.TestCase):
     """Tests for the main function."""
     pass
+
+
+class StubUpdateManager(object):
+    def check_version(self):
+        pass
 
 
 class TestCreateBrewhouse(unittest.TestCase):
@@ -42,8 +48,10 @@ class TestCreateBrewhouse(unittest.TestCase):
             "ws://fake-address", self.http_client)
         self.start_stop_client = StubAsyncHTTPClient()
         brewhouse_id = 0
+        self.update_manager = StubUpdateManager()
         self.system = System(self.http_client, self.ws_client,
-                             self.start_stop_client, brewhouse_id)
+                             self.start_stop_client, brewhouse_id,
+                             self.update_manager)
 
     def test_create_brewhouse_succeeds(self):
         self.system.create_brewhouse(0)

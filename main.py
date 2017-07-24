@@ -15,23 +15,30 @@ except (ImportError, RuntimeError):
     # systems.
     from testing.stub_smbus import StubSmbus
     smbus = StubSmbus()
+import os
 from tornado import ioloop
 from tornado.escape import json_decode
 from tornado.httpclient import AsyncHTTPClient
 from urllib.parse import urlencode
 
 from brewery.brewhouse import Brewhouse
+from git import Repo
 from http_codes import HTTP_TIMEOUT
 from joulia_webserver.client import JouliaHTTPClient
 from joulia_webserver.client import JouliaWebsocketClient
 from measurement.analog_reader import MCP3004AnalogReader
 import settings
+from update import UpdateManager
+
 
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(levelname)-8s %(asctime)s %(name)-12s %(message)s')
 logging.config.dictConfig(settings.LOGGING_CONFIG)
 LOGGER = logging.getLogger(__name__)
+
+# Rate to check for updates. Set to 5 minutes.
+UPDATE_CHECK_RATE = 5 * 60 * 1000  # milliseconds
 
 
 def main():
@@ -46,7 +53,10 @@ def main():
                                       auth_token=settings.AUTHTOKEN)
     start_stop_client = AsyncHTTPClient()
     brewhouse_id = http_client.get_brewhouse_id()
-    system = System(http_client, ws_client, start_stop_client, brewhouse_id)
+    repo = Repo(os.getcwd())
+    update_manager = UpdateManager(repo, http_client)
+    system = System(http_client, ws_client, start_stop_client, brewhouse_id,
+                    update_manager)
     system.watch_for_start()
     LOGGER.info("Brewery initialized.")
 
@@ -54,12 +64,19 @@ def main():
 
 
 class System(object):
-    def __init__(self, http_client, ws_client, start_stop_client, brewhouse_id):
+    def __init__(self, http_client, ws_client, start_stop_client, brewhouse_id,
+                 update_manager):
         self.http_client = http_client
         self.ws_client = ws_client
         self.start_stop_client = start_stop_client
         self.brewhouse = None
         self.brewhouse_id = brewhouse_id
+        self.update_manager = update_manager
+
+        # Check for new versions periodically. Timers get turned on and off by
+        # the recipe start/stop watchers.
+        self.update_check_timer = ioloop.PeriodicCallback(
+            self.update_manager.check_version, UPDATE_CHECK_RATE)
 
     def create_brewhouse(self, recipe_instance):
         LOGGER.info("Creating brewhouse with recipe instance %s.",
@@ -103,6 +120,8 @@ class System(object):
                 LOGGER.info("Got command to start brewing session.")
                 response = json_decode(response.body)
                 recipe_instance = response['recipe_instance']
+                # Cancel checking for updates when starting a brew session.
+                self.update_check_timer.stop()
                 self.create_brewhouse(recipe_instance)
                 self.brewhouse.start_brewing()
                 self.watch_for_end()
@@ -114,6 +133,9 @@ class System(object):
         self.start_stop_client.fetch(
             uri, handle_start_request, method="POST", body=urlencode(post_data),
             headers={'Authorization': 'Token {}'.format(settings.AUTHTOKEN)})
+
+        # Check for updates while not running a brew session.
+        self.update_check_timer.start()
 
     def watch_for_end(self):
         """Makes a long-polling request to joulia-webserver to check

@@ -22,6 +22,7 @@ class StubJouliaHTTPClient(JouliaHTTPClient):
         self.mash_points = []
         self.recipe_instance = None
         self.recipe = None
+        self.latest_joulia_controller_release = None
 
     def identify(self, sensor_name, recipe_instance):
         result = self.identifier
@@ -48,6 +49,12 @@ class StubJouliaHTTPClient(JouliaHTTPClient):
         assert self.recipe is not None, \
             "recipe must be set on StubJouliaHTTPClient if using get_recipe"
         return self.recipe
+
+    def get_latest_joulia_controller_release(self):
+        assert self.latest_joulia_controller_release is not None, \
+            "latest_joulia_controller_release must be set on" \
+            "StubJouliaHTTPClient if using get_latest_joulia_controller_release"
+        return self.latest_joulia_controller_release
 
 
 class StubJouliaWebsocketClient(JouliaWebsocketClient):
