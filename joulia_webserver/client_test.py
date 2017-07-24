@@ -191,6 +191,21 @@ class TestJouliaHttpClient(unittest.TestCase):
         self.assertEquals(recipe.boil_time, 60)
         self.assertEquals(recipe.cool_temperature, 70.0)
 
+    def test_get_latest_joulia_controller_release(self):
+        self.client._requests_service.response_map[
+            "http://fakehost/brewery/api/joulia_controller_release/"] = (
+            '['
+                '{"commit_hash":3}'
+            ']')
+        got = self.client.get_latest_joulia_controller_release()
+        self.assertEquals(got["commit_hash"], 3)
+
+    def test_get_latest_joulia_controller_release_no_releases(self):
+        self.client._requests_service.response_map[
+            "http://fakehost/brewery/api/joulia_controller_release/"] = '[]'
+        got = self.client.get_latest_joulia_controller_release()
+        self.assertEquals(got["commit_hash"], None)
+
 
 class TestJouliaWebsocketClient(unittest.TestCase):
     """Tests JouliaWebsocketClient."""
