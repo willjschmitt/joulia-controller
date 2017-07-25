@@ -37,8 +37,8 @@ logging.basicConfig(
 logging.config.dictConfig(settings.LOGGING_CONFIG)
 LOGGER = logging.getLogger(__name__)
 
-# Rate to check for updates. Set to 5 minutes.
-UPDATE_CHECK_RATE = 5 * 60 * 1000  # milliseconds
+# Rate to check for updates. Set to 30 seconds.
+UPDATE_CHECK_RATE = 30 * 1000  # milliseconds
 
 
 def main():
