@@ -1,5 +1,6 @@
 """Manages software updates."""
 
+import binascii
 import os
 import sys
 
@@ -31,7 +32,7 @@ class UpdateManager(object):
         """Checks to see if there is any new version available. If there is a
         new version, downloads it, and restarts the process. Returns boolean if
         an update was required."""
-        current_hash = self.repo.head.binsha.hex()
+        current_hash = binascii.hexlify(self.repo.head.object.binsha)
         latest_release = self.client.get_latest_joulia_controller_release()
         latest_hash = latest_release["commit_hash"]
         if latest_hash is not None and latest_hash != current_hash:
