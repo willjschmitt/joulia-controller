@@ -78,19 +78,21 @@ class System(object):
         self.update_check_timer = ioloop.PeriodicCallback(
             self.update_manager.check_version, UPDATE_CHECK_RATE)
 
-    def create_brewhouse(self, recipe_instance):
+    def create_brewhouse(self, recipe_instance_pk):
         LOGGER.info("Creating brewhouse with recipe instance %s.",
-                    recipe_instance)
+                    recipe_instance_pk)
         analog_reader = create_analog_reader()
         gpio.setmode(gpio.BCM)
 
-        recipe = self.http_client.get_recipe(recipe_instance)
+        recipe_instance = self.http_client.get_recipe_instance(
+            recipe_instance_pk)
+        recipe = self.http_client.get_recipe(recipe_instance.recipe_pk)
 
         with open("config.json", 'r') as configuration_file:
             configuration = json.load(configuration_file)
 
         brewhouse = Brewhouse.from_json(
-            self.ws_client, gpio, analog_reader, recipe_instance, recipe,
+            self.ws_client, gpio, analog_reader, recipe_instance_pk, recipe,
             configuration)
 
         self.brewhouse = brewhouse
