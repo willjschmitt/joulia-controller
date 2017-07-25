@@ -32,7 +32,8 @@ class UpdateManager(object):
         """Checks to see if there is any new version available. If there is a
         new version, downloads it, and restarts the process. Returns boolean if
         an update was required."""
-        current_hash = binascii.hexlify(self.repo.head.object.binsha)
+        current_hash = binascii.hexlify(
+            self.repo.head.object.binsha).decode('utf-8')
         latest_release = self.client.get_latest_joulia_controller_release()
         latest_hash = latest_release["commit_hash"]
         if latest_hash is not None and latest_hash != current_hash:
@@ -46,7 +47,8 @@ class UpdateManager(object):
         after.
         """
         self.repo.remotes.origin.fetch()
-        self.repo.head.checkout(commit_hash, ".")
+        commit = self.repo.commit(commit_hash)
+        self.repo.git.checkout(commit)
         self.restart()
 
     def restart(self):

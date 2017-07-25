@@ -11,14 +11,20 @@ class StubRepo(object):
     def __init__(self):
         self.head = StubHead()
         self.remotes = StubRemotes()
+        self.git = StubGit()
+
+    def commit(self, commit_hash):
+        return StubCommit()
 
 
 class StubHead(object):
     def __init__(self):
-        self.binsha = bytearray.fromhex('abcd'*10)
+        self.object = StubObject()
 
-    def checkout(self, *args):
-        pass
+
+class StubObject(object):
+    def __init__(self):
+        self.binsha = bytearray.fromhex('abcd'*10)
 
 
 class StubRemotes(object):
@@ -28,6 +34,15 @@ class StubRemotes(object):
 
 class StubOrigin(object):
     def fetch(self):
+        pass
+
+
+class StubCommit(object):
+    pass
+
+
+class StubGit(object):
+    def checkout(self, commit):
         pass
 
 
