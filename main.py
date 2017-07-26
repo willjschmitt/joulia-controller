@@ -110,6 +110,7 @@ class System(object):
             if response.error:
                 if response.code == HTTP_TIMEOUT:
                     LOGGER.warning("Lost connection to server. Retrying...")
+                    self.update_check_timer.stop()
                     self.watch_for_start()
                 else:
                     LOGGER.error(response)
