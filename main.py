@@ -73,6 +73,7 @@ class System(object):
         # the recipe start/stop watchers.
         self.update_check_timer = ioloop.PeriodicCallback(
             self.update_manager.check_version, UPDATE_CHECK_RATE)
+        self.update_check_timer.start()
 
     def create_brewhouse(self, recipe_instance_pk):
         LOGGER.info("Creating brewhouse with recipe instance %s.",
@@ -110,7 +111,6 @@ class System(object):
             if response.error:
                 if response.code == HTTP_TIMEOUT:
                     LOGGER.warning("Lost connection to server. Retrying...")
-                    self.update_check_timer.stop()
                     self.watch_for_start()
                 else:
                     LOGGER.error(response)
@@ -132,9 +132,6 @@ class System(object):
         self.start_stop_client.fetch(
             uri, handle_start_request, method="POST", body=urlencode(post_data),
             headers={'Authorization': 'Token {}'.format(settings.AUTHTOKEN)})
-
-        # Check for updates while not running a brew session.
-        self.update_check_timer.start()
 
     def watch_for_end(self):
         """Makes a long-polling request to joulia-webserver to check
@@ -160,6 +157,10 @@ class System(object):
             else:
                 LOGGER.info("Got command to end brewing session.")
                 self.end_brewing()
+
+                # Check for updates while not running a brew session.
+                self.update_check_timer.start()
+
                 self.watch_for_start()
 
         LOGGER.info("Watching for recipe instance end on brewhouse %s.",
