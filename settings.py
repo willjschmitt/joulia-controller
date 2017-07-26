@@ -38,12 +38,12 @@ LOGGING_CONFIG = {
         'root': {
             'level': 'INFO',
             'handlers': ['console', 'file'],
-            'propogate': True
+            'propagate': True
         },
         'requests': {
             'level': 'ERROR',
             'handlers': ['console', 'file'],
-            'propogate': False
+            'propagate': False
         },
     },
 }
