@@ -21,6 +21,11 @@ if not os.path.exists(LOGGING_DIR):
 LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '%(levelname)-8s %(asctime)s %(name)-12s %(message)s'
+        },
+    },
     'handlers': {
         'console': {
             'level': 'INFO',
@@ -35,8 +40,8 @@ LOGGING_CONFIG = {
         },
     },
     'loggers': {
-        'root': {
-            'level': 'INFO',
+        '': {
+            'level': 'DEBUG',
             'handlers': ['console', 'file'],
             'propagate': True
         },

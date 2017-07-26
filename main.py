@@ -30,10 +30,6 @@ from measurement.analog_reader import MCP3004AnalogReader
 import settings
 from update import UpdateManager
 
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(levelname)-8s %(asctime)s %(name)-12s %(message)s')
 logging.config.dictConfig(settings.LOGGING_CONFIG)
 LOGGER = logging.getLogger(__name__)
 
