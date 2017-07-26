@@ -12,7 +12,11 @@ DATASTREAM_FREQUENCY = 1000.  # mS
 if os.name == "posix":
     LOGGING_DIR = "/var/log/joulia"
 else:
-    LOGGING_DIR = os.getcwd()
+    LOGGING_DIR = os.path.join(os.getcwd(), "log")
+
+# Make sure the logging directory exists.
+if not os.path.exists(LOGGING_DIR):
+    os.makedirs(LOGGING_DIR)
 
 LOGGING_CONFIG = {
     'version': 1,
