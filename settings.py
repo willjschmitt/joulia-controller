@@ -9,7 +9,7 @@ WS_PREFIX = "ws"
 
 DATASTREAM_FREQUENCY = 1000.  # mS
 
-if os.name == "posix":
+if os.name == "posix" and os.environ.get("TRAVIS", False):
     LOGGING_DIR = "/var/log/joulia"
 else:
     LOGGING_DIR = os.path.join(os.getcwd(), "log")
