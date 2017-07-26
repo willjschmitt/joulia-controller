@@ -9,6 +9,11 @@ WS_PREFIX = "ws"
 
 DATASTREAM_FREQUENCY = 1000.  # mS
 
+if os.name == "posix":
+    LOGGING_DIR = "/var/log/joulia"
+else:
+    LOGGING_DIR = os.getcwd()
+
 LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -16,17 +21,24 @@ LOGGING_CONFIG = {
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
-        }
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOGGING_DIR, 'joulia.log'),
+            'maxBytes': 10 * 1024 * 1024,  # 10MB logfiles.
+            'backupCount': 10,
+        },
     },
     'loggers': {
         'root': {
             'level': 'INFO',
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'propogate': True
         },
         'requests': {
             'level': 'ERROR',
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'propogate': False
         },
     },
