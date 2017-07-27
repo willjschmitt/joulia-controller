@@ -9896,6 +9896,25 @@ Source: AVX .. aphvc.pdf</description>
 <wire x1="-2.921" y1="-1.3208" x2="-2.667" y2="-1.3208" width="0.1524" layer="21" curve="-180"/>
 <text x="-3.2766" y="-0.635" size="1.27" layer="21" ratio="6" rot="SR0">&gt;NAME</text>
 </package>
+<package name="TO-220">
+<pad name="A1" x="-2.54" y="0" drill="1.2" shape="square"/>
+<pad name="A2" x="0" y="0" drill="1.2" shape="square"/>
+<pad name="G" x="2.54" y="0" drill="1.2" shape="square"/>
+<wire x1="-3.81" y1="1.27" x2="3.81" y2="1.27" width="0.127" layer="21"/>
+<wire x1="3.81" y1="1.27" x2="3.81" y2="0" width="0.127" layer="21"/>
+<wire x1="3.81" y1="0" x2="-3.81" y2="0" width="0.127" layer="21"/>
+<wire x1="-3.81" y1="0" x2="-3.81" y2="1.27" width="0.127" layer="21"/>
+<text x="-3.81" y="1.27" size="1.27" layer="21">&gt;NAME</text>
+</package>
+<package name="VM1-038-1AE">
+<pad name="P$1" x="21.59" y="0" drill="3.2" shape="square"/>
+<pad name="P$2" x="-21.59" y="0" drill="3.2" shape="square"/>
+<wire x1="30.48" y1="12.7" x2="-30.48" y2="12.7" width="0.127" layer="21"/>
+<wire x1="-30.48" y1="12.7" x2="-30.48" y2="-12.7" width="0.127" layer="21"/>
+<wire x1="-30.48" y1="-12.7" x2="30.48" y2="-12.7" width="0.127" layer="21"/>
+<wire x1="30.48" y1="-12.7" x2="30.48" y2="12.7" width="0.127" layer="21"/>
+<wire x1="-19.05" y1="3.81" x2="19.05" y2="3.81" width="0.127" layer="21"/>
+</package>
 </packages>
 <symbols>
 <symbol name="MCP3004-I/SL">
@@ -9937,6 +9956,34 @@ Source: AVX .. aphvc.pdf</description>
 <wire x1="2.54" y1="-5.08" x2="-2.54" y2="-5.08" width="0.254" layer="94"/>
 <wire x1="-2.54" y1="-5.08" x2="-2.54" y2="5.08" width="0.254" layer="94"/>
 <text x="-2.54" y="-7.62" size="1.778" layer="94">&gt;NAME</text>
+</symbol>
+<symbol name="TRIAC-ALTERNISTOR">
+<wire x1="5.08" y1="-2.54" x2="2.54" y2="-2.54" width="0.254" layer="94"/>
+<wire x1="2.54" y1="-2.54" x2="0" y2="-2.54" width="0.254" layer="94"/>
+<wire x1="-2.54" y1="-2.54" x2="0" y2="2.54" width="0.254" layer="94"/>
+<wire x1="0" y1="2.54" x2="-2.54" y2="2.54" width="0.254" layer="94"/>
+<wire x1="2.54" y1="2.54" x2="0" y2="2.54" width="0.254" layer="94"/>
+<wire x1="0" y1="2.54" x2="2.54" y2="-2.54" width="0.254" layer="94"/>
+<wire x1="7.62" y1="2.54" x2="2.54" y2="2.54" width="0.254" layer="94"/>
+<wire x1="2.54" y1="2.54" x2="5.08" y2="-2.54" width="0.254" layer="94"/>
+<wire x1="7.62" y1="-2.54" x2="5.08" y2="-2.54" width="0.254" layer="94"/>
+<wire x1="5.08" y1="-2.54" x2="7.62" y2="2.54" width="0.254" layer="94"/>
+<wire x1="2.54" y1="2.54" x2="2.54" y2="5.08" width="0.254" layer="94"/>
+<wire x1="2.54" y1="-2.54" x2="2.54" y2="-5.08" width="0.254" layer="94"/>
+<pin name="A2" x="2.54" y="10.16" length="middle" rot="R270"/>
+<pin name="A1" x="2.54" y="-10.16" length="middle" rot="R90"/>
+<pin name="G" x="-7.62" y="-5.08" length="middle"/>
+<wire x1="-2.54" y1="-5.08" x2="0" y2="-2.54" width="0.254" layer="94"/>
+<wire x1="0" y1="-2.54" x2="-2.54" y2="-2.54" width="0.254" layer="94"/>
+<text x="-7.62" y="5.08" size="1.778" layer="94">&gt;NAME</text>
+</symbol>
+<symbol name="HEAT-SINK">
+<wire x1="-7.62" y1="5.08" x2="7.62" y2="5.08" width="0.254" layer="94"/>
+<wire x1="7.62" y1="5.08" x2="7.62" y2="-5.08" width="0.254" layer="94"/>
+<wire x1="7.62" y1="-5.08" x2="-7.62" y2="-5.08" width="0.254" layer="94"/>
+<wire x1="-7.62" y1="-5.08" x2="-7.62" y2="5.08" width="0.254" layer="94"/>
+<text x="-5.08" y="2.54" size="1.27" layer="94">HEAT</text>
+<text x="-5.08" y="-2.54" size="1.27" layer="94">SINK</text>
 </symbol>
 </symbols>
 <devicesets>
@@ -10075,6 +10122,35 @@ Source: AVX .. aphvc.pdf</description>
 <connect gate="A" pin="A1" pad="A1"/>
 <connect gate="A" pin="A2" pad="A2"/>
 </connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+<deviceset name="T3050H-6I">
+<gates>
+<gate name="G$1" symbol="TRIAC-ALTERNISTOR" x="-2.54" y="0"/>
+</gates>
+<devices>
+<device name="" package="TO-220">
+<connects>
+<connect gate="G$1" pin="A1" pad="A1"/>
+<connect gate="G$1" pin="A2" pad="A2"/>
+<connect gate="G$1" pin="G" pad="G"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+<deviceset name="VM1-038-1AE">
+<gates>
+<gate name="G$1" symbol="HEAT-SINK" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="VM1-038-1AE">
 <technologies>
 <technology name=""/>
 </technologies>
@@ -10823,10 +10899,6 @@ Source: AVX .. aphvc.pdf</description>
 <part name="SUPPLY9" library="supply2" deviceset="GND" device=""/>
 <part name="U1" library="digikey" deviceset="MMBT2222ALT1G" device=""/>
 <part name="U2" library="digikey" deviceset="MMBT2222ALT1G" device=""/>
-<part name="HEAT" library="digikey" deviceset="MTA-100-2" device="HDR2"/>
-<part name="PUMP" library="digikey" deviceset="MTA-100-2" device="HDR2"/>
-<part name="P+1" library="supply1" deviceset="+5V" device=""/>
-<part name="P+2" library="supply1" deviceset="+5V" device=""/>
 <part name="SUPPLY10" library="supply2" deviceset="GND" device=""/>
 <part name="SUPPLY11" library="supply2" deviceset="GND" device=""/>
 <part name="PWR" library="digikey" deviceset="MTA-100-2" device="HDR2"/>
@@ -10842,6 +10914,10 @@ Source: AVX .. aphvc.pdf</description>
 <part name="SUPPLY16" library="supply2" deviceset="GND" device=""/>
 <part name="R9" library="resistor" deviceset="R-US_" device="R0402" value="1K"/>
 <part name="R16" library="resistor" deviceset="R-US_" device="R0402" value="1K"/>
+<part name="U$1" library="digikey" deviceset="T3050H-6I" device=""/>
+<part name="U$2" library="digikey" deviceset="T3050H-6I" device=""/>
+<part name="U$3" library="digikey" deviceset="VM1-038-1AE" device=""/>
+<part name="U$4" library="digikey" deviceset="VM1-038-1AE" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -10893,10 +10969,6 @@ Source: AVX .. aphvc.pdf</description>
 <instance part="SUPPLY9" gate="GND" x="-10.16" y="40.64"/>
 <instance part="U1" gate="A" x="198.12" y="109.22"/>
 <instance part="U2" gate="A" x="198.12" y="86.36"/>
-<instance part="HEAT" gate="A" x="261.62" y="111.76" rot="MR0"/>
-<instance part="PUMP" gate="A" x="261.62" y="88.9" rot="MR0"/>
-<instance part="P+1" gate="1" x="256.54" y="121.92"/>
-<instance part="P+2" gate="1" x="256.54" y="99.06"/>
 <instance part="SUPPLY10" gate="GND" x="246.38" y="78.74"/>
 <instance part="SUPPLY11" gate="GND" x="246.38" y="101.6"/>
 <instance part="PWR" gate="A" x="-76.2" y="30.48"/>
@@ -10914,6 +10986,10 @@ Source: AVX .. aphvc.pdf</description>
 <instance part="SUPPLY16" gate="GND" x="50.8" y="17.78"/>
 <instance part="R9" gate="G$1" x="190.5" y="109.22" rot="R180"/>
 <instance part="R16" gate="G$1" x="190.5" y="86.36" rot="R180"/>
+<instance part="U$1" gate="G$1" x="269.24" y="114.3"/>
+<instance part="U$2" gate="G$1" x="269.24" y="91.44"/>
+<instance part="U$3" gate="G$1" x="289.56" y="116.84"/>
+<instance part="U$4" gate="G$1" x="289.56" y="91.44"/>
 </instances>
 <busses>
 </busses>
@@ -10996,12 +11072,20 @@ Source: AVX .. aphvc.pdf</description>
 <pinref part="SUPPLY11" gate="GND" pin="GND"/>
 <wire x1="243.84" y1="106.68" x2="246.38" y2="106.68" width="0.1524" layer="91"/>
 <wire x1="246.38" y1="106.68" x2="246.38" y2="104.14" width="0.1524" layer="91"/>
+<wire x1="246.38" y1="106.68" x2="266.7" y2="106.68" width="0.1524" layer="91"/>
+<wire x1="266.7" y1="106.68" x2="266.7" y2="104.14" width="0.1524" layer="91"/>
+<pinref part="U$1" gate="G$1" pin="A1"/>
+<wire x1="266.7" y1="104.14" x2="271.78" y2="104.14" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="U2" gate="A" pin="E"/>
 <pinref part="SUPPLY10" gate="GND" pin="GND"/>
 <wire x1="243.84" y1="83.82" x2="246.38" y2="83.82" width="0.1524" layer="91"/>
 <wire x1="246.38" y1="83.82" x2="246.38" y2="81.28" width="0.1524" layer="91"/>
+<wire x1="246.38" y1="83.82" x2="266.7" y2="83.82" width="0.1524" layer="91"/>
+<wire x1="266.7" y1="83.82" x2="266.7" y2="81.28" width="0.1524" layer="91"/>
+<pinref part="U$2" gate="G$1" pin="A1"/>
+<wire x1="266.7" y1="81.28" x2="271.78" y2="81.28" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="SUPPLY12" gate="GND" pin="GND"/>
@@ -11176,18 +11260,6 @@ Source: AVX .. aphvc.pdf</description>
 <pinref part="P+7" gate="1" pin="+5V"/>
 </segment>
 <segment>
-<pinref part="P+1" gate="1" pin="+5V"/>
-<wire x1="256.54" y1="119.38" x2="256.54" y2="114.3" width="0.1524" layer="91"/>
-<pinref part="HEAT" gate="A" pin="A1"/>
-<wire x1="256.54" y1="114.3" x2="261.62" y2="114.3" width="0.1524" layer="91"/>
-</segment>
-<segment>
-<pinref part="P+2" gate="1" pin="+5V"/>
-<wire x1="256.54" y1="96.52" x2="256.54" y2="91.44" width="0.1524" layer="91"/>
-<pinref part="PUMP" gate="A" pin="A1"/>
-<wire x1="256.54" y1="91.44" x2="261.62" y2="91.44" width="0.1524" layer="91"/>
-</segment>
-<segment>
 <pinref part="P+3" gate="1" pin="+5V"/>
 <wire x1="-71.12" y1="38.1" x2="-71.12" y2="33.02" width="0.1524" layer="91"/>
 <pinref part="PWR" gate="A" pin="A1"/>
@@ -11315,15 +11387,17 @@ Source: AVX .. aphvc.pdf</description>
 <net name="N$13" class="0">
 <segment>
 <pinref part="U1" gate="A" pin="C"/>
-<wire x1="261.62" y1="109.22" x2="243.84" y2="109.22" width="0.1524" layer="91"/>
-<pinref part="HEAT" gate="A" pin="A2"/>
+<pinref part="U$1" gate="G$1" pin="G"/>
+<wire x1="243.84" y1="109.22" x2="261.62" y2="109.22" width="0.1524" layer="91"/>
+<wire x1="264.16" y1="109.22" x2="261.62" y2="109.22" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$14" class="0">
 <segment>
 <pinref part="U2" gate="A" pin="C"/>
+<pinref part="U$2" gate="G$1" pin="G"/>
 <wire x1="243.84" y1="86.36" x2="261.62" y2="86.36" width="0.1524" layer="91"/>
-<pinref part="PUMP" gate="A" pin="A2"/>
+<wire x1="264.16" y1="86.36" x2="261.62" y2="86.36" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="HEOUT" class="0">
