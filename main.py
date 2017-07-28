@@ -196,4 +196,8 @@ def create_analog_reader():
 
 
 if __name__ == "__main__":
-    main()  # pragma: no cover
+    try:
+        main()  # pragma: no cover
+    except Exception as e:
+        LOGGER.exception(e)
+        raise e
