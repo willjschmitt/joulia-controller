@@ -41,6 +41,11 @@ def main():
     """Main routine is for running as standalone controller on embedded
     hardware. Loads settings from module and env vars, and launches a
     controller instance."""
+    root_directory = os.path.dirname(os.path.realpath(__file__))
+    LOGGER.info('Changing working directory to the directory of this file: %s',
+                root_directory)
+    os.chdir(root_directory)
+
     LOGGER.info('Starting brewery.')
     http_client = JouliaHTTPClient("http://" + settings.HOST,
                                    auth_token=settings.AUTHTOKEN)
