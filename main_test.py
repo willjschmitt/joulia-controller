@@ -1,7 +1,12 @@
 """Tests for the main module."""
 
 import unittest
-from http import HTTPStatus
+from unittest.mock import Mock
+
+# TODO(willjschmitt): Python 3.4 does not support HTTPStatus, so we mock it up
+# for now, since it's only used for testing.
+# from http import HTTPStatus
+
 
 from tornado.httpclient import HTTPError
 
@@ -14,6 +19,9 @@ from testing.stub_async_http_client import StubAsyncHTTPClient
 from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 from testing.stub_joulia_webserver_client import StubJouliaWebsocketClient
 from update import UpdateManager
+
+HTTPStatus = Mock()
+HTTPStatus.INTERNAL_SERVER_ERROR = 500
 
 
 class TestMain(unittest.TestCase):
