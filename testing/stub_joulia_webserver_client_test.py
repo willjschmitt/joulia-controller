@@ -60,6 +60,13 @@ class TestStubJouliaHTTPClient(unittest.TestCase):
         got = self.client.get_recipe(recipe_pk)
         self.assertIs(got, recipe)
 
+    def test_get_brewhouse(self):
+        brewhouse_pk = 2
+        brewhouse = Mock()
+        self.client.brewhouse = brewhouse
+        got = self.client.get_brewhouse(brewhouse_pk)
+        self.assertIs(got, brewhouse)
+
 
 class TestStubJouliaWebsocketClient(unittest.TestCase):
     """Tests for the StubJouliaWebsocketClient class."""

@@ -1,14 +1,12 @@
 """Tests for the main module."""
 
+import json
 import unittest
 from unittest.mock import Mock
-
+from tornado.httpclient import HTTPError
 # TODO(willjschmitt): Python 3.4 does not support HTTPStatus, so we mock it up
 # for now, since it's only used for testing.
 # from http import HTTPStatus
-
-
-from tornado.httpclient import HTTPError
 
 from brewery.brewhouse import Brewhouse
 from http_codes import HTTP_TIMEOUT
@@ -43,6 +41,8 @@ class TestCreateBrewhouse(unittest.TestCase):
         recipe_pk = 0
         self.http_client.recipe_instance = RecipeInstance(
             recipe_instance_pk, recipe_pk)
+        with open('testing/brewhouse.json') as brewhouse_file:
+            self.http_client.brewhouse = json.load(brewhouse_file)
         strike_temperature = 162.0
         mashout_temperature = 170.0
         mashout_time = 15.0 * 60.0

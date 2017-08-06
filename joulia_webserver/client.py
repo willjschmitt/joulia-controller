@@ -211,6 +211,20 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
             return {"commit_hash": None}
         return json_response[-1]
 
+    def _get_brewhouse_url(self, brewhouse_pk):
+        return "{}/brewery/api/brewhouse/{}/".format(self.address, brewhouse_pk)
+
+    def get_brewhouse(self, brewhouse_pk):
+        """Gets the Brewhouse, which includes configuration information from the
+        Joulia Webserver. Returned data is in json form.
+
+        Args:
+            brewhouse_pk: The primary key for the Brewhouse to query.
+        """
+        brewhouse_url = self._get_brewhouse_url(brewhouse_pk)
+        response = self._get(brewhouse_url)
+        return response.json()
+
 
 class JouliaWebsocketClient(JouliaWebserverClientBase):
     """A Helper class for handling a synchronous connection to the websocket

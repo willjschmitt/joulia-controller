@@ -90,8 +90,7 @@ class System(object):
             recipe_instance_pk)
         recipe = self.http_client.get_recipe(recipe_instance.recipe_pk)
 
-        with open("config.json", 'r') as configuration_file:
-            configuration = json.load(configuration_file)
+        configuration = self.http_client.get_brewhouse(self.brewhouse_id)
 
         brewhouse = Brewhouse.from_json(
             self.ws_client, gpio, analog_reader, recipe_instance_pk, recipe,
