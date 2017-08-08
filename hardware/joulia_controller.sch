@@ -9647,14 +9647,13 @@ Source: AVX .. aphvc.pdf</description>
 <text x="-3.2766" y="-0.635" size="1.27" layer="21" ratio="6" rot="SR0">&gt;NAME</text>
 </package>
 <package name="HDR2">
-<pad name="A1" x="0" y="1.27" drill="1" shape="octagon"/>
-<pad name="A2" x="0" y="-1.27" drill="1" shape="octagon"/>
+<pad name="A1" x="0" y="1.27" drill="0.8"/>
+<pad name="A2" x="0" y="-1.27" drill="0.8"/>
 <wire x1="-2.54" y1="2.54" x2="-2.54" y2="-2.54" width="0.127" layer="21"/>
-<wire x1="-2.54" y1="-2.54" x2="2.54" y2="-2.54" width="0.127" layer="21"/>
-<wire x1="2.54" y1="-2.54" x2="2.54" y2="2.54" width="0.127" layer="21"/>
-<wire x1="2.54" y1="2.54" x2="-2.54" y2="2.54" width="0.127" layer="21"/>
-<text x="4.445" y="-2.54" size="1.27" layer="21" rot="R90">&gt;NAME</text>
-<text x="1.27" y="1.27" size="1.27" layer="21">+</text>
+<wire x1="-2.54" y1="-2.54" x2="1.27" y2="-2.54" width="0.127" layer="21"/>
+<wire x1="1.27" y1="-2.54" x2="1.27" y2="2.54" width="0.127" layer="21"/>
+<wire x1="1.27" y1="2.54" x2="-2.54" y2="2.54" width="0.127" layer="21"/>
+<text x="3.175" y="-2.54" size="1.27" layer="21" rot="R90">&gt;NAME</text>
 </package>
 <package name="SOIC14-N_MC-M">
 <smd name="1" x="-2.413" y="3.81" dx="2.286" dy="0.6096" layer="1"/>
@@ -9909,11 +9908,20 @@ Source: AVX .. aphvc.pdf</description>
 <package name="VM1-038-1AE">
 <pad name="P$1" x="21.59" y="0" drill="3.2" shape="square"/>
 <pad name="P$2" x="-21.59" y="0" drill="3.2" shape="square"/>
-<wire x1="30.48" y1="12.7" x2="-30.48" y2="12.7" width="0.127" layer="21"/>
-<wire x1="-30.48" y1="12.7" x2="-30.48" y2="-12.7" width="0.127" layer="21"/>
-<wire x1="-30.48" y1="-12.7" x2="30.48" y2="-12.7" width="0.127" layer="21"/>
-<wire x1="30.48" y1="-12.7" x2="30.48" y2="12.7" width="0.127" layer="21"/>
-<wire x1="-19.05" y1="3.81" x2="19.05" y2="3.81" width="0.127" layer="21"/>
+<wire x1="29.98" y1="12.5" x2="19.3" y2="12.5" width="0.127" layer="21"/>
+<wire x1="-19.3" y1="12.5" x2="-29.98" y2="12.5" width="0.127" layer="21"/>
+<wire x1="-29.98" y1="12.5" x2="-30" y2="-12.48" width="0.127" layer="21"/>
+<wire x1="-30" y1="-12.48" x2="29.98" y2="-12.5" width="0.127" layer="21"/>
+<wire x1="29.98" y1="-12.5" x2="29.98" y2="12.5" width="0.127" layer="21"/>
+<wire x1="-19.25" y1="4.01" x2="19.25" y2="4.01" width="0.127" layer="21"/>
+<wire x1="-19.3" y1="-1" x2="19.3" y2="-1" width="0.127" layer="21"/>
+<wire x1="-19.3" y1="1" x2="19.3" y2="1" width="0.127" layer="21"/>
+<wire x1="-19.3" y1="1" x2="-19.3" y2="12.5" width="0.127" layer="21"/>
+<wire x1="-19.3" y1="12.5" x2="19.3" y2="12.5" width="0.127" layer="21"/>
+<wire x1="19.3" y1="12.5" x2="19.3" y2="1" width="0.127" layer="21"/>
+<wire x1="19.3" y1="-1" x2="-19.3" y2="-12.5" width="0.127" layer="21"/>
+<wire x1="-19.3" y1="-1" x2="19.3" y2="-12.5" width="0.127" layer="21"/>
+<circle x="0" y="4" radius="0.632453125" width="0.127" layer="21"/>
 </package>
 <package name="6-SMD">
 <wire x1="-3.683" y1="3.302" x2="3.683" y2="3.302" width="0.127" layer="21"/>
@@ -11787,6 +11795,11 @@ In this library the device names are the same as the pin names of the symbols, t
 <wire x1="284.48" y1="78.74" x2="284.48" y2="86.36" width="0.1524" layer="91"/>
 <pinref part="U$2" gate="G$1" pin="A2"/>
 <wire x1="284.48" y1="86.36" x2="292.1" y2="86.36" width="0.1524" layer="91"/>
+<wire x1="292.1" y1="86.36" x2="317.5" y2="86.36" width="0.1524" layer="91"/>
+<wire x1="317.5" y1="86.36" x2="317.5" y2="60.96" width="0.1524" layer="91"/>
+<pinref part="PUMP" gate="G$1" pin="P$3"/>
+<wire x1="317.5" y1="60.96" x2="325.12" y2="60.96" width="0.1524" layer="91"/>
+<wire x1="325.12" y1="60.96" x2="325.12" y2="73.66" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$25" class="0">
