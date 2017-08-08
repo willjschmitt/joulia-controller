@@ -41,10 +41,15 @@ def main():
     """Main routine is for running as standalone controller on embedded
     hardware. Loads settings from module and env vars, and launches a
     controller instance."""
+    root_directory = os.path.dirname(os.path.realpath(__file__))
+    LOGGER.info('Changing working directory to the directory of this file: %s',
+                root_directory)
+    os.chdir(root_directory)
+
     LOGGER.info('Starting brewery.')
-    http_client = JouliaHTTPClient("http://" + settings.HOST,
+    http_client = JouliaHTTPClient("https://" + settings.HOST,
                                    auth_token=settings.AUTHTOKEN)
-    ws_address = "ws://{}/live/timeseries/socket/".format(settings.HOST)
+    ws_address = "wss://{}/live/timeseries/socket/".format(settings.HOST)
     ws_client = JouliaWebsocketClient(ws_address, http_client,
                                       auth_token=settings.AUTHTOKEN)
     start_stop_client = AsyncHTTPClient()
@@ -85,8 +90,7 @@ class System(object):
             recipe_instance_pk)
         recipe = self.http_client.get_recipe(recipe_instance.recipe_pk)
 
-        with open("config.json", 'r') as configuration_file:
-            configuration = json.load(configuration_file)
+        configuration = self.http_client.get_brewhouse(self.brewhouse_id)
 
         brewhouse = Brewhouse.from_json(
             self.ws_client, gpio, analog_reader, recipe_instance_pk, recipe,
@@ -128,7 +132,7 @@ class System(object):
         LOGGER.info("Watching for recipe instance start on brewhouse %s.",
                     self.brewhouse_id)
         post_data = {'brewhouse': self.brewhouse_id}
-        uri = "http://{}/live/recipeInstance/start/".format(settings.HOST)
+        uri = "https://{}/live/recipeInstance/start/".format(settings.HOST)
         self.start_stop_client.fetch(
             uri, handle_start_request, method="POST", body=urlencode(post_data),
             headers={'Authorization': 'Token {}'.format(settings.AUTHTOKEN)})
@@ -166,7 +170,7 @@ class System(object):
         LOGGER.info("Watching for recipe instance end on brewhouse %s.",
                     self.brewhouse_id)
         post_data = {'brewhouse': self.brewhouse_id}
-        uri = "http://{}/live/recipeInstance/end/".format(settings.HOST)
+        uri = "https://{}/live/recipeInstance/end/".format(settings.HOST)
         self.start_stop_client.fetch(
             uri, handle_end_request, method="POST", body=urlencode(post_data),
             headers={'Authorization': 'Token {}'.format(settings.AUTHTOKEN)})
@@ -196,4 +200,8 @@ def create_analog_reader():
 
 
 if __name__ == "__main__":
-    main()  # pragma: no cover
+    try:
+        main()  # pragma: no cover
+    except Exception as e:
+        LOGGER.exception(e)
+        raise e

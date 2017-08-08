@@ -1,4 +1,10 @@
 {
+  "id": 9,
+  "name": "Foo Brewhouse",
+  "brewery": 10,
+  "token": 11,
+  "user": 12,
+  "software_version": 13,
   "boil_kettle": {
     "temperature_sensor": {
       "analog_pin": 0,

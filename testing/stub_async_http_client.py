@@ -1,7 +1,16 @@
 """Mock interface to the tornado.http_client.AsyncHTTPClient class."""
 
-from http import HTTPStatus
+# TODO(willjschmitt): Python 3.4 does not support HTTPStatus, so we mock it up
+# for now, since it's only used for testing.
+# from http import HTTPStatus
+
 import json
+from unittest.mock import Mock
+
+# TODO(willjschmitt): Python 3.4 does not support HTTPStatus, so we mock it up
+# for now, since it's only used for testing.
+HTTPStatus = Mock()
+HTTPStatus.OK = 200
 
 
 class StubAsyncHTTPClient(object):

@@ -206,6 +206,14 @@ class TestJouliaHttpClient(unittest.TestCase):
         got = self.client.get_latest_joulia_controller_release()
         self.assertEquals(got["commit_hash"], None)
 
+    def test_get_brewhouse(self):
+        with open('testing/brewhouse.json') as brewhouse_file:
+            brewhouse_data = brewhouse_file.read()
+        self.client._requests_service.response_map[
+            "http://fakehost/brewery/api/brewhouse/10/"] = brewhouse_data
+        got = self.client.get_brewhouse(10)
+        self.assertEquals(got, json.loads(brewhouse_data))
+
 
 class TestJouliaWebsocketClient(unittest.TestCase):
     """Tests JouliaWebsocketClient."""

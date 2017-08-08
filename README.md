@@ -4,35 +4,60 @@
 Controller for the electric brewing hardware.
 
 ## Quickstart
-### Environment Variables
-For both methods (Docker or manual), environment variables need to be set.
-With docker, this is via command line options (`-e ENVVARNAME="ENVVARVALUE"`).
-Otherwise set them normally with `set`:
- * `JOULIA_WEBSERVER_BREWHOUSE_ID` - The database ID for the brewhouse on the server.
- * `joulia_webserver_HOST` - The webserver this controller should stream data to (usually `//joulia.io`)
- * `joulia_webserver_AUTHTOKEN` - The authtoken provided in your dashboard on joulia.io, used to authenticate the controller and identify controller information.
+Install Raspbian on a fresh SD card, and boot your Raspberry Pi.
 
-### From Docker
-This project is meant to be run on a Raspberry PI running Docker. 
+Enable SSH (optional), for installing remotely. Make sure the password for the
+main account is changed to a secure password. Enable I2C and SPI.
 
-Hypriot provides a Docker-ready Raspian image, which can save a big hassle,
-since Docker is not built for ARM normally. Read more at:
-http://blog.hypriot.com/getting-started-with-docker-on-your-arm-device/
+Install Anaconda (Miniconda), using the default options (installing to
+`/home/pi/miniconda`):
+```
+wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-armv7l.sh
+bash Miniconda3-latest-Linux-arm71.sh
+```
+Answer all questions posed.
 
-Then download and run the docker image:
-`docker -d --device /dev/ttyAMA0:/dev/ttyAMA0 --device /dev/mem:/dev/mem --privileged willjschmitt/joulia-controller`
-
-The image needs to run in privileged mode with devices bound in order to access the GPIO pins.
-
-### From Source
 Clone the source:
-`git clone https://github.com/willjschmitt/joulia-controller.git`
+```git clone https://github.com/willjschmitt/joulia-controller.git```
 
-Install the dependencies:
-`pip install -r requirements.txt`
+Create a conda environment and install the dependencies:
+```
+cd joulia-controller
+/home/pi/miniconda3/bin/conda create --name joulia-controller python=3
+source /home/pi/miniconda3/bin/activate joulia-controller
+pip install -r requirements.txt
+```
 
+Create a log directory for joulia and change the owner to pi:
+```
+sudo mkdir /var/log/joulia
+sudo chown pi:pi /var/log/joulia
+```
+
+### Automatic Startup
+To automatically, launch the software on startup, install the contents from
+`crontab` into the root cron table using:
+```
+sudo crontab -e
+```
+
+In the crontab, you must update the environment variables in angle brackets per
+the definitions:
+ * `JOULIA_WEBSERVER_HOST` - The webserver this controller should stream data to
+   (usually `joulia.io`)
+ * `JOULIA_WEBSERVER_AUTHTOKEN` - The authtoken provided in your dashboard on
+   joulia.io, used to authenticate the controller and identify controller
+   information.
+
+### Manual Startup
 Run the controller:
-`python main.py`
+```
+cd joulia-controller
+source /home/pi/miniconda3/bin/activate joulia-controller
+export joulia_webserver_HOST=joulia.io
+export JOULIA_WEBSERVER_AUTHTOKEN=<insert token>
+python main.py
+```
 
 ## Connections to Hardware
 This project is meant to be run on a Raspberry Pi and makes use of the GPIO pins.

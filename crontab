@@ -1,0 +1,11 @@
+# Install this by copy pasting it into the root crontab, which can be edited by:
+# $ sudo crontab -e
+
+# Replace auth token below.
+JOULIA_WEBSERVER_AUTHTOKEN=<insert_auth_token>
+JOULIA_WEBSERVER_HOST=joulia.io
+
+# TODO(willjschmitt): Try to activate the conda env in crontab with the
+# commented out line below.
+#@reboot source /home/pi/miniconda3/bin/activate /home/pi/miniconda/envs/joulia-controller && python /home/pi/joulia-controller/main.py
+@reboot /home/pi/miniconda3/envs/joulia-controller/bin/python /home/pi/joulia-controller/main.py
