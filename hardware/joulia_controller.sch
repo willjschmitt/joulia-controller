@@ -11235,13 +11235,13 @@ In this library the device names are the same as the pin names of the symbols, t
 <instance part="U$8" gate="G$1" x="276.86" y="78.74"/>
 <instance part="P+1" gate="1" x="243.84" y="132.08"/>
 <instance part="P+2" gate="1" x="243.84" y="83.82"/>
-<instance part="HEAT" gate="G$1" x="332.74" y="124.46"/>
-<instance part="PUMP" gate="G$1" x="332.74" y="76.2"/>
+<instance part="HEAT" gate="G$1" x="332.74" y="124.46" rot="MR180"/>
+<instance part="PUMP" gate="G$1" x="332.74" y="76.2" rot="MR180"/>
 <instance part="SUPPLY17" gate="GND" x="322.58" y="119.38"/>
 <instance part="SUPPLY18" gate="GND" x="322.58" y="71.12"/>
-<instance part="V240" gate="G$1" x="332.74" y="106.68"/>
-<instance part="V120" gate="G$1" x="332.74" y="55.88"/>
-<instance part="SUPPLY19" gate="GND" x="327.66" y="111.76" rot="R180"/>
+<instance part="V240" gate="G$1" x="332.74" y="106.68" rot="MR180"/>
+<instance part="V120" gate="G$1" x="332.74" y="55.88" rot="MR180"/>
+<instance part="SUPPLY19" gate="GND" x="322.58" y="101.6"/>
 <instance part="R17" gate="G$1" x="243.84" y="111.76" rot="R90"/>
 <instance part="R18" gate="G$1" x="243.84" y="63.5" rot="R90"/>
 </instances>
@@ -11392,6 +11392,7 @@ In this library the device names are the same as the pin names of the symbols, t
 <segment>
 <pinref part="V240" gate="G$1" pin="P$1"/>
 <pinref part="SUPPLY19" gate="GND" pin="GND"/>
+<wire x1="327.66" y1="104.14" x2="322.58" y2="104.14" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$4" class="0">
@@ -11720,11 +11721,9 @@ In this library the device names are the same as the pin names of the symbols, t
 <pinref part="U$1" gate="G$1" pin="A2"/>
 <wire x1="287.02" y1="134.62" x2="294.64" y2="134.62" width="0.1524" layer="91"/>
 <pinref part="HEAT" gate="G$1" pin="P$3"/>
-<wire x1="327.66" y1="121.92" x2="325.12" y2="121.92" width="0.1524" layer="91"/>
-<wire x1="325.12" y1="121.92" x2="325.12" y2="116.84" width="0.1524" layer="91"/>
-<wire x1="325.12" y1="116.84" x2="320.04" y2="116.84" width="0.1524" layer="91"/>
-<wire x1="320.04" y1="116.84" x2="320.04" y2="134.62" width="0.1524" layer="91"/>
-<wire x1="320.04" y1="134.62" x2="294.64" y2="134.62" width="0.1524" layer="91"/>
+<wire x1="327.66" y1="127" x2="327.66" y2="134.62" width="0.1524" layer="91"/>
+<wire x1="327.66" y1="134.62" x2="294.64" y2="134.62" width="0.1524" layer="91"/>
+<junction x="294.64" y="134.62"/>
 </segment>
 </net>
 <net name="N$23" class="1">
@@ -11740,12 +11739,13 @@ In this library the device names are the same as the pin names of the symbols, t
 <wire x1="287.02" y1="78.74" x2="287.02" y2="86.36" width="0.1524" layer="91"/>
 <pinref part="U$2" gate="G$1" pin="A2"/>
 <wire x1="287.02" y1="86.36" x2="294.64" y2="86.36" width="0.1524" layer="91"/>
-<pinref part="PUMP" gate="G$1" pin="P$1"/>
-<wire x1="294.64" y1="86.36" x2="327.66" y2="86.36" width="0.1524" layer="91"/>
-<wire x1="327.66" y1="86.36" x2="327.66" y2="78.74" width="0.1524" layer="91"/>
+<pinref part="PUMP" gate="G$1" pin="P$3"/>
+<wire x1="327.66" y1="78.74" x2="327.66" y2="86.36" width="0.1524" layer="91"/>
+<wire x1="327.66" y1="86.36" x2="294.64" y2="86.36" width="0.1524" layer="91"/>
+<junction x="294.64" y="86.36"/>
 </segment>
 </net>
-<net name="N$26" class="1">
+<net name="120H" class="1">
 <segment>
 <pinref part="U$2" gate="G$1" pin="A1"/>
 <pinref part="V120" gate="G$1" pin="P$2"/>
@@ -11781,7 +11781,7 @@ In this library the device names are the same as the pin names of the symbols, t
 <pinref part="R18" gate="G$1" pin="1"/>
 </segment>
 </net>
-<net name="N$32" class="2">
+<net name="-120" class="2">
 <segment>
 <pinref part="V240" gate="G$1" pin="P$2"/>
 <pinref part="U$1" gate="G$1" pin="A1"/>
@@ -11789,22 +11789,18 @@ In this library the device names are the same as the pin names of the symbols, t
 <wire x1="294.64" y1="106.68" x2="294.64" y2="114.3" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="N$27" class="1">
-<segment>
-<pinref part="PUMP" gate="G$1" pin="P$3"/>
-<wire x1="327.66" y1="73.66" x2="327.66" y2="58.42" width="0.1524" layer="91"/>
-<pinref part="V120" gate="G$1" pin="P$1"/>
-</segment>
-</net>
-<net name="N$29" class="2">
+<net name="+120" class="2">
 <segment>
 <pinref part="HEAT" gate="G$1" pin="P$1"/>
-<wire x1="327.66" y1="127" x2="327.66" y2="134.62" width="0.1524" layer="91"/>
-<wire x1="327.66" y1="134.62" x2="345.44" y2="134.62" width="0.1524" layer="91"/>
-<wire x1="345.44" y1="134.62" x2="345.44" y2="96.52" width="0.1524" layer="91"/>
 <pinref part="V240" gate="G$1" pin="P$3"/>
-<wire x1="345.44" y1="96.52" x2="327.66" y2="96.52" width="0.1524" layer="91"/>
-<wire x1="327.66" y1="96.52" x2="327.66" y2="104.14" width="0.1524" layer="91"/>
+<wire x1="327.66" y1="121.92" x2="327.66" y2="109.22" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="120N" class="1">
+<segment>
+<pinref part="PUMP" gate="G$1" pin="P$1"/>
+<pinref part="V120" gate="G$1" pin="P$3"/>
+<wire x1="327.66" y1="73.66" x2="327.66" y2="58.42" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
