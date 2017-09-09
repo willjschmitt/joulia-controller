@@ -9941,7 +9941,8 @@ Source: AVX .. aphvc.pdf</description>
 <package name="2512(6432METRIC)">
 <smd name="P$1" x="2.575" y="0" dx="2.45" dy="3.7" layer="1"/>
 <smd name="P$2" x="-2.575" y="0" dx="2.45" dy="3.7" layer="1"/>
-<text x="-3.25" y="2.095" size="1.27" layer="1">&gt;NAME</text>
+<text x="-3.25" y="2.095" size="1.27" layer="25">&gt;NAME</text>
+<text x="-3.81" y="-3.81" size="1.27" layer="27">&gt;VALUE</text>
 </package>
 <package name="PC-PCV5/3-G-7.62">
 <pad name="P$1" x="0" y="0" drill="1.3" shape="square"/>
@@ -11139,8 +11140,8 @@ In this library the device names are the same as the pin names of the symbols, t
 <part name="R16" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-US_" device="R0402" value="1K"/>
 <part name="U$1" library="digikey" deviceset="T3050H-6I" device=""/>
 <part name="U$2" library="digikey" deviceset="T3050H-6I" device=""/>
-<part name="U$3" library="digikey" deviceset="VM1-038-1AE" device=""/>
-<part name="U$4" library="digikey" deviceset="VM1-038-1AE" device=""/>
+<part name="HE_HEATSINK" library="digikey" deviceset="VM1-038-1AE" device=""/>
+<part name="P_HEATSINK" library="digikey" deviceset="VM1-038-1AE" device=""/>
 <part name="U$5" library="digikey" deviceset="MOC3020S" device=""/>
 <part name="U$6" library="digikey" deviceset="MOC3020S" device=""/>
 <part name="U$7" library="digikey" deviceset="CRM2512" device=""/>
@@ -11226,8 +11227,8 @@ In this library the device names are the same as the pin names of the symbols, t
 <instance part="R16" gate="G$1" x="190.5" y="55.88" rot="R180"/>
 <instance part="U$1" gate="G$1" x="292.1" y="124.46"/>
 <instance part="U$2" gate="G$1" x="292.1" y="76.2"/>
-<instance part="U$3" gate="G$1" x="309.88" y="124.46"/>
-<instance part="U$4" gate="G$1" x="309.88" y="76.2"/>
+<instance part="HE_HEATSINK" gate="G$1" x="309.88" y="124.46"/>
+<instance part="P_HEATSINK" gate="G$1" x="309.88" y="76.2"/>
 <instance part="U$5" gate="G$1" x="256.54" y="121.92"/>
 <instance part="U$6" gate="G$1" x="256.54" y="73.66"/>
 <instance part="U$7" gate="G$1" x="276.86" y="127"/>
