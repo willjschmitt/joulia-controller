@@ -9958,7 +9958,7 @@ Source: AVX .. aphvc.pdf</description>
 <wire x1="-12.83" y1="2.52" x2="-12.83" y2="-11.02" width="0.127" layer="21"/>
 <wire x1="-12.83" y1="-11.02" x2="12.83" y2="-11.02" width="0.127" layer="21"/>
 <wire x1="12.83" y1="-11.02" x2="12.83" y2="2.52" width="0.127" layer="21"/>
-<text x="-12.64" y="3.03" size="1.27" layer="21">&gt;NAME</text>
+<text x="-12.64" y="3.03" size="1.27" layer="25">&gt;NAME</text>
 <text x="-12.09" y="-4.34" size="1.27" layer="21">+</text>
 <wire x1="-12.83" y1="-17.18" x2="12.83" y2="-17.18" width="0.127" layer="21"/>
 <wire x1="-11.43" y1="-11.43" x2="11.43" y2="-16.51" width="0.127" layer="21"/>
