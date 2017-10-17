@@ -4,8 +4,8 @@ import os
 HOST = os.environ.get("JOULIA_WEBSERVER_HOST", None)
 AUTHTOKEN = os.environ.get("JOULIA_WEBSERVER_AUTHTOKEN", None)
 
-HTTP_PREFIX = "http"
-WS_PREFIX = "ws"
+HTTP_PREFIX = "https"
+WS_PREFIX = "wss"
 
 DATASTREAM_FREQUENCY = 1000.  # mS
 

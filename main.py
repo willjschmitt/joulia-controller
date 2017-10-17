@@ -47,9 +47,10 @@ def main():
     os.chdir(root_directory)
 
     LOGGER.info('Starting brewery.')
-    http_client = JouliaHTTPClient("https://" + settings.HOST,
+    http_client = JouliaHTTPClient(settings.HTTP_PREFIX + "://" + settings.HOST,
                                    auth_token=settings.AUTHTOKEN)
-    ws_address = "wss://{}/live/timeseries/socket/".format(settings.HOST)
+    ws_address = "{}://{}/live/timeseries/socket/".format(
+        settings.WS_PREFIX, settings.HOST)
     ws_client = JouliaWebsocketClient(ws_address, http_client,
                                       auth_token=settings.AUTHTOKEN)
     start_stop_client = AsyncHTTPClient()
@@ -91,6 +92,7 @@ class System(object):
         recipe = self.http_client.get_recipe(recipe_instance.recipe_pk)
 
         configuration = self.http_client.get_brewhouse(self.brewhouse_id)
+        print(configuration)
 
         brewhouse = Brewhouse.from_json(
             self.ws_client, gpio, analog_reader, recipe_instance_pk, recipe,
@@ -132,7 +134,8 @@ class System(object):
         LOGGER.info("Watching for recipe instance start on brewhouse %s.",
                     self.brewhouse_id)
         post_data = {'brewhouse': self.brewhouse_id}
-        uri = "https://{}/live/recipeInstance/start/".format(settings.HOST)
+        uri = "{}://{}/live/recipeInstance/start/".format(
+            settings.HTTP_PREFIX, settings.HOST)
         self.start_stop_client.fetch(
             uri, handle_start_request, method="POST", body=urlencode(post_data),
             headers={'Authorization': 'Token {}'.format(settings.AUTHTOKEN)})
@@ -170,7 +173,8 @@ class System(object):
         LOGGER.info("Watching for recipe instance end on brewhouse %s.",
                     self.brewhouse_id)
         post_data = {'brewhouse': self.brewhouse_id}
-        uri = "https://{}/live/recipeInstance/end/".format(settings.HOST)
+        uri = "{}://{}/live/recipeInstance/end/".format(
+            settings.HTTP_PREFIX, settings.HOST)
         self.start_stop_client.fetch(
             uri, handle_end_request, method="POST", body=urlencode(post_data),
             headers={'Authorization': 'Token {}'.format(settings.AUTHTOKEN)})

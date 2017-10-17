@@ -113,9 +113,9 @@ class RtdSensor(object):
         vcc = configuration["amplifier"]["vcc"]
         resistance_rtd_top = configuration["amplifier"]["rtd_top_resistance"]
         amplifier_resistance_a \
-            = configuration["amplifier"]["amplifier_resistor_a"]
+            = configuration["amplifier"]["amplifier_resistance_a"]
         amplifier_resistance_b \
-            = configuration["amplifier"]["amplifier_resistor_b"]
+            = configuration["amplifier"]["amplifier_resistance_b"]
         offset_resistance_bottom \
             = configuration["amplifier"]["offset_resistance_bottom"]
         offset_resistance_top \

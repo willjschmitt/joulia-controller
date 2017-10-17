@@ -350,8 +350,8 @@ class TestBrewhouse(unittest.TestCase):
                     "amplifier": {
                         "vcc": 3.3,
                         "rtd_top_resistance": 1000.0,
-                        "amplifier_resistor_a": 15000.0,
-                        "amplifier_resistor_b": 270000.0,
+                        "amplifier_resistance_a": 15000.0,
+                        "amplifier_resistance_b": 270000.0,
                         "offset_resistance_bottom": 10000.0,
                         "offset_resistance_top": 100000.0,
                     }
@@ -374,8 +374,8 @@ class TestBrewhouse(unittest.TestCase):
                     "amplifier": {
                         "vcc": 3.3,
                         "rtd_top_resistance": 1000.0,
-                        "amplifier_resistor_a": 15000.0,
-                        "amplifier_resistor_b": 2700000.0,
+                        "amplifier_resistance_a": 15000.0,
+                        "amplifier_resistance_b": 2700000.0,
                         "offset_resistance_bottom": 10000.0,
                         "offset_resistance_top": 100000.0,
                     }
