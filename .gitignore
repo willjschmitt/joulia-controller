@@ -142,3 +142,6 @@ eagle.epf
 
 # file locks introduced since 7.x
 *.lck
+
+# Ignore gcode files. .stl's and other sources should be checked in instead.
+*.gcode
