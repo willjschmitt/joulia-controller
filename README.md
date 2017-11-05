@@ -54,7 +54,7 @@ Run the controller:
 ```
 cd joulia-controller
 source /home/pi/miniconda3/bin/activate joulia-controller
-export joulia_webserver_HOST=joulia.io
+export JOULIA_WEBSERVER_HOST=joulia.io
 export JOULIA_WEBSERVER_AUTHTOKEN=<insert token>
 python main.py
 ```
