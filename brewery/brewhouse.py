@@ -247,7 +247,7 @@ class StateStrike(State):
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_on()
-        brewhouse.boil_kettle.enable()
+        brewhouse.boil_kettle.disable()
         brewhouse.mash_tun.disable()
 
         first_temperature = brewhouse.mash_tun.temperature_profile[0][1]

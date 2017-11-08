@@ -113,7 +113,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.set_state_by_name("StateStrike")
         self.brewhouse.state.evaluate()
         self.assertTrue(self.brewhouse.main_pump.enabled)
-        self.assertTrue(self.brewhouse.boil_kettle.element_status)
+        self.assertFalse(self.brewhouse.boil_kettle.element_status)
         self.assertFalse(self.brewhouse.mash_tun.enabled)
         self.assertAlmostEquals(
             self.brewhouse.boil_kettle.temperature_set_point, 155.0, 9)
