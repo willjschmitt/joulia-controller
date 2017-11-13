@@ -16,6 +16,7 @@ except (ImportError, RuntimeError):
     from testing.stub_smbus import StubSmbus
     smbus = StubSmbus()
 import os
+import time
 from tornado import ioloop
 from tornado.escape import json_decode
 from tornado.httpclient import AsyncHTTPClient
@@ -204,6 +205,10 @@ def create_analog_reader():
 
 
 if __name__ == "__main__":
+    # TODO(willjschmitt): This is a hack because networking is not up when this
+    # is first called. We simply delay startup by 10seconds to allow networking
+    # to come up.
+    time.sleep(10.0)
     try:
         main()  # pragma: no cover
     except Exception as e:
