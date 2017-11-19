@@ -120,6 +120,7 @@ class Brewhouse(object):
             StateMashToBoil,
             StateBoilPreheat,
             StateBoil,
+            StateCoolingPrep,
             StateCool,
             StatePumpout,
             StateDone,
@@ -534,9 +535,7 @@ class StateBoil(State):
     """
 
     NAME = 'Boil'
-    DESCRIPTION = (
-        'Boiling wort. Add hops at appropriate time. Requires permission to'
-        ' advance state to ensure hoses are configured for cooling.')
+    DESCRIPTION = 'Boiling wort. Add hops at appropriate time.'
 
     def __call__(self, brewhouse):
         LOGGER.debug('In state Boil')
@@ -554,9 +553,28 @@ class StateBoil(State):
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_temperature)
 
         if brewhouse.timer <= 0.0:
-            brewhouse.request_permission = True
-        else:
-            brewhouse.request_permission = False
+            self.state_machine.next_state()
+
+
+class StateCoolingPrep(State):
+    """Idle state to switch hoses for cooling."""
+
+    NAME = 'CoolingPrep'
+    DESCRIPTION = (
+        'Reconfigure hoses to circulate wort through heat exchanger and connect'
+        ' cooling water. Requires permission to advance state.')
+
+    def __call__(self, brewhouse):
+        LOGGER.debug('In state Boil')
+
+        brewhouse.main_pump.turn_off()
+        brewhouse.boil_kettle.disable()
+        brewhouse.mash_tun.disable()
+
+        brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
+        brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
+
+        brewhouse.request_permission = True
 
 
 class StateCool(State):
@@ -572,7 +590,7 @@ class StateCool(State):
 
         brewhouse.timer = None
 
-        brewhouse.main_pump.turn_off()
+        brewhouse.main_pump.turn_on()
         brewhouse.boil_kettle.disable()
         brewhouse.mash_tun.disable()
 
