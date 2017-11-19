@@ -365,7 +365,7 @@ class StateMashoutRamp(State):
 
         brewhouse.main_pump.turn_on()
         brewhouse.boil_kettle.enable()
-        brewhouse.mash_tun.enable()
+        brewhouse.mash_tun.disable()
 
         brewhouse.mash_tun.set_temperature(brewhouse.mashout_temperature)
         # Give a little extra push on boil set temp

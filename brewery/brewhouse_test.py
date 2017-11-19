@@ -169,7 +169,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.evaluate()
         self.assertTrue(self.brewhouse.main_pump.pump_status)
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
-        self.assertTrue(self.brewhouse.mash_tun.enabled)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
         self.assertAlmostEquals(
             self.brewhouse.mash_tun.temperature_set_point, 170.0, 9)
         self.assertAlmostEquals(
@@ -184,7 +184,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.evaluate()
         self.assertTrue(self.brewhouse.main_pump.pump_status)
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
-        self.assertTrue(self.brewhouse.mash_tun.enabled)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
 
         self.assertEquals(self.brewhouse.state.state.__class__.__name__,
                           "StateMashoutRecirculation")
