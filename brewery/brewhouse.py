@@ -215,21 +215,6 @@ class Brewhouse(object):
         return self.state.state_time_change
 
 
-[
-          'Heating water for strike.',
-          'Pumping water to mash tun for strike.',
-          'Stabilizing hot liquor tun water temperature.',
-          'Mashing grain.',
-          'Raising hot liquor tun to 170&deg;F for mashout.',
-          'Mashout. Recirculating at 170&deg;F.',
-          'Preparing for sparge. Waiting for reconfiguration. Ensure output of HLT is configured to pump to Mash Tun.',
-          'Sparging. Pumping hot liquor into mash tun.',
-          'Preparing for boil. Waiting for reconfiguration. Ensure sparged liquid is configured to pump into boil kettle and boil kettle is empty.',
-          'Preheating boil. Raising temperature to boil temperature.',
-          'Cooling boil kettle. Make sure the cooling setup is in place.',
-          'Pumping cooled wort into fermeneter.',
-        ];
-
 class StatePrestart(State):
     """Everything is off. Waiting for user to initiate process after water
     is filled in the boil kettle/HLT.
