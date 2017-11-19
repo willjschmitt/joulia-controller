@@ -139,6 +139,9 @@ class State(object):
         state_machine: The StateMachine the State is registered with. The
     """
 
+    NAME = None
+    DESCRIPTION = None
+
     def __init__(self, state_machine):
         self.state_machine = state_machine
         self.state_machine.add_state(self)
