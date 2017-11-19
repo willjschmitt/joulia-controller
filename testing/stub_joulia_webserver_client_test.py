@@ -3,6 +3,7 @@
 import unittest
 from unittest.mock import Mock
 
+from joulia_webserver import client
 from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 from testing.stub_joulia_webserver_client import StubJouliaWebsocketClient
 
@@ -15,13 +16,12 @@ class TestStubJouliaHTTPClient(unittest.TestCase):
 
     def test_identify(self):
         self.client.identifier = 11
-        self.client.variable_type = "override"
         sensor_name = "foo"
         recipe_instance = 1
-        sensor_id, variable_type = self.client.identify(sensor_name, recipe_instance)
+        sensor_id = self.client.identify(sensor_name, recipe_instance,
+                                         client.OVERRIDE_VARIABLE_TYPE)
         self.assertEquals(sensor_id, 11)
         self.assertEquals(self.client.identifier, 12)
-        self.assertEquals(variable_type, "override")
 
     def test_update_sensor_name(self):
         recipe_instance = 1

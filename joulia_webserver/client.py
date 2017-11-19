@@ -19,6 +19,10 @@ from tornado.websocket import websocket_connect
 LOGGER = logging.getLogger(__name__)
 
 
+VALUE_VARIABLE_TYPE = 'value'
+OVERRIDE_VARIABLE_TYPE = 'override'
+
+
 class JouliaWebserverClientBase(object):
     """Abstract class for clients connecting to Joulia Webserver.
 
@@ -30,7 +34,18 @@ class JouliaWebserverClientBase(object):
         self.address = address
         self.auth_token = auth_token
 
-    def identify(self, sensor_name, recipe_instance):
+    def identify(self, sensor_name, recipe_instance, variable_type):
+        """Sends a request to the server based on the current recipe instance
+        to identify the sensors id number, given the `sensor_name`
+
+        Args:
+            sensor_name: The name of the sensor to identify.
+            recipe_instance: The id number for the active recipe instance
+            variable_type: The type of variable to identify (e.g. 'value' vs
+                'override').
+
+        Returns: A tuple with the id number and variable_type for the sensor.
+        """
         raise NotImplementedError()
 
     def update_sensor_value(self, recipe_instance, value, sensor):
@@ -117,24 +132,18 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
     def _identify_url(self):
         return self.address + "/live/timeseries/identify/"
 
-    def identify(self, sensor_name, recipe_instance):
-        """Sends a request to the server based on the current recipe instance
-        to identify the sensors id number, given the `sensor_name`
-
-        Args:
-            sensor_name: The name of the sensor to identify.
-            recipe_instance: The id number for the active recipe instance
-
-        Returns: A tuple with the id number and variable_type for the sensor.
-        """
-        data = {'recipe_instance': recipe_instance, 'name': sensor_name}
+    def identify(self, sensor_name, recipe_instance, variable_type):
+        data = {
+            'recipe_instance': recipe_instance,
+            'name': sensor_name,
+            'variable_type': variable_type,
+        }
 
         response = self._post(self._identify_url, data=data)
         deserialized_response = response.json()
         identifier = deserialized_response['sensor']
-        variable_type = deserialized_response['variable_type']
         LOGGER.debug("Identified %s as %d", sensor_name, identifier)
-        return identifier, variable_type
+        return identifier
 
     @property
     def _update_sensor_value_url(self):
@@ -293,8 +302,9 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
                 'sensor': sensor}
         self.websocket.write_message(json.dumps(data))
 
-    def identify(self, sensor_name, recipe_instance):
-        return self.http_client.identify(sensor_name, recipe_instance)
+    def identify(self, sensor_name, recipe_instance, variable_type):
+        return self.http_client.identify(
+            sensor_name, recipe_instance, variable_type)
 
     def subscribe(self, recipe_instance, sensor):
         msg_string = json.dumps({'recipe_instance': recipe_instance,

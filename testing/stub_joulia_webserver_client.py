@@ -18,7 +18,6 @@ class StubJouliaHTTPClient(JouliaHTTPClient):
         super(StubJouliaHTTPClient, self).__init__(
             address, auth_token=auth_token)
         self.identifier = 0
-        self.variable_type = "value"
         self.update_sensor_value_posts = []
         self.mash_points = []
         self.recipe_instance = None
@@ -26,10 +25,10 @@ class StubJouliaHTTPClient(JouliaHTTPClient):
         self.latest_joulia_controller_release = None
         self.brewhouse = None
 
-    def identify(self, sensor_name, recipe_instance):
+    def identify(self, sensor_name, recipe_instance, variable_type):
         result = self.identifier
         self.identifier += 1
-        return result, self.variable_type
+        return result
 
     def update_sensor_value(self, recipe_instance, value, sensor):
         update = {"recipe_instance": recipe_instance,
