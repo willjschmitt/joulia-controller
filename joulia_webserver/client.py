@@ -125,14 +125,16 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
             sensor_name: The name of the sensor to identify.
             recipe_instance: The id number for the active recipe instance
 
-        Returns: The id number for the sensor.
+        Returns: A tuple with the id number and variable_type for the sensor.
         """
         data = {'recipe_instance': recipe_instance, 'name': sensor_name}
 
-        request = self._post(self._identify_url, data=data)
-        identifier = request.json()['sensor']
+        response = self._post(self._identify_url, data=data)
+        deserialized_response = response.json()
+        identifier = deserialized_response['sensor']
+        variable_type = deserialized_response['variable_type']
         LOGGER.debug("Identified %s as %d", sensor_name, identifier)
-        return identifier
+        return identifier, variable_type
 
     @property
     def _update_sensor_value_url(self):

@@ -113,7 +113,8 @@ class ManagedVariable(object):
             recipe_instance: the recipe identifier for the session of brewing.
         """
         client = self.clients[instance]
-        id_sensor = client.identify(self.sensor_name, recipe_instance)
+        id_sensor, variable_type = client.identify(
+            self.sensor_name, recipe_instance)
         self.ids[instance] = id_sensor
 
 
@@ -374,7 +375,8 @@ class DataStreamer(object):
         LOGGER.debug("%r registering %s as %s for data streaming.",
                      self.instance, attr, name)
 
-        identifier = self.client.identify(name, self.recipe_instance)
+        identifier, variable_type = self.client.identify(
+            name, self.recipe_instance)
         if identifier in self.id_to_attribute:
             # This makes sure we aren't overwriting anything
             raise AttributeError(
