@@ -297,12 +297,21 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.working_time = 61.0
         self.brewhouse.boil_time = 60.0
         self.brewhouse.state.evaluate()
-        self.assertTrue(self.brewhouse.request_permission)
+        self.assertFalse(self.brewhouse.request_permission)
+        self.assertEquals(
+            self.brewhouse.state.state.__class__.__name__, "StateCoolingPrep")
+
+    def test_state_cooling_prep(self):
+        self.brewhouse.state.set_state_by_name("StateCoolingPrep")
+        self.brewhouse.state.evaluate()
+        self.assertFalse(self.brewhouse.main_pump.pump_status)
+        self.assertFalse(self.brewhouse.boil_kettle.element_status)
+        self.assertFalse(self.brewhouse.mash_tun.enabled)
 
     def test_state_cool(self):
         self.brewhouse.state.set_state_by_name("StateCool")
         self.brewhouse.state.evaluate()
-        self.assertFalse(self.brewhouse.main_pump.pump_status)
+        self.assertTrue(self.brewhouse.main_pump.pump_status)
         self.assertFalse(self.brewhouse.boil_kettle.element_status)
         self.assertFalse(self.brewhouse.mash_tun.enabled)
 
