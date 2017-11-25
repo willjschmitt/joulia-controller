@@ -99,26 +99,38 @@ class Brewhouse(object):
         Brewhouse.grant_permission.register(
             client, self, recipe_instance, callback=permission_granted)
 
+    @staticmethod
+    def state_classes():
+        """The state classes, in order to be executed during a brewhouse cycle.
+
+        Provided publicly so others can inspect and export the state details
+        (like order, description, etc, for the webclient to display to users).
+        """
+        return (
+            StatePrestart,
+            StatePremash,
+            StateStrike,
+            StatePostStrike,
+            StateMash,
+            StateMashoutRamp,
+            StateMashoutRecirculation,
+            StateSpargePrep,
+            StateSparge,
+            StatePreBoil,
+            StateMashToBoil,
+            StateBoilPreheat,
+            StateBoil,
+            StateCool,
+            StatePumpout,
+            StateDone,
+        )
+
     def _initialize_state_machine(self):
         """Initializes state machine into fully populated state. Should be
         called by __init__.
         """
-        StatePrestart(self.state)
-        StatePremash(self.state)
-        StateStrike(self.state)
-        StatePostStrike(self.state)
-        StateMash(self.state)
-        StateMashoutRamp(self.state)
-        StateMashoutRecirculation(self.state)
-        StateSpargePrep(self.state)
-        StateSparge(self.state)
-        StatePreBoil(self.state)
-        StateMashToBoil(self.state)
-        StateBoilPreheat(self.state)
-        StateBoil(self.state)
-        StateCool(self.state)
-        StatePumpout(self.state)
-        StateDone(self.state)
+        for state in self.state_classes():
+            state(self.state)
         self.state.id = 0
 
     def _initialize_data_streamer(self):
@@ -207,6 +219,12 @@ class StatePrestart(State):
     """Everything is off. Waiting for user to initiate process after water
     is filled in the boil kettle/HLT.
     """
+
+    NAME = 'Prestart'
+    DESCRIPTION = (
+        'System is offline. HLT should be filled with water. Requires'
+        ' permission to proceed.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state Prestart')
 
@@ -221,6 +239,13 @@ class StatePrestart(State):
 
 class StatePremash(State):
     """Boil element brings water up to strike temperature."""
+
+    NAME = 'Premash'
+    DESCRIPTION = (
+        'Heating water for strike. Will request for permission to proceed when'
+        ' temperature is reached. Configure hoses to pump water from HLT to'
+        ' mash tun. Fill mash tun with grain.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state Premash')
 
@@ -241,6 +266,12 @@ class StatePremash(State):
 
 class StateStrike(State):
     """The addition of hot water to the grain."""
+
+    NAME = 'Strike'
+    DESCRIPTION = (
+        'Striking mash. Pumping HLT strike water into mash tun. Advance state'
+        'when mash tun reaches desired volume to stop pump.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state Strike')
 
@@ -258,6 +289,14 @@ class StateStrike(State):
 
 class StatePostStrike(State):
     """Boil element brings water up to strike temperature."""
+
+    NAME = 'PostStrike'
+    DESCRIPTION = (
+        'Pump stopped and HLT will bring water back to mash temperature. Add'
+        ' enough water to cover heat exchanger coil in HLT. Requires permission'
+        ' to proceed after temperature stabilizes. Configure hoses to'
+        ' recirculate wort from mash tun through coil in HLT.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state PostStrike')
 
@@ -284,6 +323,12 @@ class StateMash(State):
     """Pump turns on and boil element adjusts HLT temp to maintain mash
     temperature.
     """
+
+    NAME = 'Mash'
+    DESCRIPTION = (
+        'Recirculating wort through HLT coil and adjusting HLT temperature to'
+        ' follow mash profile and heat wort to the mash profile.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state Mash')
 
@@ -307,6 +352,12 @@ class StateMashoutRamp(State):
     """Steps up boil temperature to 175degF and continues to circulate wort
     to stop enzymatic processes and to prep sparge water
     """
+
+    NAME = 'MashoutRamp'
+    DESCRIPTION = (
+        'Heating HLT to mashout temperature while continuing to recirculate'
+        ' wort.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state MashoutRamp')
 
@@ -330,6 +381,12 @@ class StateMashoutRecirculation(State):
     to stop enzymatic processes and to prep sparge water this continuation
     just forces an amount of time of mashout at a higher temp of wort.
     """
+
+    NAME = 'MashoutRecirculation'
+    DESCRIPTION = (
+        'Recirculating wort at mashout temperature to denature enzymes and stop'
+        ' the sugar conversion process.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state MashoutRecirculation')
 
@@ -352,6 +409,13 @@ class StateMashoutRecirculation(State):
 
 class StateSpargePrep(State):
     """Prep hoses for sparge process."""
+
+    NAME = 'SpargePrep'
+    DESCRIPTION = (
+        'Reconfigure the hoses to pump HLT water into Mash Tun for sparging.'
+        ' Configure hoses to drain out of Mash Tun into intermediate container'
+        ' or directly to boil kettle.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state SpargePrep')
 
@@ -369,6 +433,12 @@ class StateSpargePrep(State):
 
 class StateSparge(State):
     """Slowly puts clean water onto grain bed as it is drained."""
+
+    NAME = 'Sparge'
+    DESCRIPTION = (
+        'Pumping hot clean water from HLT into mash tun. Adjust flow with'
+        ' valves to match the drain rate from the mash tun.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state Sparge')
 
@@ -388,6 +458,12 @@ class StatePreBoil(State):
     """Turns off pump to allow switching of hoses for transfer to boil as
     well as boil kettle draining.
     """
+
+    NAME = 'PreBoil'
+    DESCRIPTION = (
+        'Reconfigure hoses to pump from intermediate container to the boil'
+        ' kettle.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state PreBoil')
 
@@ -406,6 +482,12 @@ class StatePreBoil(State):
 class StateMashToBoil(State):
     """Turns off boil element and pumps wort from mash tun to the boil kettle.
     """
+
+    NAME = 'MashToBoil'
+    DESCRIPTION = (
+        'Transferring wort from intermediate container to boil kettle. Advance'
+        ' state when all wort has been transferred.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state MashToBoil')
 
@@ -424,6 +506,11 @@ class StateMashToBoil(State):
 class StateBoilPreheat(State):
     """Heat wort up to temperature before starting to countdown timer in boil.
     """
+
+    NAME = 'BoilPreheat'
+    DESCRIPTION = (
+        'Heating boil kettle to boil temperature before starting boil timer.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state BoilPreheat')
 
@@ -445,6 +532,12 @@ class StateBoil(State):
     """Boiling to bring temperature to boil temp and maintain temperature for
     duration of boil.
     """
+
+    NAME = 'Boil'
+    DESCRIPTION = (
+        'Boiling wort. Add hops at appropriate time. Requires permission to'
+        ' advance state to ensure hoses are configured for cooling.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state Boil')
 
@@ -468,6 +561,12 @@ class StateBoil(State):
 
 class StateCool(State):
     """Cooling boil down to pitching temperature."""
+
+    NAME = 'Cool'
+    DESCRIPTION = (
+        'Cooling wort down to pitching temperature by pumping wort through'
+        ' heat exchanger with cold water.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state Cool')
 
@@ -488,6 +587,12 @@ class StateCool(State):
 
 class StatePumpout(State):
     """Pumping wort out into fermenter."""
+
+    NAME = 'Pumpout'
+    DESCRIPTION = (
+        'Transferring cooled wort from boil kettle to fermenter. Advance state'
+        ' when all wort has been transferred.')
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state Pumpout')
 
@@ -505,6 +610,10 @@ class StatePumpout(State):
 
 class StateDone(State):
     """Done state. All systems off."""
+
+    NAME = 'Done'
+    DESCRIPTION = 'Brew session complete. Time to clean up!'
+
     def __call__(self, brewhouse):
         LOGGER.debug('In state Done')
 
