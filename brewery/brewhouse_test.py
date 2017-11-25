@@ -6,6 +6,8 @@ from brewery.brewhouse import Brewhouse
 from brewery.pump import SimplePump
 from brewery.vessels import HeatExchangedVessel
 from brewery.vessels import HeatedVessel
+from joulia_webserver.models import MashProfile
+from joulia_webserver.models import MashStep
 from joulia_webserver.models import Recipe
 from measurement.gpio import OutputPin
 from testing.stub_analog_reader import StubAnalogReader
@@ -51,7 +53,7 @@ class TestBrewhouse(unittest.TestCase):
         mashout_time = 15.0 * 60.0
         boil_time = 60.0 * 60.0
         cool_temperature = 70.0
-        mash_temperature_profile = []
+        mash_temperature_profile = MashProfile([])
         self.recipe = Recipe(
             recipe_pk, strike_temperature, mashout_temperature, mashout_time,
             boil_time, cool_temperature, mash_temperature_profile)
@@ -86,7 +88,7 @@ class TestBrewhouse(unittest.TestCase):
         self.assertFalse(self.brewhouse.mash_tun.enabled)
 
     def test_state_premash(self):
-        self.brewhouse.strike_temperature = 170.0
+        self.brewhouse.recipe.strike_temperature = 170.0
         self.boil_kettle.temperature_sensor.temperature = 70.0
         self.brewhouse.state.set_state_by_name("StatePremash")
         self.brewhouse.state.evaluate()
@@ -95,21 +97,23 @@ class TestBrewhouse(unittest.TestCase):
         self.assertFalse(self.brewhouse.mash_tun.enabled)
 
     def test_state_premash_not_ready(self):
-        self.brewhouse.strike_temperature = 170.0
+        self.brewhouse.recipe.strike_temperature = 170.0
         self.boil_kettle.temperature_sensor.temperature = 70.0
         self.brewhouse.state.set_state_by_name("StatePremash")
         self.brewhouse.state.evaluate()
         self.assertFalse(self.brewhouse.request_permission)
 
     def test_state_premash_ready(self):
-        self.brewhouse.strike_temperature = 170.0
+        self.brewhouse.recipe.strike_temperature = 170.0
         self.boil_kettle.temperature_sensor.temperature = 171.0
         self.brewhouse.state.set_state_by_name("StatePremash")
         self.brewhouse.state.evaluate()
         self.assertTrue(self.brewhouse.request_permission)
 
     def test_state_strike(self):
-        self.brewhouse.mash_tun.temperature_profile = [(15.0, 155.0)]
+        self.brewhouse.recipe.mash_temperature_profile = MashProfile([
+            MashStep(15.0, 155.0),
+        ])
         self.brewhouse.state.set_state_by_name("StateStrike")
         self.brewhouse.state.evaluate()
         self.assertTrue(self.brewhouse.main_pump.pump_status)
@@ -120,7 +124,9 @@ class TestBrewhouse(unittest.TestCase):
         self.assertTrue(self.brewhouse.request_permission)
 
     def test_state_post_strike(self):
-        self.brewhouse.mash_tun.temperature_profile = [(15.0, 155.0)]
+        self.brewhouse.recipe.mash_temperature_profile = MashProfile([
+            MashStep(15.0, 155.0),
+        ])
         self.brewhouse.state.set_state_by_name("StatePostStrike")
         self.brewhouse.state.evaluate()
         self.assertFalse(self.brewhouse.main_pump.pump_status)
@@ -130,21 +136,27 @@ class TestBrewhouse(unittest.TestCase):
             self.brewhouse.boil_kettle.temperature_set_point, 155.0, 9)
 
     def test_state_post_strike_not_ready(self):
-        self.brewhouse.mash_tun.temperature_profile = [(15.0, 155.0)]
+        self.brewhouse.recipe.mash_temperature_profile = MashProfile([
+            MashStep(15.0, 155.0),
+        ])
         self.brewhouse.boil_kettle.temperature_sensor.temperature = 100.0
         self.brewhouse.state.set_state_by_name("StatePostStrike")
         self.brewhouse.state.evaluate()
         self.assertFalse(self.brewhouse.request_permission)
 
     def test_state_post_strike_ready(self):
-        self.brewhouse.mash_tun.temperature_profile = [(15.0, 155.0)]
+        self.brewhouse.recipe.mash_temperature_profile = MashProfile([
+            MashStep(15.0, 155.0),
+        ])
         self.brewhouse.boil_kettle.temperature_sensor.temperature = 156.0
         self.brewhouse.state.set_state_by_name("StatePostStrike")
         self.brewhouse.state.evaluate()
         self.assertTrue(self.brewhouse.request_permission)
 
     def test_state_mash(self):
-        self.brewhouse.mash_tun.temperature_profile = [(15.0, 155.0)]
+        self.brewhouse.recipe.mash_temperature_profile = MashProfile([
+            MashStep(15.0, 155.0),
+        ])
         self.brewhouse.working_time = 0
         self.brewhouse.state.set_state_by_name("StateMash")
         self.brewhouse.state.state_time_change = 0
@@ -154,7 +166,9 @@ class TestBrewhouse(unittest.TestCase):
         self.assertTrue(self.brewhouse.mash_tun.enabled)
 
     def test_state_mash_timer_start(self):
-        self.brewhouse.mash_tun.temperature_profile = [(15.0, 155.0)]
+        self.brewhouse.recipe.mash_temperature_profile = MashProfile([
+            MashStep(15.0, 155.0),
+        ])
         self.brewhouse.working_time = 0
         self.brewhouse.state.set_state_by_name("StateMash")
         self.brewhouse.state.state_time_change = 0
@@ -165,7 +179,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.set_state_by_name("StateMashoutRamp")
         self.brewhouse.working_time = 0
         self.brewhouse.state.state_time_change = 0
-        self.brewhouse.mashout_temperature = 170.0
+        self.brewhouse.recipe.mashout_temperature = 170.0
         self.brewhouse.state.evaluate()
         self.assertTrue(self.brewhouse.main_pump.pump_status)
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
@@ -179,7 +193,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.set_state_by_name("StateMashoutRamp")
         self.brewhouse.working_time = 0
         self.brewhouse.state.state_time_change = 0
-        self.brewhouse.mashout_temperature = 170.0
+        self.brewhouse.recipe.mashout_temperature = 170.0
         self.brewhouse.boil_kettle.temperature_sensor.temperature = 171.0
         self.brewhouse.state.evaluate()
         self.assertTrue(self.brewhouse.main_pump.pump_status)
@@ -193,7 +207,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.set_state_by_name("StateMashoutRecirculation")
         self.brewhouse.working_time = 0
         self.brewhouse.state.state_time_change = 0
-        self.brewhouse.mashout_temperature = 170.0
+        self.brewhouse.recipe.mashout_temperature = 170.0
         self.brewhouse.state.evaluate()
         self.assertTrue(self.brewhouse.main_pump.pump_status)
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
@@ -207,7 +221,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.set_state_by_name("StateMashoutRecirculation")
         self.brewhouse.working_time = 0
         self.brewhouse.state.state_time_change = 0
-        self.brewhouse.mashout_time = 15.0
+        self.brewhouse.recipe.mashout_time = 15.0
         self.brewhouse.state.evaluate()
         self.assertAlmostEquals(self.brewhouse.timer, 15.0, 9)
         self.assertFalse(self.brewhouse.request_permission)
@@ -216,7 +230,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.set_state_by_name("StateMashoutRecirculation")
         self.brewhouse.working_time = 16.0
         self.brewhouse.state.state_time_change = 0
-        self.brewhouse.mashout_time = 15.0
+        self.brewhouse.recipe.mashout_time = 15.0
         self.brewhouse.state.evaluate()
         self.assertAlmostEquals(self.brewhouse.timer, -1.0, 9)
         self.assertTrue(self.brewhouse.request_permission)
@@ -262,7 +276,7 @@ class TestBrewhouse(unittest.TestCase):
 
     def test_state_boil_preheat_next_state(self):
         self.brewhouse.state.set_state_by_name("StateBoilPreheat")
-        self.brewhouse.boil_temperature = 210.0
+        self.brewhouse.recipe.boil_temperature = 210.0
         self.brewhouse.boil_kettle.temperature_sensor.temperature = 201.0
         self.brewhouse.state.evaluate()
         self.assertFalse(self.brewhouse.main_pump.pump_status)
@@ -273,7 +287,7 @@ class TestBrewhouse(unittest.TestCase):
 
     def test_state_boil(self):
         self.brewhouse.state.set_state_by_name("StateBoil")
-        self.brewhouse.boil_temperature = 210.0
+        self.brewhouse.recipe.boil_temperature = 210.0
         self.brewhouse.state.state_time_change = 0
         self.brewhouse.working_time = 0
         self.brewhouse.state.evaluate()
@@ -287,7 +301,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.set_state_by_name("StateBoil")
         self.brewhouse.state.state_time_change = 0
         self.brewhouse.working_time = 0
-        self.brewhouse.boil_time = 60.0
+        self.brewhouse.recipe.boil_time = 60.0
         self.brewhouse.state.evaluate()
         self.assertFalse(self.brewhouse.request_permission)
 
@@ -295,7 +309,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.set_state_by_name("StateBoil")
         self.brewhouse.state.state_time_change = 0
         self.brewhouse.working_time = 61.0
-        self.brewhouse.boil_time = 60.0
+        self.brewhouse.recipe.boil_time = 60.0
         self.brewhouse.state.evaluate()
         self.assertFalse(self.brewhouse.request_permission)
         self.assertEquals(
@@ -317,14 +331,14 @@ class TestBrewhouse(unittest.TestCase):
 
     def test_state_cool_not_done(self):
         self.brewhouse.state.set_state_by_name("StateCool")
-        self.brewhouse.cool_temperature = 68.0
+        self.brewhouse.recipe.cool_temperature = 68.0
         self.brewhouse.boil_kettle.temperature_sensor.temperature = 70.0
         self.brewhouse.state.evaluate()
         self.assertFalse(self.brewhouse.request_permission)
 
     def test_state_cool_done(self):
         self.brewhouse.state.set_state_by_name("StateCool")
-        self.brewhouse.cool_temperature = 68.0
+        self.brewhouse.recipe.cool_temperature = 68.0
         self.brewhouse.boil_kettle.temperature_sensor.temperature = 67.0
         self.brewhouse.state.evaluate()
         self.assertTrue(self.brewhouse.request_permission)

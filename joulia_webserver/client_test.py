@@ -7,6 +7,7 @@ from joulia_webserver import client
 from joulia_webserver.client import JouliaHTTPClient
 from joulia_webserver.client import JouliaWebserverClientBase
 from joulia_webserver.client import JouliaWebsocketClient
+from joulia_webserver.models import MashStep
 from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 from testing.stub_requests import StubRequests
 from testing.stub_websocket import stub_websocket_connect
@@ -158,7 +159,7 @@ class TestJouliaHttpClient(unittest.TestCase):
                 '[{"time":60.0,"temperature":152.0},'
                 '{"time":15.0,"temperature":160.0}]')
         got = self.client.get_mash_points(10)
-        want = [(60.0, 152.0), (15.0, 160.0)]
+        want = [MashStep(60.0, 152.0), MashStep(15.0, 160.0)]
         self.assertEquals(got, want)
 
     def test_get_recipe_instance(self):

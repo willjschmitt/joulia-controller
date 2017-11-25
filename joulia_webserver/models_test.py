@@ -2,6 +2,7 @@
 
 import unittest
 
+from joulia_webserver import models
 from joulia_webserver.models import Recipe
 from joulia_webserver.models import RecipeInstance
 
@@ -38,3 +39,64 @@ class TestRecipeInstance(unittest.TestCase):
         recipe_instance = RecipeInstance(pk, recipe_pk)
         self.assertEquals(recipe_instance.pk, pk)
         self.assertEquals(recipe_instance.recipe_pk, recipe_pk)
+
+
+class TestMashStep(unittest.TestCase):
+    """Tests MashStep."""
+
+    def test_eq(self):
+        duration = 60.0
+        temperature = 155.0
+        a = models.MashStep(duration, temperature)
+        b = models.MashStep(duration, temperature)
+        self.assertEqual(a, b)
+
+    def test_not_eq(self):
+        duration1 = 60.0
+        duration2 = 180.0
+        temperature = 155.0
+        a = models.MashStep(duration1, temperature)
+        b = models.MashStep(duration2, temperature)
+        self.assertNotEqual(a, b)
+
+    def test_str(self):
+        got = str(models.MashStep(60.0, 155.0))
+        want = "Duration: 60.0sec, Temperature: 155.0degF"
+        self.assertEqual(got, want)
+
+
+class TestMashPoint(unittest.TestCase):
+    """Tests MashPoint."""
+
+    def test_eq(self):
+        time = 60.0
+        temperature = 155.0
+        a = models.MashPoint(time, temperature)
+        b = models.MashPoint(time, temperature)
+        self.assertEqual(a, b)
+
+    def test_not_eq(self):
+        time1 = 60.0
+        time2 = 180.0
+        temperature = 155.0
+        a = models.MashPoint(time1, temperature)
+        b = models.MashPoint(time2, temperature)
+        self.assertNotEqual(a, b)
+
+    def test_str(self):
+        got = str(models.MashPoint(0.0, 155.0))
+        want = "Time: 0.0sec, Temperature: 155.0degF"
+        self.assertEqual(got, want)
+
+    def test_absolute_temperature_profile(self):
+        mash_step_1 = models.MashStep(15.0, 150.0)
+        mash_step_2 = models.MashStep(45.0, 155.0)
+        mash_steps = (mash_step_1, mash_step_2)
+        got = models.MashPoint.absolute_temperature_profile(mash_steps)
+        want = [
+            models.MashPoint(0.0, 150.0),
+            models.MashPoint(15.0, 150.0),
+            models.MashPoint(15.0, 155.0),
+            models.MashPoint(60.0, 155.0),
+        ]
+        self.assertEqual(got, want)
