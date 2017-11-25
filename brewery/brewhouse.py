@@ -29,9 +29,8 @@ class Brewhouse(object):
     request_permission = StreamingVariable('request_permission')
     grant_permission = SubscribableVariable('grant_permission')
 
-    # TODO(willjschmitt): Remove gpio and analog_reader as inputs.
-    def __init__(self, client, gpio, analog_reader, recipe_instance,
-                 boil_kettle, mash_tun, main_pump, recipe):
+    def __init__(self, client, recipe_instance, boil_kettle, mash_tun,
+                 main_pump, recipe):
         """Creates the `Brewhouse` instance and waits for a command
         from the webserver to start a new instance.
 
@@ -77,8 +76,8 @@ class Brewhouse(object):
             client, analog_reader, recipe_instance, configuration["mash_tun"])
         main_pump = SimplePump.from_json(
             client, gpio, recipe_instance, configuration["main_pump"])
-        return cls(client, gpio, analog_reader, recipe_instance, boil_kettle,
-                   mash_tun, main_pump, recipe)
+        return cls(client, recipe_instance, boil_kettle, mash_tun, main_pump,
+                   recipe)
 
     def _register(self, client, recipe_instance):
         """Registers the tracked/managed variables with the recipe

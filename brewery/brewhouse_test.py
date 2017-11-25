@@ -57,8 +57,8 @@ class TestBrewhouse(unittest.TestCase):
             boil_time, cool_temperature, mash_temperature_profile)
 
         self.brewhouse = Brewhouse(
-            self.ws_client, self.gpio, self.analog_reader, self.recipe_instance,
-            self.boil_kettle, self.mash_tun, self.main_pump, self.recipe)
+            self.ws_client, self.recipe_instance, self.boil_kettle,
+            self.mash_tun, self.main_pump, self.recipe)
 
     def test_start_brewing_succeeds(self):
         self.brewhouse.start_brewing()
