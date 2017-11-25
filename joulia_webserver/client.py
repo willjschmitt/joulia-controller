@@ -7,6 +7,8 @@ import datetime
 import json
 import logging
 
+from joulia_webserver.models import MashStep
+from joulia_webserver.models import MashProfile
 from joulia_webserver.models import Recipe
 from joulia_webserver.models import RecipeInstance
 import pytz
@@ -174,7 +176,7 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
         """
         mash_points_response = self._get(self._get_mash_points_url(recipe_pk))
         mash_points = mash_points_response.json()
-        return [(pt["time"], pt["temperature"]) for pt in mash_points]
+        return [MashStep(pt["time"], pt["temperature"]) for pt in mash_points]
 
     def _get_recipe_instance_url(self, recipe_instance_pk):
         return "{}/brewery/api/recipeInstance/{}/".format(
@@ -201,12 +203,13 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
             Mash points as an array of (duration, temperature) pairs.
         """
         mash_points = self.get_mash_points(recipe_pk)
+        mash_profile = MashProfile(mash_points)
 
         recipe_url = self._get_recipe_url(recipe_pk)
         recipe_response = self._get(recipe_url)
         recipe_json_response = recipe_response.json()
 
-        return Recipe.from_joulia_webserver(recipe_json_response, mash_points)
+        return Recipe.from_joulia_webserver(recipe_json_response, mash_profile)
 
     @property
     def _get_joulia_controller_release_url(self):

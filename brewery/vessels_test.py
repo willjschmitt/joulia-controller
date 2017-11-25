@@ -242,58 +242,6 @@ class TestHeatExchangedVessel(unittest.TestCase):
         self.vessel.enable()
         self.assertFalse(self.vessel.enabled)
 
-    def test_absolute_temperature_profile(self):
-        self.vessel.temperature_profile = [(15.0, 150.0),
-                                           (30.0, 155.0),
-                                           (15.0, 160.0)]
-
-        got = self.vessel._absolute_temperature_profile()
-        want = [(0.0, 150.0), (15.0, 155.0), (45.0, 160.0), (60.0, None)]
-
-    def test_set_temperature_no_profile(self):
-        with self.assertRaises(AssertionError):
-            self.vessel.set_temperature_profile(0.0)
-
-    def test_set_temperature_before_profile(self):
-        self.vessel.temperature_profile = [(0.0, 150.0),
-                                           (15.0, 155.0),
-                                           (45.0, 160.0)]
-        with self.assertRaises(AssertionError):
-            self.vessel.set_temperature_profile(-1.0)
-
-    def test_set_temperature_after_profile(self):
-        self.vessel.temperature_profile = [(15.0, 150.0),
-                                           (30.0, 155.0),
-                                           (15.0, 160.0)]
-        with self.assertRaises(AssertionError):
-            self.vessel.set_temperature_profile(60.0)
-
-    def test_set_temperature_start_profile(self):
-        self.vessel.set_temperature(70.0)
-        self.assertAlmostEquals(self.vessel.temperature_set_point, 70.0, 9)
-
-        self.vessel.temperature_profile = [(15.0, 150.0),
-                                           (30.0, 155.0),
-                                           (15.0, 160.0)]
-        self.vessel.set_temperature_profile(0.0)
-        self.assertAlmostEquals(self.vessel.temperature_set_point, 150.0, 9)
-
-    def test_set_temperature_in_profile(self):
-        self.vessel.set_temperature(70.0)
-        self.assertAlmostEquals(self.vessel.temperature_set_point, 70.0, 9)
-
-        self.vessel.temperature_profile = [(15.0, 150.0),
-                                           (30.0, 155.0),
-                                           (15.0, 160.0)]
-        self.vessel.set_temperature_profile(15.0)
-        self.assertAlmostEquals(self.vessel.temperature_set_point, 155.0, 9)
-
-    def test_temperature_profile_length(self):
-        self.vessel.temperature_profile = [(15.0, 150.0),
-                                           (30.0, 155.0),
-                                           (15.0, 160.0)]
-        self.assertAlmostEquals(self.vessel.temperature_profile_length, 60.0, 9)
-
     def test_set_liquid_level(self):
         self.vessel.volume = 1.0
         self.vessel.heat_exchanger_conductivity = 1.0

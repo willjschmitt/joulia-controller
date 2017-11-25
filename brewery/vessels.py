@@ -244,12 +244,11 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
 
     # TODO(willjschmitt): Make heat_exchanger_conductivity a required arg.
     def __init__(self, client, recipe_instance, volume, temperature_sensor,
-                 heat_exchanger_conductivity=1.0, temperature_profile=None):
+                 heat_exchanger_conductivity=1.0):
         super(HeatExchangedVessel, self).__init__(volume, temperature_sensor)
         self._register(client, recipe_instance)
 
         self.heat_exchanger_conductivity = heat_exchanger_conductivity
-        self.temperature_profile = temperature_profile
 
         self.temperature_set_point = 0.
         self.source_temperature = self.temperature_set_point
@@ -307,50 +306,6 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         the vessel temperature.
         """
         self.temperature_set_point = temperature
-
-    def _absolute_temperature_profile(self):
-        """Creates a temperature profile where the times are relative to start
-        rather than the lengths of time for each segment. An additional segment
-        at the end is added with None for the temperature, indicating the end.
-
-        That is, `[(15.0, 150.), (15.0, 155.0)]` becomes
-        `[(0.0, 150.0), (15.0, 155.0), (30.0, None)]`.
-        """
-        profile = [(0.0, self.temperature_profile[0][1])]
-        for i, point in enumerate(self.temperature_profile):
-            time_sum = profile[-1][0] + point[0]
-            if i+1 == len(self.temperature_profile):
-                next_temperature = None
-            else:
-                next_temperature = self.temperature_profile[i+1][1]
-            profile.append((time_sum, next_temperature))
-        return profile
-
-    def set_temperature_profile(self, time_in_profile):
-        """Sets the temperature setpoint for the controls based on the
-        current time relative to the start of the temperature profile.
-
-        Args:
-            time_in_profile: The time to reference as the beginning of the
-                profile.
-        """
-        assert self.temperature_profile is not None
-
-        absolute_temperature_profile = self._absolute_temperature_profile()
-        assert time_in_profile >= absolute_temperature_profile[0][0]
-        assert time_in_profile < absolute_temperature_profile[-1][0]
-
-        for point in reversed(absolute_temperature_profile):
-            if time_in_profile >= point[0]:
-                self.set_temperature(point[1])
-                return
-
-    @property
-    def temperature_profile_length(self):
-        """The total amount of time prescribed in the ``temperature_profile``
-        """
-        absolute_profile = self._absolute_temperature_profile()
-        return absolute_profile[-1][0]
 
     def set_liquid_level(self, volume):
         """Adjusts the liquid volume of the vessel, which then recalculates

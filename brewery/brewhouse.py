@@ -48,12 +48,7 @@ class Brewhouse(object):
         self.data_streamer = DataStreamer(client, self, recipe_instance, 1000)
         self._initialize_data_streamer()
 
-        self.strike_temperature = recipe.strike_temperature
-        self.mashout_temperature = recipe.mashout_temperature
-        self.mashout_time = recipe.mashout_time  # Seconds
-        self.boil_temperature = 217.0
-        self.boil_time = recipe.boil_time  # Seconds
-        self.cool_temperature = recipe.cool_temperature
+        self.recipe = recipe
         self.system_energy = 0.0
 
         self.working_time = None
@@ -256,9 +251,11 @@ class StatePremash(State):
         brewhouse.mash_tun.disable()
 
         brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
-        brewhouse.boil_kettle.set_temperature(brewhouse.strike_temperature)
+        brewhouse.boil_kettle.set_temperature(
+            brewhouse.recipe.strike_temperature)
 
-        if brewhouse.boil_kettle.temperature > brewhouse.strike_temperature:
+        if (brewhouse.boil_kettle.temperature
+                > brewhouse.recipe.strike_temperature):
             brewhouse.request_permission = True
         else:
             brewhouse.request_permission = False
@@ -281,7 +278,9 @@ class StateStrike(State):
         brewhouse.boil_kettle.disable()
         brewhouse.mash_tun.disable()
 
-        first_temperature = brewhouse.mash_tun.temperature_profile[0][1]
+        assert len(brewhouse.recipe.mash_temperature_profile) > 0
+        first_temperature = (
+            brewhouse.recipe.mash_temperature_profile[0].temperature)
         brewhouse.boil_kettle.set_temperature(first_temperature)
 
         brewhouse.request_permission = True
@@ -309,7 +308,9 @@ class StatePostStrike(State):
         brewhouse.mash_tun.set_temperature(
             brewhouse.mash_tun.temperature)
 
-        first_temperature = brewhouse.mash_tun.temperature_profile[0][1]
+        assert len(brewhouse.recipe.mash_temperature_profile) > 0
+        first_temperature = (
+            brewhouse.recipe.mash_temperature_profile[0].temperature)
         brewhouse.boil_kettle.set_temperature(first_temperature)
 
         if (brewhouse.boil_kettle.temperature
@@ -332,16 +333,19 @@ class StateMash(State):
     def __call__(self, brewhouse):
         LOGGER.debug('In state Mash')
 
+        mash_profile = brewhouse.recipe.mash_temperature_profile
+
         brewhouse.timer = (
             brewhouse.state_t0
-            + brewhouse.mash_tun.temperature_profile_length
+            + mash_profile.temperature_profile_length
             - brewhouse.working_time)
 
         brewhouse.main_pump.turn_on()
         brewhouse.boil_kettle.enable()
         brewhouse.mash_tun.enable()
 
-        brewhouse.mash_tun.set_temperature_profile(brewhouse.state_t0)
+        mash_temperature = mash_profile.temperature_at_time(brewhouse.state_t0)
+        brewhouse.mash_tun.set_temperature(mash_temperature)
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
 
         if brewhouse.timer <= 0.:
@@ -367,12 +371,13 @@ class StateMashoutRamp(State):
         brewhouse.boil_kettle.enable()
         brewhouse.mash_tun.disable()
 
-        brewhouse.mash_tun.set_temperature(brewhouse.mashout_temperature)
+        brewhouse.mash_tun.set_temperature(brewhouse.recipe.mashout_temperature)
         # Give a little extra push on boil set temp
         brewhouse.boil_kettle.set_temperature(
-            brewhouse.mashout_temperature + 5.0)
+            brewhouse.recipe.mashout_temperature + 5.0)
 
-        if brewhouse.boil_kettle.temperature > brewhouse.mashout_temperature:
+        if (brewhouse.boil_kettle.temperature
+                > brewhouse.recipe.mashout_temperature):
             self.state_machine.next_state()
 
 
@@ -392,15 +397,16 @@ class StateMashoutRecirculation(State):
 
         brewhouse.timer = (
             brewhouse.state_t0
-            + brewhouse.mashout_time
+            + brewhouse.recipe.mashout_time
             - brewhouse.working_time)
 
         brewhouse.main_pump.turn_on()
         brewhouse.boil_kettle.enable()
         brewhouse.mash_tun.disable()
 
-        brewhouse.mash_tun.set_temperature(brewhouse.mashout_temperature)
-        brewhouse.boil_kettle.set_temperature(brewhouse.mashout_temperature)
+        brewhouse.mash_tun.set_temperature(brewhouse.recipe.mashout_temperature)
+        brewhouse.boil_kettle.set_temperature(
+            brewhouse.recipe.mashout_temperature)
         if brewhouse.timer <= 0.:
             brewhouse.request_permission = True
         else:
@@ -521,7 +527,7 @@ class StateBoilPreheat(State):
         brewhouse.mash_tun.disable()
 
         brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
-        brewhouse.boil_kettle.set_temperature(brewhouse.boil_temperature)
+        brewhouse.boil_kettle.set_temperature(brewhouse.recipe.boil_temperature)
 
         preheat_temperature = brewhouse.boil_kettle.temperature_set_point - 10.0
         if brewhouse.boil_kettle.temperature > preheat_temperature:
@@ -545,11 +551,11 @@ class StateBoil(State):
 
         brewhouse.timer = (
             brewhouse.state_t0
-            + brewhouse.boil_time
+            + brewhouse.recipe.boil_time
             - brewhouse.working_time)
 
         brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
-        brewhouse.boil_kettle.set_temperature(brewhouse.boil_temperature)
+        brewhouse.boil_kettle.set_temperature(brewhouse.recipe.boil_temperature)
 
         if brewhouse.timer <= 0.0:
             self.state_machine.next_state()
@@ -596,7 +602,8 @@ class StateCool(State):
         brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
 
-        if brewhouse.boil_kettle.temperature < brewhouse.cool_temperature:
+        if (brewhouse.boil_kettle.temperature
+                < brewhouse.recipe.cool_temperature):
             brewhouse.request_permission = True
         else:
             brewhouse.request_permission = False
