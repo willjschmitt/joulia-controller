@@ -25,7 +25,7 @@ class StubJouliaHTTPClient(JouliaHTTPClient):
         self.latest_joulia_controller_release = None
         self.brewhouse = None
 
-    def identify(self, sensor_name, recipe_instance):
+    def identify(self, sensor_name, recipe_instance, variable_type):
         result = self.identifier
         self.identifier += 1
         return result

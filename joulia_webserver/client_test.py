@@ -3,6 +3,7 @@
 import json
 import unittest
 
+from joulia_webserver import client
 from joulia_webserver.client import JouliaHTTPClient
 from joulia_webserver.client import JouliaWebserverClientBase
 from joulia_webserver.client import JouliaWebsocketClient
@@ -42,7 +43,8 @@ class TestJouliaWebserverClientBase(unittest.TestCase):
         sensor_name = "foo"
         recipe_instance = 0
         with self.assertRaises(NotImplementedError):
-            self.client.identify(sensor_name, recipe_instance)
+            self.client.identify(sensor_name, recipe_instance,
+                                 client.VALUE_VARIABLE_TYPE)
 
     def test_update_sensor_value(self):
         recipe_instance = 0
@@ -130,12 +132,13 @@ class TestJouliaHttpClient(unittest.TestCase):
         self.assertEqual(got, want)
 
     def test_identify(self):
-        self.client._requests_service.response_string = '{"sensor":11}'
+        self.client._requests_service.response_string = (
+            '{"sensor":11}')
         sensor_name = "fake_sensor"
         recipe_instance = 1
-        got = self.client.identify(sensor_name, recipe_instance)
-        want = 11
-        self.assertEqual(got, want)
+        sensor_id = self.client.identify(
+            sensor_name, recipe_instance, client.OVERRIDE_VARIABLE_TYPE)
+        self.assertEqual(sensor_id, 11)
 
     def test_update_sensor_value_url(self):
         got = self.client._update_sensor_value_url
@@ -253,9 +256,9 @@ class TestJouliaWebsocketClient(unittest.TestCase):
         self.client.http_client.identifier = 11
         sensor_name = "fake_sensor"
         recipe_instance = 1
-        got = self.client.identify(sensor_name, recipe_instance)
-        want = 11
-        self.assertEqual(got, want)
+        sensor_id = self.client.identify(
+            sensor_name, recipe_instance, client.OVERRIDE_VARIABLE_TYPE)
+        self.assertEqual(sensor_id, 11)
 
     def test_subscribe(self):
         recipe_instance = 1

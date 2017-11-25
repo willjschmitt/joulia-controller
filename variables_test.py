@@ -131,9 +131,10 @@ class TestManagedVariable(unittest.TestCase):
         TestClass.foo.register(self.http_client, instance, recipe_instance)
 
         self.http_client.identifier = 11
-        TestClass.foo.identify(instance, recipe_instance)
+        TestClass.foo.identify(
+            instance, recipe_instance, variables.VALUE_VARIABLE_TYPE)
 
-        got = TestClass.foo.ids[instance]
+        got = TestClass.foo.ids[(instance, variables.VALUE_VARIABLE_TYPE)]
         want = 11
         self.assertEquals(got, want)
 
@@ -336,12 +337,13 @@ class TestOverridableVariable(unittest.TestCase):
         instance = TestClass()
         recipe_instance = 1
         sensor_id = 3
+        override_id = 4
         self.ws_client.http_client.identifier = sensor_id
         TestClass.foo.register(self.ws_client, instance, recipe_instance)
 
         self.assertIn((sensor_id, "value", recipe_instance),
                       TestClass.foo.subscribers)
-        self.assertIn((sensor_id, "override", recipe_instance),
+        self.assertIn((override_id, "override", recipe_instance),
                       TestClass.foo.subscribers)
 
     def test_set_not_overridden(self):
@@ -399,13 +401,14 @@ class TestOverridableVariable(unittest.TestCase):
 
         instance = TestClass()
         recipe_instance = 1
-        self.http_client.identifier = 11
+        sensor_id = 11
+        override_id = 12
+        self.http_client.identifier = sensor_id
 
         TestClass.foo.register(self.ws_client, instance, recipe_instance)
 
         self.assertFalse(TestClass.foo.overridden[instance])
-        message = ('{"sensor":11,"recipe_instance":1,"value":1,'
-                   '"variable_type":"override"}')
+        message = '{"sensor":%s,"recipe_instance":1,"value":1}' % override_id
         TestClass.foo.on_message(message)
         self.assertTrue(TestClass.foo.overridden[instance])
 
@@ -436,8 +439,7 @@ class TestOverridableVariable(unittest.TestCase):
         TestClass.foo.register(self.ws_client, instance, recipe_instance)
 
         self.assertFalse(TestClass.foo.overridden[instance])
-        message = ('{"sensor":11,"recipe_instance":1,"value":2,'
-                   '"variable_type":"value"}')
+        message = '{"sensor":11,"recipe_instance":1,"value":2}'
         TestClass.foo.on_message(message)
         self.assertFalse(TestClass.foo.overridden[instance])
         self.assertEquals(instance.foo, 2)
@@ -461,12 +463,13 @@ class TestBidirectionalVariable(unittest.TestCase):
         instance = TestClass()
         recipe_instance = 1
         sensor_id = 3
+        override_id = 4
         self.ws_client.http_client.identifier = sensor_id
         TestClass.foo.register(self.ws_client, instance, recipe_instance)
 
         self.assertIn((sensor_id, "value", recipe_instance),
                       TestClass.foo.subscribers)
-        self.assertIn((sensor_id, "override", recipe_instance),
+        self.assertIn((override_id, "override", recipe_instance),
                       TestClass.foo.subscribers)
 
     def test_on_message_override(self):
@@ -543,7 +546,6 @@ class TestDataStreamer(unittest.TestCase):
         streamer.register("foo", "bar")
 
         self.assertEquals(streamer.attribute_to_name["foo"], "bar")
-        self.assertEquals(streamer.ids["foo"], 11)
         self.assertEquals(streamer.id_to_attribute[11], "foo")
 
     def test_register_no_name(self):
@@ -558,7 +560,6 @@ class TestDataStreamer(unittest.TestCase):
         streamer.register("foo")
 
         self.assertEquals(streamer.attribute_to_name["foo"], "foo")
-        self.assertEquals(streamer.ids["foo"], 11)
         self.assertEquals(streamer.id_to_attribute[11], "foo")
 
     def test_register_double_register_fails(self):

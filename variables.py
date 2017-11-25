@@ -13,6 +13,10 @@ from utils import rgetattr
 LOGGER = logging.getLogger(__name__)
 
 
+VALUE_VARIABLE_TYPE = 'value'
+OVERRIDE_VARIABLE_TYPE = 'override'
+
+
 class ManagedVariable(object):
     """Top level class to represent a managed variable that controls how
     the property is get or set for a given object.
@@ -30,6 +34,7 @@ class ManagedVariable(object):
             is necessary, because this variable needs to be assigned at the
             class level in order for get/set to work correctly.
         ids: A dictionary that maps an object to its identifier on the server.
+        variable_types: A dictionary mapping a sensor id to the variable type.
         authtokens: A dictionary that maps an object to its instance's
             authorization token.
         callbacks: A callback to be called when a related frame is received
@@ -47,7 +52,8 @@ class ManagedVariable(object):
         self.clients = WeakKeyDictionary()
         self.recipe_instances = WeakKeyDictionary()
         self.data = WeakKeyDictionary()
-        self.ids = WeakKeyDictionary()
+        self.ids = {}
+        self.variable_types = {}
         self.authtokens = WeakKeyDictionary()
         self.callbacks = WeakKeyDictionary()
         self.registered = WeakSet()
@@ -104,17 +110,22 @@ class ManagedVariable(object):
 
         self.registered.add(instance)
 
-    def identify(self, instance, recipe_instance):
+    def identify(self, instance, recipe_instance,
+                 variable_type=VALUE_VARIABLE_TYPE):
         """Requests the sensor id from the server for the current instance of
         the variable and stores it for future use.
 
         Arguments:
             instance: the instance the variable is associated with.
             recipe_instance: the recipe identifier for the session of brewing.
+            variable_type: The type of variable to subscribe to (e.g. 'value' or
+                'override'). Defaults to 'value'.
         """
         client = self.clients[instance]
-        id_sensor = client.identify(self.sensor_name, recipe_instance)
-        self.ids[instance] = id_sensor
+        id_sensor = client.identify(
+            self.sensor_name, recipe_instance, variable_type)
+        self.ids[(instance, variable_type)] = id_sensor
+        self.variable_types[id_sensor] = variable_type
 
 
 class WebsocketVariable(ManagedVariable):
@@ -154,7 +165,7 @@ class StreamingVariable(WebsocketVariable):
         super(StreamingVariable, self).__set__(instance, value)
         client = self.clients[instance]
         recipe_instance = self.recipe_instances[instance]
-        sensor = self.ids[instance]
+        sensor = self.ids[(instance, VALUE_VARIABLE_TYPE)]
         LOGGER.debug("Sending new value for %s: %s.", self.sensor_name, value)
         client.update_sensor_value(recipe_instance, value, sensor)
 
@@ -176,7 +187,8 @@ class SubscribableVariable(WebsocketVariable):
         client.register_callback(self.on_message)
         self._subscribe(instance, recipe_instance)
 
-    def _subscribe(self, instance, recipe_instance, variable_type="value"):
+    def _subscribe(self, instance, recipe_instance,
+                   variable_type=VALUE_VARIABLE_TYPE):
         """Creates a subscription given a sensor name and recipe instance
 
         Args:
@@ -187,16 +199,17 @@ class SubscribableVariable(WebsocketVariable):
                 "override". Other reasonable values might be made available
                 later. Defaults to "value".
         """
-
         # If we don't have a subscription setup yet, send a subscribe
         # request through the websocket
-        sensor = self.ids[instance]
+        sensor_key = (instance, variable_type)
+        if sensor_key not in self.ids:
+            self.identify(instance, recipe_instance, variable_type)
+        sensor = self.ids[sensor_key]
         subscription_key = (sensor, variable_type, recipe_instance)
         if subscription_key not in self.subscribers:
-            LOGGER.info('Subscribing to %s, instance %s',
-                        self.sensor_name, recipe_instance)
+            LOGGER.info('Subscribing to %s (%s), instance %s',
+                        self.sensor_name, variable_type, recipe_instance)
 
-            sensor = self.ids[instance]
             subscriber = {'instance': instance}
             self.subscribers[subscription_key] = subscriber
 
@@ -271,7 +284,8 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
             callback=callback)
 
         self.overridden[instance] = False
-        self._subscribe(instance, recipe_instance, variable_type='override')
+        self._subscribe(instance, recipe_instance,
+                        variable_type=OVERRIDE_VARIABLE_TYPE)
 
     def __set__(self, obj, value):
         """override the __set__ function to check if an override is not in
@@ -286,7 +300,7 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
     def on_message(self, response):
         response_data = json.loads(response)
         sensor = response_data['sensor']
-        variable_type = response_data.get('variable_type', "value")
+        variable_type = self.variable_types[sensor]
         recipe_instance = response_data['recipe_instance']
         subscriber_key = (sensor, variable_type, recipe_instance)
 
@@ -303,7 +317,7 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
 
         instance = subscriber['instance']
 
-        if variable_type == 'override':
+        if variable_type == OVERRIDE_VARIABLE_TYPE:
             self.overridden[instance] = bool(response_value)
             return
         else:
@@ -322,7 +336,6 @@ class DataStreamer(object):
         recipe_instance: The brewing instance the datastream is associated with.
         datastream_frequency: The period between automatic polling of data to be
             sent to the Joulia webserver. (milliseconds)
-        ids: A dictionary mapping attribute names to server variable id.
         attribute_to_name: A dictionary mapping attribute names to names used to
             store on server.
         id_to_attribute: A dictionary mapping the server variable id to
@@ -342,7 +355,6 @@ class DataStreamer(object):
         self.recipe_instance = recipe_instance
         self.datastream_frequency = datastream_frequency
 
-        self.ids = {}
         self.attribute_to_name = {}
         self.id_to_attribute = {}
 
@@ -374,13 +386,13 @@ class DataStreamer(object):
         LOGGER.debug("%r registering %s as %s for data streaming.",
                      self.instance, attr, name)
 
-        identifier = self.client.identify(name, self.recipe_instance)
+        identifier = self.client.identify(
+            name, self.recipe_instance, VALUE_VARIABLE_TYPE)
         if identifier in self.id_to_attribute:
             # This makes sure we aren't overwriting anything
             raise AttributeError(
                 '{} already exists in streaming service.'.format(name))
 
-        self.ids[attr] = identifier
         self.attribute_to_name[attr] = name
         self.id_to_attribute[identifier] = attr
 
