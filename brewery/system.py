@@ -5,14 +5,20 @@ wrap the Brewhouse and keep it scoped to brewing while this System handles
 process.
 """
 import logging
+import os
 from urllib.parse import urlencode
 
 from tornado import ioloop
 from tornado.escape import json_decode
+from tornado.httpclient import AsyncHTTPClient
 
 from brewery.brewhouse import Brewhouse
+from git import Repo
 from http_codes import HTTP_TIMEOUT
+from joulia_webserver.client import JouliaHTTPClient
+from joulia_webserver.client import JouliaWebsocketClient
 import settings
+from update import UpdateManager
 
 LOGGER = logging.getLogger(__name__)
 
@@ -39,6 +45,34 @@ class System(object):
         self.update_check_timer = ioloop.PeriodicCallback(
             self.update_manager.check_version, UPDATE_CHECK_RATE)
         self.update_check_timer.start()
+
+    @classmethod
+    def create_from_settings(cls, analog_reader, gpio):
+        """Creates a System using values from settings.
+
+        Only needs the I/O interfaces to be able to control the simulated
+        version.
+        """
+        LOGGER.info('Starting brewery.')
+        http_client = JouliaHTTPClient(
+            settings.HTTP_PREFIX + "://" + settings.HOST,
+            auth_token=settings.AUTHTOKEN)
+        ws_address = "{}://{}/live/timeseries/socket/".format(
+            settings.WS_PREFIX, settings.HOST)
+        ws_client = JouliaWebsocketClient(ws_address, http_client,
+                                          auth_token=settings.AUTHTOKEN)
+        start_stop_client = AsyncHTTPClient()
+
+        brewhouse_id = http_client.get_brewhouse_id()
+
+        repo = Repo(os.getcwd())
+        update_manager = UpdateManager(repo, http_client)
+        system = System(http_client, ws_client, start_stop_client, brewhouse_id,
+                        analog_reader, gpio, update_manager)
+        system.watch_for_start()
+        LOGGER.info("Brewery initialized.")
+
+        ioloop.IOLoop.instance().start()
 
     def create_brewhouse(self, recipe_instance_pk):
         """Creates a new brewhouse instance when starting a new recipe."""

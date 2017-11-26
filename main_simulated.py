@@ -1,16 +1,15 @@
-"""Main code for launching a Brewhouse joulia-controller."""
+"""Main code for launching a simulated Brewhouse joulia-controller."""
 import logging.config
 import os
-import time
 
-from Adafruit_GPIO.SPI import SpiDev
-from Adafruit_MCP3008 import MCP3008
-import RPi.GPIO as gpio
 from tornado import ioloop
 
 from brewery.system import System
 from measurement.analog_reader import MCP3004AnalogReader
 import settings
+from testing.stub_gpio import StubGPIO
+from testing.stub_mcp3008 import StubSpiDev as StubSpiDev
+from testing.stub_mcp3008 import StubMCP3008 as StubMCP3008
 
 logging.config.dictConfig(settings.LOGGING_CONFIG)
 LOGGER = logging.getLogger(__name__)
@@ -26,6 +25,7 @@ def main():
     os.chdir(root_directory)
 
     analog_reader = create_analog_reader()
+    gpio = StubGPIO()
     gpio.setmode(gpio.BCM)
 
     system = System.create_from_settings(analog_reader, gpio)
@@ -35,19 +35,12 @@ def main():
 
 
 def create_analog_reader():
-    spi_port = 0
-    spi_device = 0
-    spi = SpiDev(spi_port, spi_device)
-    mcp = MCP3008(spi=spi)
+    mcp = StubMCP3008(spi=StubSpiDev())
     analog_reference_volts = 3.3
     return MCP3004AnalogReader(mcp, analog_reference_volts)
 
 
 if __name__ == "__main__":
-    # TODO(willjschmitt): This is a hack because networking is not up when this
-    # is first called. We simply delay startup by 10seconds to allow networking
-    # to come up.
-    time.sleep(10.0)
     try:
         main()  # pragma: no cover
     except Exception as e:

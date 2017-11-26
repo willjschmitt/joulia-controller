@@ -7,10 +7,10 @@ from unittest.mock import Mock
 from tornado.httpclient import HTTPError
 
 from brewery.brewhouse import Brewhouse
+from brewery.system import System
 from http_codes import HTTP_TIMEOUT
 from joulia_webserver.models import Recipe
 from joulia_webserver.models import RecipeInstance
-from main import System
 from measurement.analog_reader import MCP3004AnalogReader
 from testing.stub_async_http_client import StubAsyncHTTPClient
 from testing.stub_gpio import StubGPIO
@@ -57,9 +57,7 @@ class TestSystem(unittest.TestCase):
 
         brewhouse_id = 0
 
-        spi = StubSpiDev(0, 0)
-
-        mcp = StubMCP3008(spi=spi)
+        mcp = StubMCP3008(spi=StubSpiDev())
         analog_reference = 3.3  # Volts
         analog_reader = MCP3004AnalogReader(mcp, analog_reference)
 

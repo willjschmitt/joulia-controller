@@ -26,5 +26,5 @@ class StubSpiDev(object):
     Adafruit_GPIO library. The stub StubMCP3008, which consumes this stub, won't
     call this stub at all.
     """
-    def __init__(self, port, device):
-        del port, device
+    def __init__(self):
+        pass
