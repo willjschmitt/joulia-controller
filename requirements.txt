@@ -9,3 +9,4 @@ Adafruit-GPIO>=0.6.5
 adafruit-mcp3008>=1.0.2
 GitPython>=2.1.5
 numpy>=1.13.3
+pylint==1.7.4

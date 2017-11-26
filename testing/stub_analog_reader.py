@@ -3,7 +3,7 @@
 from measurement.analog_reader import AnalogReaderBase
 
 
-class StubAnalogReader(AnalogReaderBase):
+class StubAnalogReader(AnalogReaderBase):  # pylint: disable=abstract-method
     """Stub for the AnalogReader."""
     def __init__(self):
         # Since we are overriding read_voltage, the counts_reference does not

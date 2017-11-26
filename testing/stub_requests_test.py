@@ -1,7 +1,8 @@
 """Tests for the stub_requests module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
-import requests
 import unittest
+import requests
 
 from testing.stub_requests import StubRequests
 from testing.stub_requests import StubResponse
@@ -16,8 +17,8 @@ class TestStubRequests(unittest.TestCase):
     def test_post(self):
         response = self.requests.post("fake_url")
         self.assertIsInstance(response, StubResponse)
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.reason, "OK")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.reason, "OK")
 
     def test_post_uses_url_specific_response(self):
         self.requests.response_string = "should never see this"
@@ -26,15 +27,15 @@ class TestStubRequests(unittest.TestCase):
 
         response = self.requests.post("fake_url1")
         self.assertIsInstance(response, StubResponse)
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.reason, "OK")
-        self.assertEquals(response.json(), {"fake response": 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.reason, "OK")
+        self.assertEqual(response.json(), {"fake response": 1})
 
         response = self.requests.post("fake_url2")
         self.assertIsInstance(response, StubResponse)
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.reason, "OK")
-        self.assertEquals(response.json(), {"fake response": 2})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.reason, "OK")
+        self.assertEqual(response.json(), {"fake response": 2})
 
     def test_post_server_not_there(self):
         self.requests.server_there = False
@@ -44,8 +45,8 @@ class TestStubRequests(unittest.TestCase):
     def test_get(self):
         response = self.requests.get("fake_url")
         self.assertIsInstance(response, StubResponse)
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.reason, "OK")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.reason, "OK")
 
     def test_get_server_not_there(self):
         self.requests.server_there = False
@@ -60,4 +61,4 @@ class TestStubResponse(unittest.TestCase):
         response = StubResponse('{"foo":"bar"}', 200, "OK")
         got = response.json()
         want = {"foo":"bar"}
-        self.assertEquals(got, want)
+        self.assertEqual(got, want)

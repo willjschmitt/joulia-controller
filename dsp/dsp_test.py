@@ -1,4 +1,5 @@
 """Tests for dsp module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import unittest
 
@@ -24,7 +25,7 @@ class TestDSPBase(unittest.TestCase):
         self.dsp = DSPBase(StubClock())
 
     def test_time_succeeds(self):
-        self.assertIsNotNone(self.dsp._time())
+        self.assertIsNotNone(self.dsp._time())  # pylint: disable=protected-access
 
 
 class TestFirstOrderLag(unittest.TestCase):
@@ -32,28 +33,28 @@ class TestFirstOrderLag(unittest.TestCase):
 
     def test_construct_without_init(self):
         fil = FirstOrderLag(StubClock(), 1.0)
-        self.assertAlmostEquals(fil.filtered, 0.0, 9)
-        self.assertAlmostEquals(fil.filtered_last, 0.0, 9)
+        self.assertAlmostEqual(fil.filtered, 0.0, 9)
+        self.assertAlmostEqual(fil.filtered_last, 0.0, 9)
 
     def test_construct_with_init(self):
         fil = FirstOrderLag(StubClock(), 1.0, init=11.0)
-        self.assertAlmostEquals(fil.filtered, 11.0, 9)
-        self.assertAlmostEquals(fil.filtered_last, 11.0, 9)
+        self.assertAlmostEqual(fil.filtered, 11.0, 9)
+        self.assertAlmostEqual(fil.filtered_last, 11.0, 9)
 
     def test_filter(self):
         fil = FirstOrderLag(StubClock(), 300.0)
 
         for _ in range(300):
             fil.filter(10.0)
-        self.assertAlmostEquals(fil.filtered, 6.3, 1)
+        self.assertAlmostEqual(fil.filtered, 6.3, 1)
 
         for _ in range(300):
             fil.filter(10.0)
-        self.assertAlmostEquals(fil.filtered, 8.7, 1)
+        self.assertAlmostEqual(fil.filtered, 8.7, 1)
 
         for _ in range(300):
             fil.filter(10.0)
-        self.assertAlmostEquals(fil.filtered, 9.5, 1)
+        self.assertAlmostEqual(fil.filtered, 9.5, 1)
 
 
 class TestIntegrator(unittest.TestCase):
@@ -61,17 +62,17 @@ class TestIntegrator(unittest.TestCase):
 
     def test_construct_without_init(self):
         integrator = Integrator(StubClock())
-        self.assertAlmostEquals(integrator.integrated, 0.0, 9)
+        self.assertAlmostEqual(integrator.integrated, 0.0, 9)
 
     def test_construct_with_init(self):
         integrator = Integrator(StubClock(), init=11.0)
-        self.assertAlmostEquals(integrator.integrated, 11.0, 9)
+        self.assertAlmostEqual(integrator.integrated, 11.0, 9)
 
     def test_integrate(self):
         integrator = Integrator(StubClock())
         for _ in range(10):
             integrator.integrate(10)
-        self.assertAlmostEquals(integrator.integrated, 100.0, 9)
+        self.assertAlmostEqual(integrator.integrated, 100.0, 9)
 
 
 class TestRegulator(unittest.TestCase):
@@ -86,9 +87,9 @@ class TestRegulator(unittest.TestCase):
         reference = 12.0
         self.regulator.calculate(feedback, reference)
 
-        self.assertAlmostEquals(self.regulator.q_proportional, 0.0, 9)
-        self.assertAlmostEquals(self.regulator.q_integral, 0.0, 9)
-        self.assertAlmostEquals(self.regulator.q, 0.0, 9)
+        self.assertAlmostEqual(self.regulator.q_proportional, 0.0, 9)
+        self.assertAlmostEqual(self.regulator.q_integral, 0.0, 9)
+        self.assertAlmostEqual(self.regulator.output, 0.0, 9)
 
     def test_regulate_enabled(self):
         self.regulator.enable()
@@ -96,9 +97,9 @@ class TestRegulator(unittest.TestCase):
         reference = 12.0
         self.regulator.calculate(feedback, reference)
 
-        self.assertAlmostEquals(self.regulator.q_proportional, 1.0, 9)
-        self.assertAlmostEquals(self.regulator.q_integral, 10.0, 9)
-        self.assertAlmostEquals(self.regulator.q, 11.0, 9)
+        self.assertAlmostEqual(self.regulator.q_proportional, 1.0, 9)
+        self.assertAlmostEqual(self.regulator.q_integral, 10.0, 9)
+        self.assertAlmostEqual(self.regulator.output, 11.0, 9)
 
     def test_regulate_max_output(self):
         self.regulator = Regulator(StubClock(), 1.0, 10.0, max_output=0.5)
@@ -107,9 +108,9 @@ class TestRegulator(unittest.TestCase):
         reference = 12.0
         self.regulator.calculate(feedback, reference)
 
-        self.assertAlmostEquals(self.regulator.q_proportional, 1.0, 9)
-        self.assertAlmostEquals(self.regulator.q_integral, -0.5, 9)
-        self.assertAlmostEquals(self.regulator.q, 0.5, 9)
+        self.assertAlmostEqual(self.regulator.q_proportional, 1.0, 9)
+        self.assertAlmostEqual(self.regulator.q_integral, -0.5, 9)
+        self.assertAlmostEqual(self.regulator.output, 0.5, 9)
 
     def test_regulate_min_output(self):
         self.regulator = Regulator(StubClock(), 1.0, 10.0, min_output=-0.5)
@@ -118,9 +119,9 @@ class TestRegulator(unittest.TestCase):
         reference = 11.0
         self.regulator.calculate(feedback, reference)
 
-        self.assertAlmostEquals(self.regulator.q_proportional, -1.0, 9)
-        self.assertAlmostEquals(self.regulator.q_integral, +0.5, 9)
-        self.assertAlmostEquals(self.regulator.q, -0.5, 9)
+        self.assertAlmostEqual(self.regulator.q_proportional, -1.0, 9)
+        self.assertAlmostEqual(self.regulator.q_integral, +0.5, 9)
+        self.assertAlmostEqual(self.regulator.output, -0.5, 9)
 
     def test_bad_limits(self):
         with self.assertRaises(AssertionError):
@@ -150,9 +151,9 @@ class TestUpDownRegulator(unittest.TestCase):
             gain_proportional_down, gain_integral_down)
 
         regulator.calculate(10.0, 11.0)
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             regulator.gain_proportional, gain_proportional_up, 9)
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             regulator.gain_integral, gain_integral_up, 9)
 
     def test_gains_negative_error(self):
@@ -165,7 +166,7 @@ class TestUpDownRegulator(unittest.TestCase):
             gain_proportional_down, gain_integral_down)
 
         regulator.calculate(11.0, 10.0)
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             regulator.gain_proportional, gain_proportional_down, 9)
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             regulator.gain_integral, gain_integral_down, 9)

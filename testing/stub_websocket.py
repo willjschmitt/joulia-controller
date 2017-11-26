@@ -12,6 +12,7 @@ def stub_websocket_connect(url, io_loop=None, callback=None,
                            compression_options=None):
     """A stub version of tornado.websocket.websocket_connect for use in unit
     tests."""
+    del url, connect_timeout
     if io_loop is None:
         io_loop = IOLoop.current()
     k_request = None
@@ -40,6 +41,7 @@ class StubWebSocketClientConnection(object):
 
     def __init__(self, io_loop, request, on_message_callback=None,
                  compression_options=None):
+        del request, on_message_callback, compression_options
         self.connect_future = TracebackFuture()
         self.written_messages = []
 
@@ -49,4 +51,5 @@ class StubWebSocketClientConnection(object):
         self.connect_future.set_result(self)
 
     def write_message(self, message):
+        """Adds writen message to the written_messages buffer."""
         self.written_messages.append(message)

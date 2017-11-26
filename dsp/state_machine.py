@@ -7,7 +7,6 @@ import time
 from variables import BidirectionalVariable
 
 
-
 class StateMachine(object):
     """A state machine implementation with a storage of states as
     methods.
@@ -26,7 +25,7 @@ class StateMachine(object):
             they state machine is to be evaluated in a serial
             manner.
     """
-    _id = BidirectionalVariable('state')
+    _index = BidirectionalVariable('state')
 
     def __init__(self, parent, client, recipe_instance):
         self._register(client, recipe_instance)
@@ -34,7 +33,7 @@ class StateMachine(object):
         self.parent = parent
         self.states = []
 
-        self._id = None
+        self._index = None
 
         self.clock = time
         self.state_time_change = self._time()
@@ -47,7 +46,7 @@ class StateMachine(object):
             recipe_instance: The recipe instance to watch the
                 `ManagedVariable`'s on.
         """
-        StateMachine._id.register(client, self, recipe_instance, callback=None)
+        StateMachine._index.register(client, self, recipe_instance, callback=None)
 
     def add_state(self, state):
         """Adds a single state to the end of the states list. Should be called
@@ -60,39 +59,44 @@ class StateMachine(object):
         self.states.append(state)
 
     @property
-    def id(self):
-        return self._id
+    def index(self):
+        """The index of the selected state.
 
-    @id.setter
-    def id(self, value):
+        This is only a proxy to _index so _index can be controlled how it is
+        adjusted based on permission requests.
+        """
+        return self._index
+
+    @index.setter
+    def index(self, value):
         assert value is None or value < len(self.states)
 
-        if self._id != value:
+        if self._index != value:
             self.parent.request_permission = False
             self.parent.grant_permission = False
-        self._id = value
+        self._index = value
 
         self.state_time_change = self._time()
 
     @property
     def state(self):
-        if self.id is None:
+        """The current state the state machine is on."""
+        if self.index is None:
             return None
-        return self.states[self.id]
+        return self.states[self.index]
 
     @state.setter
     def state(self, state):
         assert state in self.states
-        self.id = self.states.index(state)
+        self.index = self.states.index(state)
 
     def evaluate(self):
         """Executes the current state, which is a method, passing
         the parent to the state method.
         """
-        if self.state is not None:
-            return self.state(self.parent)
-        else:
+        if self.state is None:
             return None
+        return self.state(self.parent)  # pylint: disable=not-callable
 
     def _time(self):
         return self.clock.time()
@@ -104,12 +108,12 @@ class StateMachine(object):
 
         If the current state is None, advances to the first state.
         """
-        if self.id is None:
-            self.id = 0
-        elif self.id == len(self.states) - 1:
-            self.id = None
+        if self.index is None:
+            self.index = 0
+        elif self.index == len(self.states) - 1:
+            self.index = None
         else:
-            self.id += 1
+            self.index += 1
 
     def previous_state(self):
         """Moves the current state to the previous state in the state machine.
@@ -118,12 +122,12 @@ class StateMachine(object):
 
         If the current state is None, keeps state set to None.
         """
-        if self.id is None:
-            self.id = None
-        elif self.id == 0:
-            self.id = None
+        if self.index is None:
+            self.index = None
+        elif self.index == 0:
+            self.index = None
         else:
-            self.id -= 1
+            self.index -= 1
 
     def set_state_by_name(self, class_name):
         """Sets the state by the class name of the state."""

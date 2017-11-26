@@ -21,6 +21,10 @@ class OutputPin(object):
 
     @property
     def value(self):
+        """The value the output has been set to.
+
+        Defaults to None if not set yet.
+        """
         return self._value
 
     @value.setter
@@ -29,7 +33,9 @@ class OutputPin(object):
         self.gpio.output(self.pin_number, value)
 
     def set_on(self):
+        """Turns output to a boolean HIGH/on state."""
         self.value = self.gpio.HIGH
 
     def set_off(self):
+        """Turns output to a boolean LOW/off state."""
         self.value = self.gpio.LOW

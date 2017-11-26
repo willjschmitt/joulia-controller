@@ -1,4 +1,5 @@
 """Tests for the stub_rtd_sensor module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import unittest
 
@@ -10,8 +11,8 @@ class TestStubRtdSensor(unittest.TestCase):
 
     def test_measure(self):
         sensor = StubRtdSensor(70.0)
-        self.assertEquals(sensor.measure_calls, 0)
-        self.assertAlmostEquals(sensor.temperature, 70.0, 9)
+        self.assertEqual(sensor.measure_calls, 0)
+        self.assertAlmostEqual(sensor.temperature, 70.0, 9)
         sensor.measure()
-        self.assertAlmostEquals(sensor.temperature, 70.0, 9)
-        self.assertEquals(sensor.measure_calls, 1)
+        self.assertAlmostEqual(sensor.temperature, 70.0, 9)
+        self.assertEqual(sensor.measure_calls, 1)

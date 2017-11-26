@@ -1,4 +1,5 @@
 """Tests for op_amp module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import unittest
 
@@ -14,11 +15,10 @@ class TestOpAmp(unittest.TestCase):
         self.op_amp = OpAmp(2.0)
 
     def test_v_in(self):
-        self.assertAlmostEquals(self.op_amp.v_in(2.0), 1.0, 9)
+        self.assertAlmostEqual(self.op_amp.v_in(2.0), 1.0, 9)
 
     def test_v_out(self):
-        op_amp = OpAmp(2.0)
-        self.assertAlmostEquals(self.op_amp.v_out(2.0), 4.0, 9)
+        self.assertAlmostEqual(self.op_amp.v_out(2.0), 4.0, 9)
 
 
 class TestVoltageFollower(unittest.TestCase):
@@ -28,10 +28,10 @@ class TestVoltageFollower(unittest.TestCase):
         self.op_amp = VoltageFollower()
 
     def test_v_in(self):
-        self.assertAlmostEquals(self.op_amp.v_in(1.0), 1.0, 9)
+        self.assertAlmostEqual(self.op_amp.v_in(1.0), 1.0, 9)
 
     def test_v_out(self):
-        self.assertAlmostEquals(self.op_amp.v_out(1.0), 1.0, 9)
+        self.assertAlmostEqual(self.op_amp.v_out(1.0), 1.0, 9)
 
 
 class TestDifferentialAmplifier(unittest.TestCase):
@@ -41,7 +41,7 @@ class TestDifferentialAmplifier(unittest.TestCase):
         self.op_amp = DifferentialAmplifier(1.0, 2.0)
 
     def test_v_in(self):
-        self.assertAlmostEquals(self.op_amp.v_in(1.0), -0.5, 9)
+        self.assertAlmostEqual(self.op_amp.v_in(1.0), -0.5, 9)
 
     def test_v_out(self):
-        self.assertAlmostEquals(self.op_amp.v_out(1.0), -2.0, 9)
+        self.assertAlmostEqual(self.op_amp.v_out(1.0), -2.0, 9)

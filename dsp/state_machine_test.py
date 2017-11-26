@@ -1,4 +1,5 @@
 """Tests for the state_machine module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes,blacklisted-name
 
 import unittest
 
@@ -25,13 +26,13 @@ class TestStateMachine(unittest.TestCase):
 
     def test_get_set_id(self):
         State(self.state_machine)
-        self.assertIsNone(self.state_machine.id)
-        self.state_machine.id = 0
-        self.assertEquals(self.state_machine.id, 0)
+        self.assertIsNone(self.state_machine.index)
+        self.state_machine.index = 0
+        self.assertEqual(self.state_machine.index, 0)
 
     def test_set_id_too_high(self):
         with self.assertRaises(AssertionError):
-            self.state_machine.id = 10
+            self.state_machine.index = 10
 
     def test_get_none_state(self):
         self.assertIsNone(self.state_machine.state)
@@ -58,7 +59,7 @@ class TestStateMachine(unittest.TestCase):
                 return 12
         foo = Foo(self.state_machine)
         self.state_machine.state = foo
-        self.assertEquals(self.state_machine.evaluate(), 12)
+        self.assertEqual(self.state_machine.evaluate(), 12)
 
     def test_evaluate_no_state(self):
         class Foo(State):
@@ -79,7 +80,7 @@ class TestStateMachine(unittest.TestCase):
         foo = Foo(self.state_machine)
         bar = Bar(self.state_machine)
 
-        self.state_machine.id = None
+        self.state_machine.index = None
         self.assertIsNone(self.state_machine.state)
         self.state_machine.next_state()
         self.assertIs(self.state_machine.state, foo)
@@ -93,7 +94,7 @@ class TestStateMachine(unittest.TestCase):
 
         foo = Foo(self.state_machine)
 
-        self.state_machine.id = 0
+        self.state_machine.index = 0
         self.assertIs(self.state_machine.state, foo)
         self.state_machine.next_state()
         self.assertIsNone(self.state_machine.state)
@@ -110,7 +111,7 @@ class TestStateMachine(unittest.TestCase):
         foo = Foo(self.state_machine)
         bar = Bar(self.state_machine)
 
-        self.state_machine.id = 1
+        self.state_machine.index = 1
         self.assertIs(self.state_machine.state, bar)
         self.state_machine.previous_state()
         self.assertIs(self.state_machine.state, foo)
@@ -124,7 +125,7 @@ class TestStateMachine(unittest.TestCase):
 
         foo = Foo(self.state_machine)
 
-        self.state_machine.id = 0
+        self.state_machine.index = 0
         self.assertIs(self.state_machine.state, foo)
         self.state_machine.previous_state()
         self.assertIsNone(self.state_machine.state)

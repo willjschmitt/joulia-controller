@@ -1,4 +1,5 @@
 """Tests for the gpio module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import unittest
 
@@ -16,12 +17,12 @@ class TestOutputPin(unittest.TestCase):
 
     def test_get_set(self):
         self.pin.value = self.gpio.HIGH
-        self.assertEquals(self.pin.value, self.gpio.HIGH)
+        self.assertEqual(self.pin.value, self.gpio.HIGH)
 
     def test_set_on(self):
         self.pin.set_on()
-        self.assertEquals(self.pin.value, self.gpio.HIGH)
+        self.assertEqual(self.pin.value, self.gpio.HIGH)
 
     def test_set_off(self):
         self.pin.set_off()
-        self.assertEquals(self.pin.value, self.gpio.LOW)
+        self.assertEqual(self.pin.value, self.gpio.LOW)

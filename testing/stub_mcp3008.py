@@ -3,11 +3,17 @@
 
 
 class StubMCP3008(object):
-    """Stubs MCP3008 from Adafruit_MCP3008 library."""
+    """Stubs MCP3008 from Adafruit_MCP3008 library.
+
+    Does not inherit from the class directly since there are side-effects of it
+    that cannot be mocked.
+    """
     def __init__(self, spi):
+        del spi
         self.counts = 0
 
-    def read_adc(self, channel):
+    def read_adc(self, channel):  # pylint: disable=missing-docstring
+        del channel
         return self.counts
 
 
@@ -21,4 +27,4 @@ class StubSpiDev(object):
     call this stub at all.
     """
     def __init__(self, port, device):
-        pass
+        del port, device

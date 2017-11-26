@@ -1,4 +1,5 @@
 """Tests for the circuits module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import unittest
 
@@ -15,13 +16,13 @@ class TestVoltageDivider(unittest.TestCase):
         self.voltage_divider = VoltageDivider(resistance_top, resistance_bottom)
 
     def test_transfer_function(self):
-        self.assertAlmostEquals(self.voltage_divider.transfer_function, 0.1, 9)
+        self.assertAlmostEqual(self.voltage_divider.transfer_function, 0.1, 9)
 
     def test_v_in(self):
-        self.assertAlmostEquals(self.voltage_divider.v_in(10.0), 100.0, 9)
+        self.assertAlmostEqual(self.voltage_divider.v_in(10.0), 100.0, 9)
 
     def test_v_out(self):
-        self.assertAlmostEquals(self.voltage_divider.v_out(10.0), 1.0, 9)
+        self.assertAlmostEqual(self.voltage_divider.v_out(10.0), 1.0, 9)
 
 
 class TestVariableResistanceVoltageDivider(unittest.TestCase):
@@ -34,8 +35,8 @@ class TestVariableResistanceVoltageDivider(unittest.TestCase):
             resistance_top, voltage_in)
 
     def test_v_out(self):
-        self.assertAlmostEquals(self.voltage_divider.v_out(10.0), 0.1, 9)
+        self.assertAlmostEqual(self.voltage_divider.v_out(10.0), 0.1, 9)
 
     def test_resistance_bottom(self):
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             self.voltage_divider.resistance_bottom(0.1), 10.0, 9)

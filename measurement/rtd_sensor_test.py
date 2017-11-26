@@ -1,4 +1,5 @@
 """Tests for the rtd_sensor module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import unittest
 
@@ -43,28 +44,28 @@ class TestRtdSensor(unittest.TestCase):
             offset_resistance_bottom, offset_resistance_top)
 
     def test_temperature_not_set(self):
-        self.assertAlmostEquals(self.rtd.temperature_unfiltered, 0.0, 9)
+        self.assertAlmostEqual(self.rtd.temperature_unfiltered, 0.0, 9)
 
     def test_resistance_to_temperature_freezing(self):
-        measured = self.rtd._resistance_to_temperature(100.0)
-        self.assertAlmostEquals(measured, 32.0, 9)
+        measured = self.rtd._resistance_to_temperature(100.0)  # pylint: disable=protected-access
+        self.assertAlmostEqual(measured, 32.0, 9)
 
     def test_resistance_to_temperature_boiling(self):
-        measured = self.rtd._resistance_to_temperature(138.5)
-        self.assertAlmostEquals(measured, 212.0, 9)
+        measured = self.rtd._resistance_to_temperature(138.5)  # pylint: disable=protected-access
+        self.assertAlmostEqual(measured, 212.0, 9)
 
     def test_measure_freezing(self):
         self.analog_reader.voltage = 0.0
         self.rtd.measure()
-        self.assertAlmostEquals(self.rtd.temperature_unfiltered, 32.0, 9)
+        self.assertAlmostEqual(self.rtd.temperature_unfiltered, 32.0, 9)
 
     def test_measure_boiling(self):
         self.analog_reader.voltage = 1.827
         self.rtd.measure()
-        self.assertAlmostEquals(self.rtd.temperature_unfiltered, 212.0, 0)
+        self.assertAlmostEqual(self.rtd.temperature_unfiltered, 212.0, 0)
 
     def test_temperature_property(self):
-        self.assertAlmostEquals(self.rtd.temperature, 0.0, 9)
+        self.assertAlmostEqual(self.rtd.temperature, 0.0, 9)
 
     def test_from_json(self):
         configuration = {
@@ -91,7 +92,7 @@ class TestCelsiusToFahrenheit(unittest.TestCase):
     """Tests the celsius_to_fahrenheit function."""
 
     def test_freezing(self):
-        self.assertAlmostEquals(celsius_to_fahrenheit(0.0), 32.0, 9)
+        self.assertAlmostEqual(celsius_to_fahrenheit(0.0), 32.0, 9)
 
     def test_boiling(self):
-        self.assertAlmostEquals(celsius_to_fahrenheit(100.0), 212.0, 9)
+        self.assertAlmostEqual(celsius_to_fahrenheit(100.0), 212.0, 9)

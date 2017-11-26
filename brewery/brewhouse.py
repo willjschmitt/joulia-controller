@@ -88,7 +88,7 @@ class Brewhouse(object):
         def permission_granted(value):
             """If permission is granted, increments the state"""
             if value:
-                self.state.id += 1
+                self.state.index += 1
         Brewhouse.request_permission.register(client, self, recipe_instance)
         Brewhouse.grant_permission.register(
             client, self, recipe_instance, callback=permission_granted)
@@ -126,7 +126,7 @@ class Brewhouse(object):
         """
         for state in self.state_classes():
             state(self.state)
-        self.state.id = 0
+        self.state.index = 0
 
     def _initialize_data_streamer(self):
         """Registers variables that are @properties and need to be streamed
@@ -207,6 +207,7 @@ class Brewhouse(object):
 
     @property
     def state_t0(self):
+        """The time the current state started."""
         return self.state.state_time_change
 
 
@@ -254,11 +255,9 @@ class StatePremash(State):
         brewhouse.boil_kettle.set_temperature(
             brewhouse.recipe.strike_temperature)
 
-        if (brewhouse.boil_kettle.temperature
-                > brewhouse.recipe.strike_temperature):
-            brewhouse.request_permission = True
-        else:
-            brewhouse.request_permission = False
+        brewhouse.request_permission = (
+            brewhouse.boil_kettle.temperature
+            > brewhouse.recipe.strike_temperature)
 
 
 class StateStrike(State):
@@ -313,11 +312,9 @@ class StatePostStrike(State):
             brewhouse.recipe.mash_temperature_profile[0].temperature)
         brewhouse.boil_kettle.set_temperature(first_temperature)
 
-        if (brewhouse.boil_kettle.temperature
-                > brewhouse.boil_kettle.temperature_set_point):
-            brewhouse.request_permission = True
-        else:
-            brewhouse.request_permission = False
+        brewhouse.request_permission = (
+            brewhouse.boil_kettle.temperature
+            > brewhouse.boil_kettle.temperature_set_point)
 
 
 class StateMash(State):
@@ -407,10 +404,8 @@ class StateMashoutRecirculation(State):
         brewhouse.mash_tun.set_temperature(brewhouse.recipe.mashout_temperature)
         brewhouse.boil_kettle.set_temperature(
             brewhouse.recipe.mashout_temperature)
-        if brewhouse.timer <= 0.:
-            brewhouse.request_permission = True
-        else:
-            brewhouse.request_permission = False
+
+        brewhouse.request_permission = (brewhouse.timer <= 0.)
 
 
 class StateSpargePrep(State):
@@ -602,11 +597,9 @@ class StateCool(State):
         brewhouse.mash_tun.set_temperature(brewhouse.mash_tun.temperature)
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
 
-        if (brewhouse.boil_kettle.temperature
-                < brewhouse.recipe.cool_temperature):
-            brewhouse.request_permission = True
-        else:
-            brewhouse.request_permission = False
+        brewhouse.request_permission = (
+            brewhouse.boil_kettle.temperature
+            < brewhouse.recipe.cool_temperature)
 
 
 class StatePumpout(State):

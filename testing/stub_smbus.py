@@ -3,5 +3,8 @@
 class StubSmbus(object):
     """Mocks the smbus library on ubuntu/raspberry pi systems."""
 
-    def Bus(self, bus_number):
+    @staticmethod
+    def Bus(bus_number):  # pylint: disable=invalid-name
+        """Creates a mocked version (None) of the smbus.Bus class."""
+        del bus_number
         return None
