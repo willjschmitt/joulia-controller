@@ -1,30 +1,29 @@
-"""Tests for the main module."""
+"""Tests for the brewery.system module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import json
 import unittest
 from unittest.mock import Mock
 from tornado.httpclient import HTTPError
-# TODO(willjschmitt): Python 3.4 does not support HTTPStatus, so we mock it up
-# for now, since it's only used for testing.
-# from http import HTTPStatus
 
 from brewery.brewhouse import Brewhouse
 from http_codes import HTTP_TIMEOUT
 from joulia_webserver.models import Recipe
 from joulia_webserver.models import RecipeInstance
 from main import System
+from measurement.analog_reader import MCP3004AnalogReader
 from testing.stub_async_http_client import StubAsyncHTTPClient
+from testing.stub_gpio import StubGPIO
 from testing.stub_joulia_webserver_client import StubJouliaHTTPClient
 from testing.stub_joulia_webserver_client import StubJouliaWebsocketClient
-from update import UpdateManager
+from testing.stub_mcp3008 import StubSpiDev
+from testing.stub_mcp3008 import StubMCP3008
 
-HTTPStatus = Mock()
+# TODO(willjschmitt): Python 3.4 does not support HTTPStatus, so we mock it up
+# for now, since it's only used for testing.
+# from http import HTTPStatus
+HTTPStatus = Mock()  # pylint: disable=invalid-name
 HTTPStatus.INTERNAL_SERVER_ERROR = 500
-
-
-class TestMain(unittest.TestCase):
-    """Tests for the main function."""
-    pass
 
 
 class StubUpdateManager(object):
@@ -32,8 +31,8 @@ class StubUpdateManager(object):
         pass
 
 
-class TestCreateBrewhouse(unittest.TestCase):
-    """Tests for the create_brewhouse function."""
+class TestSystem(unittest.TestCase):
+    """Tests for the system class."""
 
     def setUp(self):
         self.http_client = StubJouliaHTTPClient("http://fake-address")
@@ -55,11 +54,22 @@ class TestCreateBrewhouse(unittest.TestCase):
         self.ws_client = StubJouliaWebsocketClient(
             "ws://fake-address", self.http_client)
         self.start_stop_client = StubAsyncHTTPClient()
+
         brewhouse_id = 0
+
+        spi = StubSpiDev(0, 0)
+
+        mcp = StubMCP3008(spi=spi)
+        analog_reference = 3.3  # Volts
+        analog_reader = MCP3004AnalogReader(mcp, analog_reference)
+
+        gpio = StubGPIO()
+
         self.update_manager = StubUpdateManager()
+
         self.system = System(self.http_client, self.ws_client,
                              self.start_stop_client, brewhouse_id,
-                             self.update_manager)
+                             analog_reader, gpio, self.update_manager)
 
     def test_create_brewhouse_succeeds(self):
         self.system.create_brewhouse(0)
@@ -77,7 +87,7 @@ class TestCreateBrewhouse(unittest.TestCase):
             None,
         ]
         self.system.watch_for_start()
-        self.assertEquals(self.system.brewhouse.recipe_instance, 11)
+        self.assertEqual(self.system.brewhouse.recipe_instance, 11)
 
     def test_watch_for_start_error(self):
         self.start_stop_client.responses = [
@@ -103,7 +113,7 @@ class TestCreateBrewhouse(unittest.TestCase):
             None,
         ]
         self.system.watch_for_start()
-        self.assertEquals(self.system.brewhouse.recipe_instance, 11)
+        self.assertEqual(self.system.brewhouse.recipe_instance, 11)
 
     def test_watch_for_end(self):
         self.start_stop_client.responses = [
