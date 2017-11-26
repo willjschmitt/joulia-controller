@@ -2,8 +2,6 @@
 frequency-domain devices.
 """
 
-import time
-
 
 class DSPBase(object):
     """Abstract class for digital signal processing.
@@ -100,7 +98,7 @@ class Regulator(DSPBase):
 
         self.q_proportional = 0.0
         self.q_integral = 0.0
-        self.q = 0.0
+        self.output = 0.0
 
         self.time_last = 0.
 
@@ -122,23 +120,23 @@ class Regulator(DSPBase):
             delta_time = now - self.time_last
             self.q_proportional = delta * self.gain_proportional
             self.q_integral += delta * self.gain_integral * delta_time
-            self.q = self.q_proportional + self.q_integral
+            self.output = self.q_proportional + self.q_integral
 
             self._limit()
         else:
-            self.q = self.q_proportional = self.q_integral = 0.
+            self.output = self.q_proportional = self.q_integral = 0.
 
         self.time_last = now
-        return self.q
+        return self.output
 
     def _limit(self):
         """Applies limit to output with anti-windup applied to integrator."""
-        if self.max_output is not None and self.q > self.max_output:
-            self.q = self.max_output
+        if self.max_output is not None and self.output > self.max_output:
+            self.output = self.max_output
             self.q_integral = self.max_output - self.q_proportional
 
-        if self.min_output is not None and self.q < self.min_output:
-            self.q = self.min_output
+        if self.min_output is not None and self.output < self.min_output:
+            self.output = self.min_output
             self.q_integral = self.min_output - self.q_proportional
 
     def enable(self):

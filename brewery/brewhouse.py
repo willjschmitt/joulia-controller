@@ -88,7 +88,7 @@ class Brewhouse(object):
         def permission_granted(value):
             """If permission is granted, increments the state"""
             if value:
-                self.state.id += 1
+                self.state.index += 1
         Brewhouse.request_permission.register(client, self, recipe_instance)
         Brewhouse.grant_permission.register(
             client, self, recipe_instance, callback=permission_granted)
@@ -126,7 +126,7 @@ class Brewhouse(object):
         """
         for state in self.state_classes():
             state(self.state)
-        self.state.id = 0
+        self.state.index = 0
 
     def _initialize_data_streamer(self):
         """Registers variables that are @properties and need to be streamed
