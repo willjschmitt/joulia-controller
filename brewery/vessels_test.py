@@ -1,4 +1,5 @@
 """Tests for the vessesls module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import unittest
 from unittest.mock import Mock
@@ -25,7 +26,7 @@ class TestSimpleVessel(unittest.TestCase):
     def test_set_liquid_level(self):
         volume = 10.0
         self.vessel.set_liquid_level(volume)
-        self.assertAlmostEquals(self.vessel.volume, volume)
+        self.assertAlmostEqual(self.vessel.volume, volume)
 
 
 class TestTemperatureMonitoredVessel(unittest.TestCase):
@@ -38,13 +39,13 @@ class TestTemperatureMonitoredVessel(unittest.TestCase):
             volume, self.temperature_sensor)
 
     def test_measure_temperature(self):
-        self.assertEquals(self.temperature_sensor.measure_calls, 0)
+        self.assertEqual(self.temperature_sensor.measure_calls, 0)
         self.vessel.measure_temperature()
-        self.assertEquals(self.temperature_sensor.measure_calls, 1)
+        self.assertEqual(self.temperature_sensor.measure_calls, 1)
 
     def test_temperature(self):
         self.temperature_sensor.temperature = 70.0
-        self.assertAlmostEquals(self.vessel.temperature, 70.0, 9)
+        self.assertAlmostEqual(self.vessel.temperature, 70.0, 9)
 
 
 class TestHeatedVessel(unittest.TestCase):
@@ -65,12 +66,12 @@ class TestHeatedVessel(unittest.TestCase):
 
     def test_set_temperature(self):
         self.vessel.set_temperature(70.0)
-        self.assertAlmostEquals(self.vessel.temperature_set_point, 70.0, 9)
+        self.assertAlmostEqual(self.vessel.temperature_set_point, 70.0, 9)
 
     def test_disable(self):
         self.vessel.disable()
         self.assertFalse(self.vessel.element_status)
-        self.assertEquals(self.vessel.heating_pin.value, self.gpio.LOW)
+        self.assertEqual(self.vessel.heating_pin.value, self.gpio.LOW)
 
     def test_enable(self):
         self.vessel.enable()
@@ -79,38 +80,39 @@ class TestHeatedVessel(unittest.TestCase):
     def test_turn_off(self):
         self.vessel.enable()
         self.vessel.turn_off()
-        self.assertEquals(self.vessel.heating_pin.value, self.gpio.LOW)
+        self.assertEqual(self.vessel.heating_pin.value, self.gpio.LOW)
 
     def test_turn_on_enabled(self):
         self.vessel.enable()
         self.vessel.turn_on()
-        self.assertEquals(self.vessel.heating_pin.value, self.gpio.HIGH)
+        self.assertEqual(self.vessel.heating_pin.value, self.gpio.HIGH)
 
     def test_turn_on_disabled(self):
         self.vessel.disable()
         self.vessel.turn_on()
-        self.assertEquals(self.vessel.heating_pin.value, self.gpio.LOW)
+        self.assertEqual(self.vessel.heating_pin.value, self.gpio.LOW)
 
     def test_turn_on_with_emergency_stop(self):
         self.vessel.emergency_stop = True
         self.vessel.enable()
         self.vessel.turn_on()
-        self.assertEquals(self.vessel.heating_pin.value, self.gpio.LOW)
+        self.assertEqual(self.vessel.heating_pin.value, self.gpio.LOW)
 
     def test_set_liquid_level(self):
         self.vessel.set_liquid_level(5.0)
         proportional_gain = self.vessel.regulator.gain_proportional
         integral_gain = self.vessel.regulator.gain_integral
         self.vessel.set_liquid_level(10.0)
-        self.assertAlmostEquals(self.vessel.regulator.gain_proportional,
-                                proportional_gain * 2.0, 9)
-        self.assertAlmostEquals(self.vessel.regulator.gain_integral,
-                                integral_gain * 2.0, 9)
+        self.assertAlmostEqual(self.vessel.regulator.gain_proportional,
+                               proportional_gain * 2.0, 9)
+        self.assertAlmostEqual(self.vessel.regulator.gain_integral,
+                               integral_gain * 2.0, 9)
 
-    def get_mock_periodic_callback(self):
+    @staticmethod
+    def get_mock_periodic_callback():
         timer = Mock()
         timer.callback_time = 1000
-        timer._next_timeout = 1.0
+        timer._next_timeout = 1.0  # pylint: disable=protected-access
         return timer
 
     def test_regulate_okay(self):
@@ -118,7 +120,7 @@ class TestHeatedVessel(unittest.TestCase):
         self.temperature_sensor.temperature = 70.0
         timer = self.get_mock_periodic_callback()
         self.vessel.regulate(timer)
-        self.assertAlmostEquals(self.vessel.duty_cycle, 0.0, 9)
+        self.assertAlmostEqual(self.vessel.duty_cycle, 0.0, 9)
 
     def test_regulate_full_power(self):
         self.vessel.set_temperature(70.0)
@@ -126,44 +128,45 @@ class TestHeatedVessel(unittest.TestCase):
         self.vessel.enable()
         timer = self.get_mock_periodic_callback()
         self.vessel.regulate(timer)
-        self.assertAlmostEquals(self.vessel.duty_cycle, 1.0, 9)
+        self.assertAlmostEqual(self.vessel.duty_cycle, 1.0, 9)
 
     def test_schedule_heating_element_always_off(self):
         self.vessel.duty_cycle = 0.0
         timer = self.get_mock_periodic_callback()
         timeouts = self.vessel.schedule_heating_element(timer)
-        self.assertEquals(len(timeouts), 1)
+        self.assertEqual(len(timeouts), 1)
         turn_off = timeouts[0]
-        self.assertEquals(turn_off.deadline, 1.0)
+        self.assertEqual(turn_off.deadline, 1.0)
 
     def test_schedule_heating_element_always_on(self):
         self.vessel.duty_cycle = 1.0
         timer = self.get_mock_periodic_callback()
         timeouts = self.vessel.schedule_heating_element(timer)
-        self.assertEquals(len(timeouts), 1)
+        self.assertEqual(len(timeouts), 1)
         turn_on = timeouts[0]
-        self.assertEquals(turn_on.deadline, 1.0)
+        self.assertEqual(turn_on.deadline, 1.0)
 
     def test_schedule_heating_element_switched_time(self):
         self.vessel.duty_cycle = 0.6
         timer = self.get_mock_periodic_callback()
         timeouts = self.vessel.schedule_heating_element(timer)
-        self.assertEquals(len(timeouts), 2)
-        turn_on, turn_off = timeouts
-        self.assertEquals(turn_on.deadline, 1.0)
-        self.assertEquals(turn_off.deadline, 1.0 + 600)
+        self.assertEqual(len(timeouts), 2)
+        turn_on = timeouts[0]
+        turn_off = timeouts[1]
+        self.assertEqual(turn_on.deadline, 1.0)
+        self.assertEqual(turn_off.deadline, 1.0 + 600)
 
     def test_power_zero(self):
         self.vessel.duty_cycle = 0.0
         self.vessel.rating = 5500.0
         self.vessel.enable()
-        self.assertAlmostEquals(self.vessel.power, 0.0, 9)
+        self.assertAlmostEqual(self.vessel.power, 0.0, 9)
 
     def test_power_full(self):
         self.vessel.duty_cycle = 1.0
         self.vessel.rating = 5500.0
         self.vessel.enable()
-        self.assertAlmostEquals(self.vessel.power, 5500.0, 9)
+        self.assertAlmostEqual(self.vessel.power, 5500.0, 9)
 
     def test_temperature_ramp(self):
         self.vessel.duty_cycle = 1.0
@@ -172,7 +175,7 @@ class TestHeatedVessel(unittest.TestCase):
         self.vessel.enable()
         # 0.62 is the rate the temperature should increase with 1gal.
         # 5500W -> 0.62 degF/1gal/second
-        self.assertAlmostEquals(self.vessel.temperature_ramp, 0.62, 2)
+        self.assertAlmostEqual(self.vessel.temperature_ramp, 0.62, 2)
 
     def test_from_json(self):
         analog_reader = StubAnalogReader()
@@ -221,13 +224,13 @@ class TestHeatExchangedVessel(unittest.TestCase):
         self.vessel.heat_exchanger_conductivity = 1.0
 
         self.vessel.recalculate_gains()
-        self.assertAlmostEquals(self.vessel.regulator.gain_proportional, 0.2, 9)
-        self.assertAlmostEquals(self.vessel.regulator.gain_integral, 0.002, 9)
+        self.assertAlmostEqual(self.vessel.regulator.gain_proportional, 0.2, 9)
+        self.assertAlmostEqual(self.vessel.regulator.gain_integral, 0.002, 9)
 
         self.vessel.volume = 2.0
         self.vessel.recalculate_gains()
-        self.assertAlmostEquals(self.vessel.regulator.gain_proportional, 0.4, 9)
-        self.assertAlmostEquals(self.vessel.regulator.gain_integral, 0.004, 9)
+        self.assertAlmostEqual(self.vessel.regulator.gain_proportional, 0.4, 9)
+        self.assertAlmostEqual(self.vessel.regulator.gain_integral, 0.004, 9)
 
     def test_enable(self):
         self.vessel.enable()
@@ -246,26 +249,26 @@ class TestHeatExchangedVessel(unittest.TestCase):
         self.vessel.volume = 1.0
         self.vessel.heat_exchanger_conductivity = 1.0
         self.vessel.recalculate_gains()
-        self.assertAlmostEquals(self.vessel.regulator.gain_proportional, 0.2, 9)
-        self.assertAlmostEquals(self.vessel.regulator.gain_integral, 0.002, 9)
+        self.assertAlmostEqual(self.vessel.regulator.gain_proportional, 0.2, 9)
+        self.assertAlmostEqual(self.vessel.regulator.gain_integral, 0.002, 9)
 
         self.vessel.set_liquid_level(2.0)
-        self.assertAlmostEquals(self.vessel.regulator.gain_proportional, 0.4, 9)
-        self.assertAlmostEquals(self.vessel.regulator.gain_integral, 0.004, 9)
+        self.assertAlmostEqual(self.vessel.regulator.gain_proportional, 0.4, 9)
+        self.assertAlmostEqual(self.vessel.regulator.gain_integral, 0.004, 9)
 
     def test_regulate_none(self):
         self.temperature_sensor.temperature = 70.0
         self.vessel.set_temperature(70.0)
         self.vessel.enable()
         self.vessel.regulate()
-        self.assertAlmostEquals(self.vessel.source_temperature, 70.0, 9)
+        self.assertAlmostEqual(self.vessel.source_temperature, 70.0, 9)
 
     def test_regulate_full(self):
         self.temperature_sensor.temperature = 70.0
         self.vessel.set_temperature(212.0)
         self.vessel.enable()
         self.vessel.regulate()
-        self.assertAlmostEquals(self.vessel.source_temperature, 85.0, 9)
+        self.assertAlmostEqual(self.vessel.source_temperature, 85.0, 9)
 
     def test_temperature_ramp_enabled(self):
         self.vessel.source_temperature = 200.0
@@ -275,7 +278,7 @@ class TestHeatExchangedVessel(unittest.TestCase):
         self.vessel.enable()
         # 100degF delta with heat_exchanger_conductivity = 1 -> 100W.
         # 100W is 0.0112 degF/second for water.
-        self.assertAlmostEquals(self.vessel.temperature_ramp, 0.0113, 2)
+        self.assertAlmostEqual(self.vessel.temperature_ramp, 0.0113, 2)
 
     def test_temperature_ramp_disabled(self):
         self.vessel.source_temperature = 200.0
@@ -285,7 +288,7 @@ class TestHeatExchangedVessel(unittest.TestCase):
         self.vessel.disable()
         # 100degF delta with heat_exchanger_conductivity = 1 -> 100W.
         # 100W is 0.0112 degF/second for water.
-        self.assertAlmostEquals(self.vessel.temperature_ramp, 0.0, 9)
+        self.assertAlmostEqual(self.vessel.temperature_ramp, 0.0, 9)
 
     def test_from_json(self):
         analog_reader = StubAnalogReader()

@@ -1,4 +1,5 @@
 """Tests for the brewhouse module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import unittest
 
@@ -29,13 +30,13 @@ class TestBrewhouse(unittest.TestCase):
 
         stub_gpio = StubGPIO()
 
-        boil_kettle_heating_element_rating = 5500.0
+        heating_element_rating = 5500.0
         boil_kettle_volume = 5.0
         boil_kettle_temperature_sensor = StubRtdSensor(70.0)
         boil_kettle_heating_pin = OutputPin(stub_gpio, 0)
         self.boil_kettle = HeatedVessel(
             self.ws_client, self.recipe_instance,
-            boil_kettle_heating_element_rating, boil_kettle_volume,
+            heating_element_rating, boil_kettle_volume,
             boil_kettle_temperature_sensor, boil_kettle_heating_pin)
 
         mash_tun_volume = 5.0
@@ -119,7 +120,7 @@ class TestBrewhouse(unittest.TestCase):
         self.assertTrue(self.brewhouse.main_pump.pump_status)
         self.assertFalse(self.brewhouse.boil_kettle.element_status)
         self.assertFalse(self.brewhouse.mash_tun.enabled)
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             self.brewhouse.boil_kettle.temperature_set_point, 155.0, 9)
         self.assertTrue(self.brewhouse.request_permission)
 
@@ -132,7 +133,7 @@ class TestBrewhouse(unittest.TestCase):
         self.assertFalse(self.brewhouse.main_pump.pump_status)
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
         self.assertFalse(self.brewhouse.mash_tun.enabled)
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             self.brewhouse.boil_kettle.temperature_set_point, 155.0, 9)
 
     def test_state_post_strike_not_ready(self):
@@ -173,7 +174,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.set_state_by_name("StateMash")
         self.brewhouse.state.state_time_change = 0
         self.brewhouse.state.evaluate()
-        self.assertAlmostEquals(self.brewhouse.timer, 15.0, 9)
+        self.assertAlmostEqual(self.brewhouse.timer, 15.0, 9)
 
     def test_state_mashout_ramp(self):
         self.brewhouse.state.set_state_by_name("StateMashoutRamp")
@@ -184,9 +185,9 @@ class TestBrewhouse(unittest.TestCase):
         self.assertTrue(self.brewhouse.main_pump.pump_status)
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
         self.assertFalse(self.brewhouse.mash_tun.enabled)
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             self.brewhouse.mash_tun.temperature_set_point, 170.0, 9)
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             self.brewhouse.boil_kettle.temperature_set_point, 175.0, 9)
 
     def test_state_mashout_ramp_high_enough_temp(self):
@@ -200,8 +201,8 @@ class TestBrewhouse(unittest.TestCase):
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
         self.assertFalse(self.brewhouse.mash_tun.enabled)
 
-        self.assertEquals(self.brewhouse.state.state.__class__.__name__,
-                          "StateMashoutRecirculation")
+        self.assertEqual(self.brewhouse.state.state.__class__.__name__,
+                         "StateMashoutRecirculation")
 
     def test_state_mashout_recirculation(self):
         self.brewhouse.state.set_state_by_name("StateMashoutRecirculation")
@@ -212,9 +213,9 @@ class TestBrewhouse(unittest.TestCase):
         self.assertTrue(self.brewhouse.main_pump.pump_status)
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
         self.assertFalse(self.brewhouse.mash_tun.enabled)
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             self.brewhouse.mash_tun.temperature_set_point, 170.0, 9)
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             self.brewhouse.boil_kettle.temperature_set_point, 170.0, 9)
 
     def test_state_mashout_recirculation_timer_start(self):
@@ -223,7 +224,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.state_time_change = 0
         self.brewhouse.recipe.mashout_time = 15.0
         self.brewhouse.state.evaluate()
-        self.assertAlmostEquals(self.brewhouse.timer, 15.0, 9)
+        self.assertAlmostEqual(self.brewhouse.timer, 15.0, 9)
         self.assertFalse(self.brewhouse.request_permission)
 
     def test_state_mashout_recirculation_timer_done(self):
@@ -232,7 +233,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.state_time_change = 0
         self.brewhouse.recipe.mashout_time = 15.0
         self.brewhouse.state.evaluate()
-        self.assertAlmostEquals(self.brewhouse.timer, -1.0, 9)
+        self.assertAlmostEqual(self.brewhouse.timer, -1.0, 9)
         self.assertTrue(self.brewhouse.request_permission)
 
     def test_state_sparge_prep(self):
@@ -282,7 +283,7 @@ class TestBrewhouse(unittest.TestCase):
         self.assertFalse(self.brewhouse.main_pump.pump_status)
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
         self.assertFalse(self.brewhouse.mash_tun.enabled)
-        self.assertEquals(
+        self.assertEqual(
             self.brewhouse.state.state.__class__.__name__, "StateBoil")
 
     def test_state_boil(self):
@@ -294,7 +295,7 @@ class TestBrewhouse(unittest.TestCase):
         self.assertFalse(self.brewhouse.main_pump.pump_status)
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
         self.assertFalse(self.brewhouse.mash_tun.enabled)
-        self.assertAlmostEquals(
+        self.assertAlmostEqual(
             self.brewhouse.boil_kettle.temperature_set_point, 210.0, 9)
 
     def test_state_boil_not_done(self):
@@ -312,7 +313,7 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.recipe.boil_time = 60.0
         self.brewhouse.state.evaluate()
         self.assertFalse(self.brewhouse.request_permission)
-        self.assertEquals(
+        self.assertEqual(
             self.brewhouse.state.state.__class__.__name__, "StateCoolingPrep")
 
     def test_state_cooling_prep(self):

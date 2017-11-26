@@ -196,14 +196,14 @@ class HeatedVessel(TemperatureMonitoredVessel):
         ioloop = IOLoop.current()
         # TODO(willjschmitt): Figure out way to avoid using protected
         # ``_next_timeout``.
-        t0 = this_timer._next_timeout
+        time_0 = this_timer._next_timeout  # pylint: disable=protected-access
         if self.duty_cycle * this_timer.callback_time < (1.0 / 120.0):
-            timeouts.append(ioloop.call_at(t0, self.turn_off))
+            timeouts.append(ioloop.call_at(time_0, self.turn_off))
         elif (1.0 - self.duty_cycle) * this_timer.callback_time < (1.0 / 120.0):
-            timeouts.append(ioloop.call_at(t0, self.turn_on))
+            timeouts.append(ioloop.call_at(time_0, self.turn_on))
         else:
-            off_time = t0 + self.duty_cycle * this_timer.callback_time
-            turn_on = ioloop.call_at(t0, self.turn_on)
+            off_time = time_0 + self.duty_cycle * this_timer.callback_time
+            turn_on = ioloop.call_at(time_0, self.turn_on)
             turn_off = ioloop.call_at(off_time, self.turn_off)
             timeouts.append(turn_on)
             timeouts.append(turn_off)
@@ -328,10 +328,10 @@ class HeatExchangedVessel(TemperatureMonitoredVessel):
         """An estimated degF/sec rate of change of liquid based on ideal
         conditions. Does not include ambient losses.
         """
-        # TODO(will): Add energy loss to environment.
-        if self.enabled:
-            delta_temperature = self.source_temperature - self.temperature
-            net_power = delta_temperature * self.heat_exchanger_conductivity
-            return power_to_temperature_rate(net_power, self.volume)
-        else:
+        if not self.enabled:
             return 0.0
+
+        # TODO(will): Add energy loss to environment.
+        delta_temperature = self.source_temperature - self.temperature
+        net_power = delta_temperature * self.heat_exchanger_conductivity
+        return power_to_temperature_rate(net_power, self.volume)

@@ -1,4 +1,5 @@
 """Tests for the pump module."""
+# pylint: disable=missing-docstring
 
 import unittest
 
@@ -24,18 +25,18 @@ class TestSimplePump(unittest.TestCase):
     def test_turn_off(self):
         self.pump.turn_off()
         self.assertFalse(self.pump.pump_status)
-        self.assertEquals(self.pin.value, self.gpio.LOW)
+        self.assertEqual(self.pin.value, self.gpio.LOW)
 
     def test_turn_on(self):
         self.pump.turn_on()
         self.assertTrue(self.pump.pump_status)
-        self.assertEquals(self.pin.value, self.gpio.HIGH)
+        self.assertEqual(self.pin.value, self.gpio.HIGH)
 
     def test_turn_on_with_emergency_stop_on(self):
         self.pump.emergency_stop = True
         self.pump.turn_on()
         self.assertFalse(self.pump.pump_status)
-        self.assertEquals(self.pin.value, self.gpio.LOW)
+        self.assertEqual(self.pin.value, self.gpio.LOW)
 
     def test_from_json(self):
         configuration = {
