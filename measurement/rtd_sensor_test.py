@@ -54,6 +54,14 @@ class TestRtdSensor(unittest.TestCase):
         measured = self.rtd._resistance_to_temperature(138.5)  # pylint: disable=protected-access
         self.assertAlmostEqual(measured, 212.0, 9)
 
+    def test_temperature_to_resistance_freezing(self):
+        resistance = self.rtd.temperature_to_resistance(32.0)
+        self.assertAlmostEqual(resistance, 100.0, 9)
+
+    def test_temperature_to_resistance_boiling(self):
+        resistance = self.rtd.temperature_to_resistance(212.0)
+        self.assertAlmostEqual(resistance, 138.5, 9)
+
     def test_measure_freezing(self):
         self.analog_reader.voltage = 0.0
         self.rtd.measure()
@@ -63,6 +71,14 @@ class TestRtdSensor(unittest.TestCase):
         self.analog_reader.voltage = 1.827
         self.rtd.measure()
         self.assertAlmostEqual(self.rtd.temperature_unfiltered, 212.0, 0)
+
+    def test_reverse_temperature_freezing(self):
+        voltage = self.rtd.reverse_temperaure(temperature=32.0)
+        self.assertAlmostEqual(voltage, 0.0, 9)
+
+    def test_reverse_temperature_boiling(self):
+        voltage = self.rtd.reverse_temperaure(temperature=212.0)
+        self.assertAlmostEqual(voltage, 1.827, 2)
 
     def test_temperature_property(self):
         self.assertAlmostEqual(self.rtd.temperature, 0.0, 9)
