@@ -15,6 +15,10 @@ class StubMCP3008(object):
     def read_adc(self, channel):  # pylint: disable=missing-docstring
         return self.counts[channel]
 
+    def set_counts(self, channel, counts):
+        """Sets the counts to be returned for the requested channel."""
+        self.counts[channel] = counts
+
 
 class StubSpiDev(object):
     """Stubs SpiDev from Adafruit_GPIO.SPI.

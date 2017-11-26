@@ -26,6 +26,18 @@ class AnalogReaderBase(object):
         """
         raise NotImplementedError()
 
+    def write_read(self, channel, counts):
+        """Sets the counts value to be read in subsequent calls to read.
+
+        This is only expected to work for stub versions of the underlying
+        reader.
+
+        Args:
+            channel: The channel to set the counts for.
+            counts: The counts to return for that channel.
+        """
+        raise NotImplementedError()
+
     def read_voltage(self, channel):
         """Reads the voltage at the channel specified from an Arduino at the
         indicated channel.
@@ -38,6 +50,29 @@ class AnalogReaderBase(object):
             raise RuntimeError(
                 "Failed to read data on channel {}.".format(channel))
         return self.analog_reference * (counts / self.counts_reference)
+
+    def write_read_voltage(self, channel, voltage):
+        """Sets the counts on the underlying stub mcp to read the voltage from.
+
+        This is only expected to work for stub versions of mcp.
+
+        Args:
+            channel: The channel to set the voltage for.
+            voltage: The voltage expected to be read on the channel.
+        """
+        counts = self.voltage_to_counts(voltage)
+        self.write_read(channel, counts)
+
+    def voltage_to_counts(self, voltage):
+        """Computes the expected counts for this reader given a voltage.
+
+        Args:
+            voltage: The voltage expected by the reader
+
+        Returns:
+            The counts the reader would need to produce the voltage.
+        """
+        return self.counts_reference * (voltage / self.analog_reference)
 
 
 class ArduinoAnalogReader(AnalogReaderBase):
@@ -73,6 +108,12 @@ class ArduinoAnalogReader(AnalogReaderBase):
         counts = (counts1 << 8) + counts2
         return counts
 
+    def write_read(self, channel, counts):
+        counts1 = counts >> 8
+        counts2 = counts - (counts1 << 8)
+        self.i2c_bus.write_read_byte_data(self.address, channel, 0, counts1)
+        self.i2c_bus.write_read_byte_data(self.address, channel, 1, counts2)
+
 
 class MCP3004AnalogReader(AnalogReaderBase):
     """Reader for an MCP3004 over SPI for analog measurements.
@@ -98,3 +139,6 @@ class MCP3004AnalogReader(AnalogReaderBase):
             channel: The analog pin to read at.
         """
         return self.mcp.read_adc(channel)
+
+    def write_read(self, channel, counts):
+        self.mcp.set_counts(channel, counts)
