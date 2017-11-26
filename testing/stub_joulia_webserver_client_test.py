@@ -1,4 +1,5 @@
 """Test for the stub_joulia_webserver_client module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import unittest
 from unittest.mock import Mock
@@ -20,8 +21,8 @@ class TestStubJouliaHTTPClient(unittest.TestCase):
         recipe_instance = 1
         sensor_id = self.client.identify(sensor_name, recipe_instance,
                                          client.OVERRIDE_VARIABLE_TYPE)
-        self.assertEquals(sensor_id, 11)
-        self.assertEquals(self.client.identifier, 12)
+        self.assertEqual(sensor_id, 11)
+        self.assertEqual(self.client.identifier, 12)
 
     def test_update_sensor_name(self):
         recipe_instance = 1
@@ -36,7 +37,7 @@ class TestStubJouliaHTTPClient(unittest.TestCase):
         mash_points = [(15.0, 170.0)]
         self.client.mash_points = mash_points
         got = self.client.get_mash_points(recipe_instance_pk)
-        self.assertEquals(got, mash_points)
+        self.assertEqual(got, mash_points)
 
     def test_get_recipe_instance_assert_fails(self):
         recipe_instance_pk = 10
@@ -73,6 +74,6 @@ class TestStubJouliaHTTPClient(unittest.TestCase):
 class TestStubJouliaWebsocketClient(unittest.TestCase):
     """Tests for the StubJouliaWebsocketClient class."""
 
-    def test_create_succeeds(self):
+    def test_create_succeeds(self):  # pylint: disable=no-self-use
         http_client = StubJouliaHTTPClient("fake address")
         StubJouliaWebsocketClient("fake address", http_client)

@@ -1,4 +1,5 @@
 """Tests for testing.stub_arduino module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import unittest
 
@@ -12,4 +13,4 @@ class TestStubAnalogReader(unittest.TestCase):
         reader = StubAnalogReader()
         reader.voltage = 123.45
         channel = 0
-        self.assertEquals(reader.read_voltage(channel), 123.45)
+        self.assertEqual(reader.read_voltage(channel), 123.45)

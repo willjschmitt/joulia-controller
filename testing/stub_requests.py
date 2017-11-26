@@ -18,20 +18,30 @@ class StubRequests(object):
         self.reason = "OK"
 
     def response(self, url):
+        """Gets the response stored for the given url."""
         return self.response_map.get(url, self.response_string)
 
     def post(self, url, headers=None, *args, **kwargs):
+        """Mocks the post function in the requests library."""
+        del headers, args, kwargs
         if not self.server_there:
             raise requests.exceptions.ConnectionError()
         return StubResponse(self.response(url), self.status_code, self.reason)
 
     def get(self, url, headers=None, *args, **kwargs):
+        """Mocks the get function in the requests library."""
+        del headers, args, kwargs
         if not self.server_there:
             raise requests.exceptions.ConnectionError()
         return StubResponse(self.response(url), self.status_code, self.reason)
 
 
 class StubResponse(requests.Response):
+    """A fake response to be created by StubRequests.
+
+    Inherits from requests.Response to automatically provide niceties like the
+    raise_from_status method.
+    """
     def __init__(self, response_string, status_code, reason):
         super(StubResponse, self).__init__()
 
@@ -39,5 +49,6 @@ class StubResponse(requests.Response):
         self.status_code = status_code
         self.reason = reason
 
-    def json(self):
+    def json(self, **kwargs):
+        del kwargs
         return json.loads(self.response_string)

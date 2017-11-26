@@ -1,8 +1,10 @@
 """Tests for the stub_websocket module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes,blacklisted-name
+
+import unittest
 
 from tornado import gen
 from tornado.ioloop import IOLoop
-import unittest
 
 from testing.stub_websocket import stub_websocket_connect
 from testing.stub_websocket import StubWebSocketClientConnection
@@ -11,12 +13,12 @@ from testing.stub_websocket import StubWebSocketClientConnection
 class TestStubWebsocketConnect(unittest.TestCase):
     """Tests for stub_websocket_connect function."""
 
-    def test_succeeds(self):
+    def test_succeeds(self):  # pylint: disable=no-self-use
         @gen.coroutine
         def connect():
             yield stub_websocket_connect("fake_url")
 
-        IOLoop.current().run_sync(lambda: connect())
+        IOLoop.current().run_sync(connect)
 
     def test_with_callback(self):
         counters = {"foo": 0}
@@ -28,15 +30,15 @@ class TestStubWebsocketConnect(unittest.TestCase):
         def connect():
             yield stub_websocket_connect("fake_url", callback=foo)
 
-        IOLoop.current().run_sync(lambda: connect())
+        IOLoop.current().run_sync(connect)
 
-        self.assertEquals(counters["foo"], 1)
+        self.assertEqual(counters["foo"], 1)
 
 
 class TestStubWebSocketClientConnection(unittest.TestCase):
     """Tests for StubWebSocketClientConnection."""
 
-    def test_create_succeeds(self):
+    def test_create_succeeds(self):  # pylint: disable=no-self-use
         StubWebSocketClientConnection(IOLoop.current(), None)
 
     def test_write_message(self):

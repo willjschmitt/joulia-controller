@@ -1,4 +1,5 @@
 """Tests for the stub_gpio module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import unittest
 
@@ -33,13 +34,13 @@ class TestStubGPIO(unittest.TestCase):
         self.assertIs(self.gpio.values[1], self.gpio.LOW)
 
     def test_output_not_setup(self):
-        with self.assertRaisesRegexp(RuntimeError, "Pin mode must be set"):
+        with self.assertRaisesRegex(RuntimeError, "Pin mode must be set"):
             self.gpio.output(1, self.gpio.LOW)
 
     def test_output_pin_mode_wrong(self):
         self.gpio.setup(1, self.gpio.IN)
-        with self.assertRaisesRegexp(
-                RuntimeError, "Pin mode must be StubGPIO.OUT"):
+        with self.assertRaisesRegex(RuntimeError,
+                                    "Pin mode must be StubGPIO.OUT"):
             self.gpio.output(1, self.gpio.LOW)
 
     def test_input(self):
@@ -52,11 +53,11 @@ class TestStubGPIO(unittest.TestCase):
         self.assertIs(self.gpio.input(1), self.gpio.LOW)
 
     def test_input_not_setup(self):
-        with self.assertRaisesRegexp(RuntimeError, "Pin mode must be set"):
+        with self.assertRaisesRegex(RuntimeError, "Pin mode must be set"):
             self.gpio.input(1)
 
     def test_input_pin_mode_wrong(self):
         self.gpio.setup(1, self.gpio.OUT)
-        with self.assertRaisesRegexp(
-                RuntimeError, "Pin mode must be StubGPIO.IN"):
+        with self.assertRaisesRegex(RuntimeError,
+                                    "Pin mode must be StubGPIO.IN"):
             self.gpio.input(1)
