@@ -10,11 +10,10 @@ class StubMCP3008(object):
     """
     def __init__(self, spi):
         del spi
-        self.counts = 0
+        self.counts = [0]*8
 
     def read_adc(self, channel):  # pylint: disable=missing-docstring
-        del channel
-        return self.counts
+        return self.counts[channel]
 
 
 class StubSpiDev(object):
