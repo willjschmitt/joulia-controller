@@ -7,8 +7,11 @@ from unittest.mock import Mock
 from tornado.httpclient import HTTPError
 
 from brewery.brewhouse import Brewhouse
+from brewery.system import SimulatedSystem
 from brewery.system import System
 from http_codes import HTTP_TIMEOUT
+from joulia_webserver.models import MashProfile
+from joulia_webserver.models import MashStep
 from joulia_webserver.models import Recipe
 from joulia_webserver.models import RecipeInstance
 from measurement.analog_reader import MCP3004AnalogReader
@@ -29,6 +32,15 @@ HTTPStatus.INTERNAL_SERVER_ERROR = 500
 class StubUpdateManager(object):
     def check_version(self):
         pass
+
+
+class StubClock(object):
+    def __init__(self):
+        self._time_counter = -1.0
+
+    def time(self):
+        self._time_counter += 1.0
+        return float(self._time_counter)
 
 
 class TestSystem(unittest.TestCase):
@@ -149,3 +161,87 @@ class TestSystem(unittest.TestCase):
         ]
         self.system.create_brewhouse(0)
         self.system.watch_for_end()
+
+
+class TestSimulatedSystem(unittest.TestCase):
+    """Tests for the SimulatedSystem class."""
+
+    def setUp(self):
+        self.http_client = StubJouliaHTTPClient("http://fake-address")
+        recipe_instance_pk = 0
+        recipe_pk = 0
+        self.http_client.recipe_instance = RecipeInstance(
+            recipe_instance_pk, recipe_pk)
+        with open('testing/brewhouse.json') as brewhouse_file:
+            self.http_client.brewhouse = json.load(brewhouse_file)
+        strike_temperature = 162.0
+        mashout_temperature = 170.0
+        mashout_time = 15.0 * 60.0
+        boil_time = 60.0 * 60.0
+        cool_temperature = 70.0
+        mash_temperature_profile = MashProfile([MashStep(15*60, 155.0)])
+        self.http_client.recipe = Recipe(
+            recipe_pk, strike_temperature, mashout_temperature,
+            mashout_time,
+            boil_time, cool_temperature, mash_temperature_profile)
+        self.ws_client = StubJouliaWebsocketClient(
+            "ws://fake-address", self.http_client)
+        self.start_stop_client = StubAsyncHTTPClient()
+
+        brewhouse_id = 0
+
+        mcp = StubMCP3008(spi=StubSpiDev())
+        analog_reference = 3.3  # Volts
+        analog_reader = MCP3004AnalogReader(mcp, analog_reference)
+
+        gpio = StubGPIO()
+
+        self.update_manager = StubUpdateManager()
+
+        self.system = SimulatedSystem(self.http_client, self.ws_client,
+                                      self.start_stop_client, brewhouse_id,
+                                      analog_reader, gpio, self.update_manager,
+                                      clock=StubClock())
+
+    def test_solve_simulation_boil(self):
+        # Scaffolds up a new brewhouse ready for simulation without starting the
+        # timers.
+        recipe_instance = 1
+        self.system.create_brewhouse(recipe_instance)
+        self.system.start_brewing()
+        self.system.brewhouse.state.set_state_by_name('StateBoil')
+
+        self.assertAlmostEqual(self.system.boil_kettle_temperature, 68.0)
+        self.assertAlmostEqual(self.system.mash_tun_temperature, 68.0)
+
+        # 5 gallons at ~1deg/gallon/sec is 12deg after ~60sec. This is a rough
+        # number rather than an exact one.
+        for _ in range(60):
+            self.system.brewhouse.task00()
+            self.system.solve_simulation()
+
+        self.assertAlmostEqual(self.system.boil_kettle_temperature, 75.5, 1)
+        self.assertAlmostEqual(self.system.mash_tun_temperature, 68.0)
+
+    def test_solve_simulation_mash(self):
+        # Scaffolds up a new brewhouse ready for simulation without starting the
+        # timers.
+        recipe_instance = 1
+        self.system.create_brewhouse(recipe_instance)
+        self.system.start_brewing()
+        self.system.brewhouse.state.set_state_by_name('StateMash')
+
+        # Give some gradient from the boil kettle for pushing energy into the
+        # mash tun.
+        self.system.boil_kettle_temperature = 155.0
+        self.assertAlmostEqual(self.system.boil_kettle_temperature, 155.0)
+        self.assertAlmostEqual(self.system.mash_tun_temperature, 68.0)
+
+        # 5 gallons at ~1deg/gallon/sec is 12deg after ~60sec. This is a rough
+        # number rather than an exact one.
+        for _ in range(60):
+            self.system.brewhouse.task00()
+            self.system.solve_simulation()
+
+        self.assertAlmostEqual(self.system.boil_kettle_temperature, 162.49, 1)
+        self.assertAlmostEqual(self.system.mash_tun_temperature, 68.02, 2)

@@ -73,11 +73,11 @@ class TestRtdSensor(unittest.TestCase):
         self.assertAlmostEqual(self.rtd.temperature_unfiltered, 212.0, 0)
 
     def test_reverse_temperature_freezing(self):
-        voltage = self.rtd.reverse_temperaure(temperature=32.0)
+        voltage = self.rtd.reverse_temperature(temperature=32.0)
         self.assertAlmostEqual(voltage, 0.0, 9)
 
     def test_reverse_temperature_boiling(self):
-        voltage = self.rtd.reverse_temperaure(temperature=212.0)
+        voltage = self.rtd.reverse_temperature(temperature=212.0)
         self.assertAlmostEqual(voltage, 1.827, 2)
 
     def test_temperature_property(self):

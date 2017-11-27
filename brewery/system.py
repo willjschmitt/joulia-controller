@@ -6,6 +6,7 @@ process.
 """
 import logging
 import os
+import time
 from urllib.parse import urlencode
 
 from tornado import ioloop
@@ -119,7 +120,7 @@ class System(object):
                 # Cancel checking for updates when starting a brew session.
                 self.update_check_timer.stop()
                 self.create_brewhouse(recipe_instance)
-                self.brewhouse.start_brewing()
+                self.start_brewing()
                 self.watch_for_end()
 
         LOGGER.info("Watching for recipe instance start on brewhouse %s.",
@@ -170,6 +171,74 @@ class System(object):
             uri, handle_end_request, method="POST", body=urlencode(post_data),
             headers={'Authorization': 'Token {}'.format(settings.AUTHTOKEN)})
 
+    def start_brewing(self):
+        """Kicks brewhouse off to start brewing."""
+        self.brewhouse.start_brewing()
+
     def end_brewing(self):
         """Ends the brewing session by canceling all timers on the brewhouse."""
         self.brewhouse.cancel_timers()
+
+
+class SimulatedSystem(System):
+    """A system with simulation controls for auto-adjusting the temperatures.
+    """
+
+    SIMULATION_PERIOD_MILLISECONDS = 1000
+
+    def __init__(self, *args, **kwargs):
+        if 'clock' in kwargs:
+            clock = kwargs['clock']
+            del kwargs['clock']
+            self.clock = clock
+        else:
+            self.clock = time
+
+        super(SimulatedSystem, self).__init__(*args, **kwargs)
+
+        self.simulation_timer = ioloop.PeriodicCallback(
+            self.solve_simulation, self.SIMULATION_PERIOD_MILLISECONDS)
+
+        self.last_simulated_time = self.clock.time()
+        self.boil_kettle_temperature = 68.0
+        self.mash_tun_temperature = 68.0
+
+    def run_simulation(self):
+        """Starts the periodic simulation solver timers."""
+        self.simulation_timer.start()
+
+    def end_simulation(self):
+        """Stops the periodic simulation solver timers."""
+        self.simulation_timer.stop()
+
+    def start_brewing(self):
+        """Kicks brewhouse off to start brewing along with starting the
+        simulation.
+        """
+        super(SimulatedSystem, self).start_brewing()
+        self.run_simulation()
+
+    def solve_simulation(self):
+        current_time = self.clock.time()
+        delta_time = current_time - self.last_simulated_time
+        self.solve_boil_kettle_temperature(delta_time)
+        self.solve_mash_tun_temperature(delta_time)
+        self.last_simulated_time = current_time
+
+    def solve_boil_kettle_temperature(self, delta_time):
+        ramp = self.brewhouse.boil_kettle.temperature_ramp
+        self.boil_kettle_temperature += ramp * delta_time
+        temperature_sensor = self.brewhouse.boil_kettle.temperature_sensor
+        voltage = temperature_sensor.reverse_temperature(
+            self.boil_kettle_temperature)
+        self.analog_reader.write_read_voltage(
+            temperature_sensor.analog_in_pin, voltage)
+
+    def solve_mash_tun_temperature(self, delta_time):
+        self.mash_tun_temperature += (
+            self.brewhouse.mash_tun.temperature_ramp * delta_time)
+        temperature_sensor = self.brewhouse.mash_tun.temperature_sensor
+        voltage = temperature_sensor.reverse_temperature(
+            self.mash_tun_temperature)
+        self.analog_reader.write_read_voltage(
+            temperature_sensor.analog_in_pin, voltage)

@@ -151,7 +151,7 @@ class RtdSensor(object):
         self.temperature_unfiltered = temperature_calibrated
         self.temperature_filter.filter(temperature_calibrated)
 
-    def reverse_temperaure(self, temperature):
+    def reverse_temperature(self, temperature):
         """In an simulated system provides the voltage the RTD needs to measure.
 
         Converts temperature back to ADC input voltage, which can be applied to
