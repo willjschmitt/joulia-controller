@@ -1,7 +1,6 @@
 """Tests for the brewhouse module."""
 # pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
-import time
 import unittest
 
 from brewery.brewhouse import Brewhouse
@@ -173,8 +172,8 @@ class TestBrewhouse(unittest.TestCase):
         self.brewhouse.state.set_state_by_name("StateMash")
         self.brewhouse.state.state_time_change = 0
         self.brewhouse.state.evaluate()
-        self.assertEquals(self.brewhouse.state.state.__class__.__name__,
-                          'StateMashoutRamp')
+        self.assertEqual(self.brewhouse.state.state.__class__.__name__,
+                         'StateMashoutRamp')
 
     def test_state_mash_timer_start(self):
         self.brewhouse.recipe.mash_temperature_profile = MashProfile([

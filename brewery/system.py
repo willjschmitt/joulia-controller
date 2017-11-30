@@ -219,6 +219,7 @@ class SimulatedSystem(System):
         self.run_simulation()
 
     def solve_simulation(self):
+        """Solves the temperatures for the equipment in the brewhouse."""
         current_time = self.clock.time()
         delta_time = current_time - self.last_simulated_time
         self.solve_boil_kettle_temperature(delta_time)
@@ -226,6 +227,7 @@ class SimulatedSystem(System):
         self.last_simulated_time = current_time
 
     def solve_boil_kettle_temperature(self, delta_time):
+        """Solves the boil kettle temperature for the brewhouse."""
         ramp = self.brewhouse.boil_kettle.temperature_ramp
         self.boil_kettle_temperature += ramp * delta_time
         temperature_sensor = self.brewhouse.boil_kettle.temperature_sensor
@@ -235,6 +237,7 @@ class SimulatedSystem(System):
             temperature_sensor.analog_in_pin, voltage)
 
     def solve_mash_tun_temperature(self, delta_time):
+        """Solves the mash tun temperature for the brewhouse."""
         self.mash_tun_temperature += (
             self.brewhouse.mash_tun.temperature_ramp * delta_time)
         temperature_sensor = self.brewhouse.mash_tun.temperature_sensor
