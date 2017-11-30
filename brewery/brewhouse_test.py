@@ -166,6 +166,15 @@ class TestBrewhouse(unittest.TestCase):
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
         self.assertTrue(self.brewhouse.mash_tun.enabled)
 
+    def test_state_mash_no_profile(self):
+        self.brewhouse.recipe.mash_temperature_profile = MashProfile([])
+        self.brewhouse.working_time = 0
+        self.brewhouse.state.set_state_by_name("StateMash")
+        self.brewhouse.state.state_time_change = 0
+        self.brewhouse.state.evaluate()
+        self.assertEqual(self.brewhouse.state.state.__class__.__name__,
+                         'StateMashoutRamp')
+
     def test_state_mash_timer_start(self):
         self.brewhouse.recipe.mash_temperature_profile = MashProfile([
             MashStep(15.0, 155.0),

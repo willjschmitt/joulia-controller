@@ -336,17 +336,22 @@ class StateMash(State):
             brewhouse.state_t0
             + mash_profile.temperature_profile_length
             - brewhouse.working_time)
+        LOGGER.info('%s time left in %s.', brewhouse.timer, self.NAME)
+
+        if brewhouse.timer <= 0.0:
+            self.state_machine.next_state()
+            return
 
         brewhouse.main_pump.turn_on()
         brewhouse.boil_kettle.enable()
         brewhouse.mash_tun.enable()
 
-        mash_temperature = mash_profile.temperature_at_time(brewhouse.state_t0)
+        LOGGER.info('working_time: %s, state_t0: %s',
+                    brewhouse.working_time, brewhouse.state_t0)
+        mash_temperature = mash_profile.temperature_at_time(
+            brewhouse.working_time - brewhouse.state_t0)
         brewhouse.mash_tun.set_temperature(mash_temperature)
         brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
-
-        if brewhouse.timer <= 0.:
-            self.state_machine.next_state()
 
 
 class StateMashoutRamp(State):

@@ -1,6 +1,11 @@
 """Client side representations of the joulia-webserver database models."""
 
+import logging
+
 import numpy as np
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class RecipeInstance(object):
@@ -118,8 +123,9 @@ class MashProfile(object):
             time_in_profile: The time to reference as the beginning of the
                 profile.
         """
-        assert time_in_profile >= self._mash_points[0].time
-        assert time_in_profile < self._mash_points[-1].time
+        LOGGER.info('Getting temperature at time %s.', time_in_profile)
+        assert time_in_profile >= 0.0
+        assert time_in_profile <= self.temperature_profile_length
 
         times = [point.time for point in self._mash_points]
         temps = [point.temperature for point in self._mash_points]
@@ -128,6 +134,8 @@ class MashProfile(object):
     @property
     def temperature_profile_length(self):
         """The total amount of time prescribed in the temperature profile."""
+        if not self._mash_points:
+            return 0.0
         return self._mash_points[-1].time
 
 

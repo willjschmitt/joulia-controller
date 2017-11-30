@@ -10,11 +10,14 @@ class StubMCP3008(object):
     """
     def __init__(self, spi):
         del spi
-        self.counts = 0
+        self.counts = [0]*8
 
     def read_adc(self, channel):  # pylint: disable=missing-docstring
-        del channel
-        return self.counts
+        return self.counts[channel]
+
+    def set_counts(self, channel, counts):
+        """Sets the counts to be returned for the requested channel."""
+        self.counts[channel] = counts
 
 
 class StubSpiDev(object):
@@ -26,5 +29,5 @@ class StubSpiDev(object):
     Adafruit_GPIO library. The stub StubMCP3008, which consumes this stub, won't
     call this stub at all.
     """
-    def __init__(self, port, device):
-        del port, device
+    def __init__(self):
+        pass

@@ -1,0 +1,9 @@
+tornado
+gpiocrust
+pytz
+requests
+nose
+coverage
+GitPython>=2.1.5
+numpy>=1.13.3
+pylint==1.7.4

@@ -151,6 +151,30 @@ class RtdSensor(object):
         self.temperature_unfiltered = temperature_calibrated
         self.temperature_filter.filter(temperature_calibrated)
 
+    def reverse_temperature(self, temperature):
+        """In an simulated system provides the voltage the RTD needs to measure.
+
+        Converts temperature back to ADC input voltage, which can be applied to
+        a mocked analog reader in simulations.
+
+        Does not modify any internal state.
+
+        Attributes:
+            temperature: Temperature to calculate counts for.
+
+        Returns:
+            Voltage the ADC would need to receive to measure the provided
+            temperature.
+        """
+        resistance_rtd = self.temperature_to_resistance(temperature)
+
+        voltage_rtd = self.rtd_divider.v_out(resistance_rtd)
+
+        voltage_measured = self.amplifier.v_out(
+            self.offset_divider.v_out(self.vcc) - voltage_rtd)
+
+        return voltage_measured
+
     def _resistance_to_temperature(self, resistance):
         """Converts RTD resistance into a temperature. Units: Fahrenheit. Uses
         a simple linear approximation rather than a full Callendar-Van Dusen.
@@ -160,7 +184,32 @@ class RtdSensor(object):
                                / (self.alpha * self.zero_resistance))
         return celsius_to_fahrenheit(temperature_celsius)
 
+    def temperature_to_resistance(self, temperature_fahrenheit):
+        """Converts temperature into an RTD resistance.
+
+        Uses a simple linear approximation rather than a full Callendar-Van
+        Dusen.
+
+        Arguments:
+            temperature_fahrenheit: The temperature (in fahrenheit) to calculate
+                the RTD resistance for.
+
+        Returns:
+            Resistance in Ohms the RTD would be at the provided temperature.
+        """
+        temperature_celsius = fahrenheit_to_celsius(temperature_fahrenheit)
+
+        resistance = (
+            (temperature_celsius * (self.alpha * self.zero_resistance))
+            + self.zero_resistance)
+        return resistance
+
 
 def celsius_to_fahrenheit(degrees_celsius):
-    """Converts a temperature from celsius to fahrenheit"""
+    """Converts a temperature from celsius to fahrenheit."""
     return degrees_celsius * (9.0/5.0) + 32.0
+
+
+def fahrenheit_to_celsius(degrees_fahrenheit):
+    """Converts a temperature from fahrenheit to celsius."""
+    return (degrees_fahrenheit - 32.0) * (5.0/9.0)
