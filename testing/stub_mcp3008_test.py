@@ -1,4 +1,5 @@
 """Tests for the testing.stub_mcp3008 module."""
+# pylint: disable=missing-docstring,too-many-public-methods,too-many-locals,too-many-instance-attributes
 
 import unittest
 
