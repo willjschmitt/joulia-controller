@@ -8,6 +8,8 @@ cache:
   directories:
     - $HOME/.cache/pip
   fast_finish: true
+services:
+  - docker
 install:
   - travis_retry pip install -r requirements.txt
   - travis_retry pip install coverage
@@ -24,7 +26,11 @@ notifications:
   email: false
   slack: joulia:WNFyeuBeiJJAGjU6Gwj9rPnX
 deploy:
-  provider: script
-  script: python register_update.py
-  on:
-    branch: master
+  - provider: script
+    script: python register_update.py
+    on:
+      branch: master
+  - provider: script
+    script: "./deploy_docker.sh"
+    on:
+      branch: master
