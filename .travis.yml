@@ -30,7 +30,13 @@ deploy:
     script: python register_update.py
     on:
       branch: master
+      # Doesn't matter which python version. This just makes sure we deploy only
+      # once.
+      python: 3.6
   - provider: script
     script: "./deploy_docker.sh"
     on:
       branch: master
+      # Doesn't matter which python version. This just makes sure we deploy only
+      # once.
+      python: 3.6
