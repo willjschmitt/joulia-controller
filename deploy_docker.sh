@@ -33,14 +33,14 @@ then
 fi
 
 echo "Tagging Docker image."
-docker tag "${DOCKER_REPO}:${COMMIT}" "${DOCKER_REPO}:latest${SUFFIX}"
+docker tag "${DOCKER_REPO}:${COMMIT}${SUFFIX}" "${DOCKER_REPO}:latest${SUFFIX}"
 if [ #? -ne 0 ]
 then
   >&2 echo "Failed to tag Docker image with latest tag."
   exit -1
 fi
 
-docker tag "${DOCKER_REPO}:${COMMIT}" "${DOCKER_REPO}:travis-${TRAVIS_BUILD_NUMBER}${SUFFIX}"
+docker tag "${DOCKER_REPO}:${COMMIT}${SUFFIX}" "${DOCKER_REPO}:travis-${TRAVIS_BUILD_NUMBER}${SUFFIX}"
 if [ #? -ne 0 ]
 then
   >&2 echo "Failed to tag Docker image with travis build number."
