@@ -11,4 +11,4 @@ ADD . /code/
 WORKDIR /code
 RUN pip install -r requirements_simulation.txt
 
-CMD python main-simulated.py
+CMD python main_simulated.py
