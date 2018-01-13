@@ -30,7 +30,10 @@ HTTPStatus.INTERNAL_SERVER_ERROR = 500
 
 
 class StubUpdateManager(object):
-    def check_version(self):
+    def watch(self):
+        pass
+
+    def stop(self):
         pass
 
 

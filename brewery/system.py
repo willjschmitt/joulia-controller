@@ -19,12 +19,9 @@ from http_codes import HTTP_TIMEOUT
 from joulia_webserver.client import JouliaHTTPClient
 from joulia_webserver.client import JouliaWebsocketClient
 import settings
-from update import UpdateManager
+from update import GitUpdateManager
 
 LOGGER = logging.getLogger(__name__)
-
-# Rate to check for updates. Set to 30 seconds.
-UPDATE_CHECK_RATE = 30 * 1000  # milliseconds
 
 
 class System(object):
@@ -40,12 +37,7 @@ class System(object):
         self.analog_reader = analog_reader
         self.gpio = gpio
         self.update_manager = update_manager
-
-        # Check for new versions periodically. Timers get turned on and off by
-        # the recipe start/stop watchers.
-        self.update_check_timer = ioloop.PeriodicCallback(
-            self.update_manager.check_version, UPDATE_CHECK_RATE)
-        self.update_check_timer.start()
+        self.update_manager.watch()
 
     @classmethod
     def create_from_settings(cls, analog_reader, gpio):
@@ -67,7 +59,7 @@ class System(object):
         brewhouse_id = http_client.get_brewhouse_id()
 
         repo = Repo(os.getcwd())
-        update_manager = UpdateManager(repo, http_client)
+        update_manager = GitUpdateManager(repo, http_client)
         system = System(http_client, ws_client, start_stop_client, brewhouse_id,
                         analog_reader, gpio, update_manager)
         system.watch_for_start()
@@ -118,7 +110,7 @@ class System(object):
                 response = json_decode(response.body)
                 recipe_instance = response['recipe_instance']
                 # Cancel checking for updates when starting a brew session.
-                self.update_check_timer.stop()
+                self.update_manager.stop()
                 self.create_brewhouse(recipe_instance)
                 self.start_brewing()
                 self.watch_for_end()
@@ -158,7 +150,7 @@ class System(object):
                 self.end_brewing()
 
                 # Check for updates while not running a brew session.
-                self.update_check_timer.start()
+                self.update_manager.watch()
 
                 self.watch_for_start()
 
