@@ -1,5 +1,6 @@
 """Manages software updates."""
 
+import abc
 import binascii
 import os
 import sys
@@ -14,7 +15,21 @@ def restart_program():
     os.execv(sys.executable, ['python'] + sys.argv)
 
 
-class GitUpdateManager(object):
+class UpdateManager(abc.ABC):
+    """Abstract class for software updating."""
+
+    @abc.abstractmethod
+    def watch(self):
+        """Check for new versions periodically."""
+        ...
+
+    @abc.abstractmethod
+    def stop(self):
+        """Stops checking for new versions periodically."""
+        ...
+
+
+class GitUpdateManager(UpdateManager):
     """Updates software based on git commits compared to versions on server.
 
     Attributes:
