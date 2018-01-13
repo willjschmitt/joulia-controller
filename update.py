@@ -2,10 +2,13 @@
 
 import abc
 import binascii
+import logging
 import os
 import sys
 
 from tornado import ioloop
+
+LOGGER = logging.getLogger(__name__)
 
 
 def restart_program():
@@ -53,16 +56,19 @@ class GitUpdateManager(UpdateManager):
 
     def watch(self):
         """Check for new versions periodically."""
+        LOGGER.info("Starting watch for updates.")
         self._update_check_timer.start()
 
     def stop(self):
         """Stops checking for new versions periodically."""
+        LOGGER.info("Ending watch for updates.")
         self._update_check_timer.stop()
 
     def _check_version(self):
         """Checks to see if there is any new version available. If there is a
         new version, downloads it, and restarts the process. Returns boolean if
         an update was required."""
+        LOGGER.info("Checking for updates.")
         current_hash = binascii.hexlify(
             self.repo.head.object.binsha).decode('utf-8')
         latest_release = self.client.get_latest_joulia_controller_release()
@@ -77,6 +83,7 @@ class GitUpdateManager(UpdateManager):
         followed by a checkout to that hash. Will restart the current process
         after.
         """
+        LOGGER.warning("Updating software to hash %s.", commit_hash)
         self.repo.remotes.origin.fetch()
         commit = self.repo.commit(commit_hash)
         self.repo.git.checkout(commit)
@@ -87,4 +94,5 @@ class GitUpdateManager(UpdateManager):
         that were provided to it. This is useful if the Python source files
         have been updated and need to be reloaded.
         """
+        LOGGER.warning("Restarting system.")
         self.system_restarter()
