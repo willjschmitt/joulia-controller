@@ -235,12 +235,13 @@ class SubscribableVariable(WebsocketVariable):
         if subscriber_key not in self.subscribers:
             return
 
-        LOGGER.debug("Received updated value for sensor %s(%s), variable_type"
-                     " %s, recipe_instance %s.", sensor, self.sensor_name,
-                     variable_type, recipe_instance)
-        subscriber = self.subscribers[subscriber_key]
-
         response_value = response_data['value']
+
+        LOGGER.debug("Received updated value %s for sensor %s(%s),"
+                     " variable_type %s, recipe_instance %s.", response_value,
+                     sensor, self.sensor_name, variable_type, recipe_instance)
+
+        subscriber = self.subscribers[subscriber_key]
 
         instance = subscriber['instance']
 
