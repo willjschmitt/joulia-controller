@@ -13,6 +13,9 @@ class StubMCP3008(object):
         self.counts = [0]*8
 
     def read_adc(self, channel):  # pylint: disable=missing-docstring
+        assert channel < len(self.counts), \
+            "Channel {} greater than {} available channels.".format(
+                channel, len(self.counts))
         return self.counts[channel]
 
     def set_counts(self, channel, counts):
