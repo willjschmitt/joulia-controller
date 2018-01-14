@@ -209,8 +209,9 @@ class SubscribableVariable(WebsocketVariable):
         sensor = self.ids[sensor_key]
         subscription_key = (sensor, variable_type, recipe_instance)
         if subscription_key not in self.subscribers:
-            LOGGER.info('Subscribing to %s (%s), instance %s',
-                        self.sensor_name, variable_type, recipe_instance)
+            LOGGER.info('Subscribing to %s (%s:%s), instance %s',
+                        sensor, self.sensor_name, variable_type,
+                        recipe_instance)
 
             subscriber = {'instance': instance}
             self.subscribers[subscription_key] = subscriber
