@@ -124,6 +124,8 @@ class ManagedVariable(object):
         client = self.clients[instance]
         id_sensor = client.identify(
             self.sensor_name, recipe_instance, variable_type)
+        LOGGER.info("Identified sensor %s in recipe_instance %s as id %s.",
+                    self.sensor_name, recipe_instance, id_sensor)
         self.ids[(instance, variable_type)] = id_sensor
         self.variable_types[id_sensor] = variable_type
 
