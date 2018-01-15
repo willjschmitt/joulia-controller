@@ -23,7 +23,7 @@ LOGGING_CONFIG = {
     'disable_existing_loggers': False,
     'formatters': {
         'standard': {
-            'format': '%(levelname)-8s %(asctime)s %(name)-12s %(message)s'
+            'format': '[%(levelname)-8s] %(asctime)s %(name)-12s:%(lineno)d %(message)s'
         },
     },
     'handlers': {
