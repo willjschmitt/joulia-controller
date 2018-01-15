@@ -228,7 +228,7 @@ class SubscribableVariable(WebsocketVariable):
         """
         response_data = json.loads(response)
         sensor = response_data['sensor']
-        variable_type = response_data.get('variable_type', "value")
+        variable_type = response_data.get('variable_type', VALUE_VARIABLE_TYPE)
         recipe_instance = response_data['recipe_instance']
         subscriber_key = (sensor, variable_type, recipe_instance)
 
@@ -246,7 +246,7 @@ class SubscribableVariable(WebsocketVariable):
 
         instance = subscriber['instance']
 
-        if variable_type == 'value':
+        if variable_type == VALUE_VARIABLE_TYPE:
             # Attempts to convert data to the variable type of currently stored
             # data if it exists. Otherwise, just sets it to the default parsed
             # type from the json object.
@@ -304,7 +304,7 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
     def on_message(self, response):
         response_data = json.loads(response)
         sensor = response_data['sensor']
-        variable_type = self.variable_types[sensor]
+        variable_type = response_data.get('variable_type', VALUE_VARIABLE_TYPE)
         recipe_instance = response_data['recipe_instance']
         subscriber_key = (sensor, variable_type, recipe_instance)
 
