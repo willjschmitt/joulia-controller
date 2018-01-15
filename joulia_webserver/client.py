@@ -3,6 +3,7 @@ communication with joulia-webserver, and offers an opportunity for subclassing
 and stubbing the response from joulia-webserver.
 """
 
+from collections import namedtuple
 import datetime
 import json
 import logging
@@ -246,6 +247,7 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
     not available.
 
     Attributes:
+        address: The address used to connect to the websocket server.
         http_client: JouliaHTTPClient instance for making required HTTP requests
             not supported by joulia-webserver yet.
         callbacks: A list of the registered callbacks for handling messages
@@ -253,33 +255,52 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
         websocket: The tornado websocket client
     """
 
+    # Represents a simple subscription made to the server for a particular
+    # sensor in a recipe_instance.
+    Subscription = namedtuple('Subscription', ('recipe_instance', 'sensor',))
+
     def __init__(self, address, http_client, auth_token=None):
         super(JouliaWebsocketClient, self).__init__(address, auth_token)
 
+        self.address = address
         self.http_client = http_client
 
         self.callbacks = set()
-        IOLoop.current().run_sync(lambda: self._connect(address))
+
+        self._subscriptions = set()
+
+        IOLoop.current().run_sync(self._connect)
 
     @gen.coroutine
-    def _connect(self, url):
+    def _connect(self):
         """Starts connection to the websocket streaming endpoint.
 
         Is a tornado coroutine, so the websocket connection is yielded,
         and we have a connection callback set.
-
-        Args:
-            url: URL to the websocket endpoint.
         """
-        LOGGER.info("Establishing websocket connection at %s", url)
-        http_request = HTTPRequest(url, headers=self._authorization_headers())
+        LOGGER.info("Establishing websocket connection at %s", self.address)
+        http_request = HTTPRequest(
+            self.address, headers=self._authorization_headers())
         self.websocket = yield self._websocket_connect(
             http_request, on_message_callback=self.on_message)
-        LOGGER.info("Websocket connection established at %s", url)
+        LOGGER.info("Websocket connection established at %s", self.address)
+
+    def _reconnect(self):
+        """After a connection is dropped, reconnect to the websocket.
+
+        Re-subscribes to any subscriptions made through ``subscribe``.
+        """
+        # TODO(willjschmitt): Add re-connect backoff if reconnecting fails
+        # continuously.
+        LOGGER.info("Reconnecting to websocket and re-subscribing.")
+        IOLoop.current().run_sync(self._connect)
+        for subscription in self._subscriptions:
+            self.subscribe(subscription.recipe_instance, subscription.sensor)
 
     @gen.coroutine
     def _websocket_connect(self, url, on_message_callback=None):
-        websocket = yield websocket_connect(url, on_message_callback=on_message_callback)
+        websocket = yield websocket_connect(
+            url, on_message_callback=on_message_callback)
         return websocket
 
     def write_message(self, message):
@@ -310,6 +331,10 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
             sensor_name, recipe_instance, variable_type)
 
     def subscribe(self, recipe_instance, sensor):
+        LOGGER.info("Subscribing to sensor %s, recipe instance %s.", sensor,
+                    recipe_instance)
+        self._subscriptions.add(self.Subscription(
+            recipe_instance=recipe_instance, sensor=sensor))
         msg_string = json.dumps({'recipe_instance': recipe_instance,
                                  'sensor': sensor,
                                  'subscribe': True})
@@ -336,6 +361,7 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
         """
         if message is None:
             LOGGER.error('Websocket closed unexpectedly.')
+            self._reconnect()
             return
 
         for callback in self.callbacks:

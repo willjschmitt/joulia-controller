@@ -261,16 +261,31 @@ class TestJouliaWebsocketClient(unittest.TestCase):
             sensor_name, recipe_instance, client.OVERRIDE_VARIABLE_TYPE)
         self.assertEqual(sensor_id, 11)
 
+    def check_subscription(self, message_index, recipe_instance, sensor):
+        """Checks that a subscription request was sent to websocket.
+
+        Args:
+            message_index: Which message should be checked.
+            recipe_instance: The recipe instance that should have been
+                subscribed.
+            sensor: the sensor in the recipe_instance to subscribe to.
+        """
+        got = self.client.websocket.written_messages[message_index]
+        parsed = json.loads(got)
+        self.assertEquals(parsed['recipe_instance'], recipe_instance)
+        self.assertEquals(parsed['sensor'], sensor)
+        self.assertEquals(parsed['subscribe'], True)
+
     def test_subscribe(self):
         recipe_instance = 1
         sensor = 3
-        self.client.subscribe(recipe_instance,sensor)
+        self.client.subscribe(recipe_instance, sensor)
 
-        got = self.client.websocket.written_messages[0]
-        parsed = json.loads(got)
-        self.assertEquals(parsed['recipe_instance'], recipe_instance)
-        self.assertEquals(parsed['sensor'], 3)
-        self.assertEquals(parsed['subscribe'], True)
+        self.check_subscription(0, recipe_instance, sensor)
+
+        subscription = JouliaWebsocketClient.Subscription(
+            recipe_instance=recipe_instance, sensor=sensor)
+        self.assertEquals(self.client._subscriptions, {subscription})
 
     def test_register_callback(self):
         def foo(_):
@@ -292,14 +307,33 @@ class TestJouliaWebsocketClient(unittest.TestCase):
 
         self.assertEquals(counters['foo'], 1)
 
-    def test_on_message_callback_closed_connection(self):
-        counters = {"foo": 0}
+    def test_on_message_closed_connection(self):
+        # Make a subscription first.
+        recipe_instance = 1
+        sensor = 3
+        self.client.subscribe(recipe_instance, sensor)
+        subscribe_index = 0
+        self.check_subscription(subscribe_index, recipe_instance, sensor)
 
+        # Register a callback.
+        counters = {"foo": 0}
         def foo(response):
             counters["foo"] += 1  # pragma: no cover
-
         self.client.register_callback(foo)
 
+        # Store the current websocket, which will get reset shortly.
+        original_socket = self.client.websocket
+
+        # Close the connection.
         self.client.on_message(None)
 
+        # No callbacks should be called on closed connection.
         self.assertEquals(counters['foo'], 0)
+
+        # There should be a new websocket formed. Check that it changed.
+        self.assertIsNot(original_socket, self.client.websocket)
+
+        # Subscriptions should be re-performed on close. The client is a new one
+        # so the index has reset.
+        resubscribe_index = 0
+        self.check_subscription(resubscribe_index, recipe_instance, sensor)
