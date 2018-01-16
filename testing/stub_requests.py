@@ -21,19 +21,23 @@ class StubRequests(object):
         """Gets the response stored for the given url."""
         return self.response_map.get(url, self.response_string)
 
-    def post(self, url, headers=None, *args, **kwargs):
-        """Mocks the post function in the requests library."""
+    def _stub_request(self, url, headers, *args, **kwargs):
         del headers, args, kwargs
         if not self.server_there:
             raise requests.exceptions.ConnectionError()
         return StubResponse(self.response(url), self.status_code, self.reason)
 
+    def post(self, url, headers=None, *args, **kwargs):
+        """Mocks the post function in the requests library."""
+        return self._stub_request(url, headers, *args, **kwargs)
+
+    def put(self, url, headers=None, *args, **kwargs):
+        """Mocks the put function in the requests library."""
+        return self._stub_request(url, headers, *args, **kwargs)
+
     def get(self, url, headers=None, *args, **kwargs):
         """Mocks the get function in the requests library."""
-        del headers, args, kwargs
-        if not self.server_there:
-            raise requests.exceptions.ConnectionError()
-        return StubResponse(self.response(url), self.status_code, self.reason)
+        return self._stub_request(url, headers, *args, **kwargs)
 
 
 class StubResponse(requests.Response):

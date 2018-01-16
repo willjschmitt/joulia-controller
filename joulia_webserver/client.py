@@ -104,6 +104,22 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
         response.raise_for_status()
         return response
 
+    def _put(self, url, *args, **kwargs):
+        """Helper function to help make PUTs to the server but add time
+        between requests incase there are issues so we don't pile up a ton
+        of requests. Attaches authentication based on instance.
+
+        Args:
+            url: Url to post to
+            *args: To pass to `requests.put`
+            **kwargs: To pass to `requests.put`
+        """
+        headers = self._authorization_headers()
+        response = self._requests_service.put(url, headers=headers, *args,
+                                               **kwargs)
+        response.raise_for_status()
+        return response
+
     def _get(self, url, *args, **kwargs):
         """Helper function to help make get requests to the server.
 
@@ -249,7 +265,7 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
                 'id' set on it.
         """
         brewhouse_url = self._get_brewhouse_url(brewhouse['id'])
-        response = self._post(brewhouse_url, data=brewhouse)
+        response = self._put(brewhouse_url, data=brewhouse)
         return response.json()
 
     def save_brewhouse_software_version(self, brewhouse_pk, software_pk):
