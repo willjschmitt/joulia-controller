@@ -89,7 +89,7 @@ class Brewhouse(object):
             """If permission is granted, increments the state"""
             if value:
                 LOGGER.info("Received permission grant. Advancing state.")
-                self.state.index += 1
+                self.state.next_state()
         Brewhouse.request_permission.register(client, self, recipe_instance)
         Brewhouse.grant_permission.register(
             client, self, recipe_instance, callback=permission_granted)

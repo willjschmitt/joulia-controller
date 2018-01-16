@@ -153,11 +153,25 @@ class TestStateMachine(unittest.TestCase):
 class TestState(unittest.TestCase):
     """Tests the State class."""
 
-    def test_call_unimplemented(self):
+    def setUp(self):
         http_client = StubJouliaHTTPClient("fake address")
         ws_client = StubJouliaWebsocketClient("fake address", http_client)
         recipe_instance = 0
-        state_machine = StateMachine(self, ws_client, recipe_instance)
-        state = State(state_machine)
+        self.state_machine = StateMachine(self, ws_client, recipe_instance)
+        self.state = State(self.state_machine)
+
+    def test_call_unimplemented(self):
         with self.assertRaises(NotImplementedError):
-            state(self)
+            self.state(self)
+
+    def test_str(self):
+        got = str(self.state)
+        self.assertEquals(got, 'None')
+
+    def test_str_implemented(self):
+        class Foo(State):
+            NAME = "Foo"
+
+        state = Foo(self.state_machine)
+        got = str(state)
+        self.assertEquals(got, "Foo")

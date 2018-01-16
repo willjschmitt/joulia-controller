@@ -2,9 +2,12 @@
 operate on an object.
 """
 
+import logging
 import time
 
 from variables import BidirectionalVariable
+
+LOGGER = logging.getLogger(__name__)
 
 
 class StateMachine(object):
@@ -70,6 +73,7 @@ class StateMachine(object):
     @index.setter
     def index(self, value):
         assert value is None or value < len(self.states)
+        LOGGER.debug("Setting state by index to %s.", value)
 
         if self._index != value:
             self.parent.request_permission = False
@@ -88,6 +92,7 @@ class StateMachine(object):
     @state.setter
     def state(self, state):
         assert state in self.states
+        LOGGER.debug("Setting state by state to %s.", state)
         self.index = self.states.index(state)
 
     def evaluate(self):
@@ -115,6 +120,8 @@ class StateMachine(object):
         else:
             self.index += 1
 
+        LOGGER.info("Advanced state to %s.", self.state)
+
     def previous_state(self):
         """Moves the current state to the previous state in the state machine.
 
@@ -129,11 +136,15 @@ class StateMachine(object):
         else:
             self.index -= 1
 
+        LOGGER.info("Moved state back to %s.", self.state)
+
     def set_state_by_name(self, class_name):
         """Sets the state by the class name of the state."""
         for state in self.states:
             if state.__class__.__name__ == class_name:
                 self.state = state
+
+        LOGGER.info("State set by name to %s.", self.state)
 
 
 class State(object):
@@ -153,3 +164,6 @@ class State(object):
     def __call__(self, instance):
         """Code to be executed when this state should be evaluated."""
         raise NotImplementedError()
+
+    def __str__(self):
+        return "{}".format(self.NAME)
