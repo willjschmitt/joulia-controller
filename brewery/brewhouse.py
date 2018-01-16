@@ -223,8 +223,6 @@ class StatePrestart(State):
         ' permission to proceed.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state Prestart')
-
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()
@@ -244,8 +242,6 @@ class StatePremash(State):
         ' mash tun. Fill mash tun with grain.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state Premash')
-
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()
@@ -270,8 +266,6 @@ class StateStrike(State):
         'when mash tun reaches desired volume to stop pump.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state Strike')
-
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_on()
@@ -297,8 +291,6 @@ class StatePostStrike(State):
         ' recirculate wort from mash tun through coil in HLT.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state PostStrike')
-
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()
@@ -329,8 +321,6 @@ class StateMash(State):
         ' follow mash profile and heat wort to the mash profile.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state Mash')
-
         mash_profile = brewhouse.recipe.mash_temperature_profile
 
         brewhouse.timer = (
@@ -366,8 +356,6 @@ class StateMashoutRamp(State):
         ' wort.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state MashoutRamp')
-
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_on()
@@ -396,8 +384,6 @@ class StateMashoutRecirculation(State):
         ' the sugar conversion process.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state MashoutRecirculation')
-
         brewhouse.timer = (
             brewhouse.state_t0
             + brewhouse.recipe.mashout_time
@@ -424,8 +410,6 @@ class StateSpargePrep(State):
         ' or directly to boil kettle.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state SpargePrep')
-
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()
@@ -447,8 +431,6 @@ class StateSparge(State):
         ' valves to match the drain rate from the mash tun.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state Sparge')
-
         brewhouse.main_pump.turn_on()
         brewhouse.boil_kettle.disable()
         brewhouse.mash_tun.disable()
@@ -472,8 +454,6 @@ class StatePreBoil(State):
         ' kettle.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state PreBoil')
-
         brewhouse.main_pump.turn_off()
         brewhouse.boil_kettle.disable()
         brewhouse.mash_tun.disable()
@@ -496,8 +476,6 @@ class StateMashToBoil(State):
         ' state when all wort has been transferred.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state MashToBoil')
-
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_on()
@@ -519,8 +497,6 @@ class StateBoilPreheat(State):
         'Heating boil kettle to boil temperature before starting boil timer.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state BoilPreheat')
-
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()
@@ -544,8 +520,6 @@ class StateBoil(State):
     DESCRIPTION = 'Boiling wort. Add hops at appropriate time.'
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state Boil')
-
         brewhouse.main_pump.turn_off()
         brewhouse.boil_kettle.enable()
         brewhouse.mash_tun.disable()
@@ -571,8 +545,6 @@ class StateCoolingPrep(State):
         ' cooling water. Requires permission to advance state.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state Boil')
-
         brewhouse.main_pump.turn_off()
         brewhouse.boil_kettle.disable()
         brewhouse.mash_tun.disable()
@@ -592,8 +564,6 @@ class StateCool(State):
         ' heat exchanger with cold water.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state Cool')
-
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_on()
@@ -617,8 +587,6 @@ class StatePumpout(State):
         ' when all wort has been transferred.')
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state Pumpout')
-
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_on()
@@ -638,8 +606,6 @@ class StateDone(State):
     DESCRIPTION = 'Brew session complete. Time to clean up!'
 
     def __call__(self, brewhouse):
-        LOGGER.debug('In state Done')
-
         brewhouse.timer = None
 
         brewhouse.main_pump.turn_off()

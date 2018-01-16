@@ -101,6 +101,7 @@ class StateMachine(object):
         """
         if self.state is None:
             return None
+        LOGGER.debug('Evaluating state %s.', self.state)
         return self.state(self.parent)  # pylint: disable=not-callable
 
     def _time(self):
