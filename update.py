@@ -111,6 +111,7 @@ class GitUpdateManager(UpdateManager):
         Args:
             release_pk: The softare release pk updated to.
         """
+        LOGGER.info("Updating server software version to %s.", release_pk)
         self.client.save_brewhouse_software_version(
             self.brewhouse_pk, release_pk)
 
