@@ -66,10 +66,21 @@ class TestGitUpdateManager(unittest.TestCase):
 
     def test_check_version_no_new_version(self):
         self.client.latest_controller_release = {
-            "id": 10,
+            "id": 9,
             "commit_hash": "abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd"}
         updated = self.update_manager._check_version()
         self.assertFalse(updated)
+
+    def test_check_version_no_new_version_wrong_saved_id(self):
+        self.client.latest_controller_release = {
+            "id": 10,
+            "commit_hash": "abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd"}
+        updated = self.update_manager._check_version()
+        self.assertTrue(updated)
+        self.assertEqual(self.client.updated_brewhouse, {
+            'id': 1,
+            'software_version': 10,
+        })
 
     def test_check_version_no_version(self):
         self.client.latest_controller_release = {

@@ -75,10 +75,18 @@ class GitUpdateManager(UpdateManager):
             self.repo.head.object.binsha).decode('utf-8')
         latest_release = self.client.get_latest_joulia_controller_release()
         latest_hash = latest_release["commit_hash"]
-        if latest_hash is not None and latest_hash != current_hash:
-            self._update(latest_release["commit_hash"], latest_release['id'])
+        latest_release_id = latest_release['id']
+        if latest_hash is None:
+            return False
+
+        if latest_hash != current_hash:
+            self._update(latest_hash, latest_release_id)
             return True
-        return False
+
+        brewhouse = self.client.get_brewhouse(self.brewhouse_pk)
+        if latest_release_id != brewhouse['software_version']:
+            self._update_server(latest_release_id)
+            return True
 
     def _update(self, commit_hash, release_pk):
         """Updates the software to the provided SHA1 hash by performing a fetch
