@@ -55,23 +55,44 @@ class TestGitUpdateManager(unittest.TestCase):
     def setUp(self):
         self.repo = StubRepo()
         self.client = StubJouliaHTTPClient("http://fakehost")
+        self.client.brewhouse = {
+            'id': 1,
+            'software_version': 9,
+        }
+        self.brewhouse_id = 1
         self.update_manager = GitUpdateManager(
-            self.repo, self.client, system_restarter=stub_system_restarter)
+            self.repo, self.client, self.brewhouse_id,
+            system_restarter=stub_system_restarter)
 
     def test_check_version_no_new_version(self):
         self.client.latest_controller_release = {
-           "commit_hash": "abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd"}
+            "id": 10,
+            "commit_hash": "abcdabcdabcdabcdabcdabcdabcdabcdabcdabcd"}
         updated = self.update_manager._check_version()
         self.assertFalse(updated)
 
     def test_check_version_no_version(self):
         self.client.latest_controller_release = {
-           "commit_hash": None}
+            "id": 10,
+            "commit_hash": None}
         updated = self.update_manager._check_version()
         self.assertFalse(updated)
 
     def test_check_version_new_version(self):
         self.client.latest_controller_release = {
-           "commit_hash": "dcbadcbadcbadcbadcbadcbadcbadcbadcbadcba"}
+            "id": 10,
+            "commit_hash": "dcbadcbadcbadcbadcbadcbadcbadcbadcbadcba"}
         updated = self.update_manager._check_version()
         self.assertTrue(updated)
+
+    def test_check_version_updates_server(self):
+        self.assertIsNone(self.client.updated_brewhouse)
+        self.client.latest_controller_release = {
+            "id": 10,
+            "commit_hash": "dcbadcbadcbadcbadcbadcbadcbadcbadcbadcba"}
+        updated = self.update_manager._check_version()
+        self.assertTrue(updated)
+        self.assertEqual(self.client.updated_brewhouse, {
+            'id': 1,
+            'software_version': 10,
+        })

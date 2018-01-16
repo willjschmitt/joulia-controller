@@ -240,6 +240,35 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
         response = self._get(brewhouse_url)
         return response.json()
 
+    def update_brewhouse(self, brewhouse):
+        """Gets the Brewhouse, which includes configuration information from the
+        Joulia Webserver. Returned data is in json form.
+
+        Args:
+            brewhouse: The data to update the brewhouse with. Must have at least
+                'id' set on it.
+        """
+        brewhouse_url = self._get_brewhouse_url(brewhouse['id'])
+        response = self._post(brewhouse_url, data=json.dumps(brewhouse))
+        return response.json()
+
+    def save_brewhouse_software_version(self, brewhouse_pk, software_pk):
+        """Updates the software version for the brewhouse.
+
+        Should be used to tell the server the software has been updated to a
+        specific version.
+
+        Will get the brewhouse using get_brewhouse then update with
+        update_brewhouse.
+
+        Args:
+            brewhouse_pk: The brewhouse id to update.
+            software_pk: The software release version updated to.
+        """
+        brewhouse = self.get_brewhouse(brewhouse_pk)
+        brewhouse['software_version'] = software_pk
+        _ = self.update_brewhouse(brewhouse)
+
 
 class JouliaWebsocketClient(JouliaWebserverClientBase):
     """A Helper class for handling a synchronous connection to the websocket

@@ -46,9 +46,11 @@ class GitUpdateManager(UpdateManager):
     # Rate to check for updates. Set to 30 seconds.
     UPDATE_CHECK_RATE = 30 * 1000  # milliseconds
 
-    def __init__(self, repo, client, system_restarter=restart_program):
+    def __init__(self, repo, client, brewhouse_pk,
+                 system_restarter=restart_program):
         self.repo = repo
         self.client = client
+        self.brewhouse_pk = brewhouse_pk
         self.system_restarter = system_restarter
 
         self._update_check_timer = ioloop.PeriodicCallback(
@@ -74,20 +76,35 @@ class GitUpdateManager(UpdateManager):
         latest_release = self.client.get_latest_joulia_controller_release()
         latest_hash = latest_release["commit_hash"]
         if latest_hash is not None and latest_hash != current_hash:
-            self._update(latest_release["commit_hash"])
+            self._update(latest_release["commit_hash"], latest_release['id'])
             return True
         return False
 
-    def _update(self, commit_hash):
+    def _update(self, commit_hash, release_pk):
         """Updates the software to the provided SHA1 hash by performing a fetch
         followed by a checkout to that hash. Will restart the current process
         after.
+
+        Args:
+            commit_hash: The git commit hash to pull and checkout.
+            release_pk: The primary key for the release to update to on the
+                server.
         """
         LOGGER.warning("Updating software to hash %s.", commit_hash)
         self.repo.remotes.origin.fetch()
         commit = self.repo.commit(commit_hash)
         self.repo.git.checkout(commit)
+        self._update_server(release_pk)
         self._restart()
+
+    def _update_server(self, release_pk):
+        """Updates the server with release updated to.
+
+        Args:
+            release_pk: The softare release pk updated to.
+        """
+        self.client.save_brewhouse_software_version(
+            self.brewhouse_pk, release_pk)
 
     def _restart(self):
         """Ends the current process and restarts it with the same arguments

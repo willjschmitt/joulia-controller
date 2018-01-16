@@ -214,9 +214,18 @@ class TestJouliaHttpClient(unittest.TestCase):
         with open('testing/brewhouse.json') as brewhouse_file:
             brewhouse_data = brewhouse_file.read()
         self.client._requests_service.response_map[
-            "http://fakehost/brewery/api/brewhouse/10/"] = brewhouse_data
-        got = self.client.get_brewhouse(10)
+            "http://fakehost/brewery/api/brewhouse/9/"] = brewhouse_data
+        got = self.client.get_brewhouse(9)
         self.assertEquals(got, json.loads(brewhouse_data))
+
+    def test_update_brewhouse(self):
+        with open('testing/brewhouse.json') as brewhouse_file:
+            brewhouse_data = brewhouse_file.read()
+            parsed_brewhouse_data = json.loads(brewhouse_data)
+        self.client._requests_service.response_map[
+            "http://fakehost/brewery/api/brewhouse/9/"] = brewhouse_data
+        got = self.client.update_brewhouse(parsed_brewhouse_data)
+        self.assertEquals(got, parsed_brewhouse_data)
 
 
 class TestJouliaWebsocketClient(unittest.TestCase):

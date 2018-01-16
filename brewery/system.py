@@ -59,7 +59,7 @@ class System(object):
         brewhouse_id = http_client.get_brewhouse_id()
 
         repo = Repo(os.getcwd())
-        update_manager = GitUpdateManager(repo, http_client)
+        update_manager = GitUpdateManager(repo, http_client, brewhouse_id)
         system = System(http_client, ws_client, start_stop_client, brewhouse_id,
                         analog_reader, gpio, update_manager)
         system.watch_for_start()
