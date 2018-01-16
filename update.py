@@ -77,6 +77,7 @@ class GitUpdateManager(UpdateManager):
         latest_hash = latest_release["commit_hash"]
         latest_release_id = latest_release['id']
         if latest_hash is None:
+            LOGGER.info("No update hash found. Skipping update.")
             return False
 
         if latest_hash != current_hash:
