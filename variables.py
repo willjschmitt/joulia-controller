@@ -304,7 +304,7 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
     def on_message(self, response):
         response_data = json.loads(response)
         sensor = response_data['sensor']
-        variable_type = response_data.get('variable_type', VALUE_VARIABLE_TYPE)
+        variable_type = self.variable_types.get(sensor, VALUE_VARIABLE_TYPE)
         recipe_instance = response_data['recipe_instance']
         subscriber_key = (sensor, variable_type, recipe_instance)
 
