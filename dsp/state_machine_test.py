@@ -166,12 +166,15 @@ class TestState(unittest.TestCase):
 
     def test_str(self):
         got = str(self.state)
-        self.assertEquals(got, 'None')
+        self.assertEqual(got, 'None')
 
     def test_str_implemented(self):
         class Foo(State):
             NAME = "Foo"
 
+            def __call__(self):
+                pass
+
         state = Foo(self.state_machine)
         got = str(state)
-        self.assertEquals(got, "Foo")
+        self.assertEqual(got, "Foo")
