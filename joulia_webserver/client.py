@@ -104,8 +104,7 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
         try:
             response.raise_for_status()
         except requests.HTTPError as e:
-            e.message = "{}: {}".format(e.message, response.text)
-            raise
+            raise RuntimeError("{}: {}".format(e, response.text))
         return response
 
     def _put(self, url, *args, **kwargs):
@@ -120,8 +119,11 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
         """
         headers = self._authorization_headers()
         response = self._requests_service.put(url, headers=headers, *args,
-                                               **kwargs)
-        response.raise_for_status()
+                                              **kwargs)
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise RuntimeError("{}: {}".format(e, response.text))
         return response
 
     def _get(self, url, *args, **kwargs):
@@ -135,7 +137,10 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
         headers = self._authorization_headers()
         response = self._requests_service.get(url, headers=headers, *args,
                                               **kwargs)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise RuntimeError("{}: {}".format(e, response.text))
         return response
 
     @property
