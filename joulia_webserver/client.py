@@ -101,7 +101,11 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
         headers = self._authorization_headers()
         response = self._requests_service.post(url, headers=headers, *args,
                                                **kwargs)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            e.message = "{}: {}".format(e.message, response.text)
+            raise
         return response
 
     def _put(self, url, *args, **kwargs):
