@@ -4,7 +4,7 @@ import os
 
 from tornado import ioloop
 
-from brewery.system import System
+from brewery.system import SimulatedSystem
 from measurement.analog_reader import MCP3004AnalogReader
 import settings
 from testing.stub_gpio import StubGPIO
@@ -28,7 +28,7 @@ def main():
     gpio = StubGPIO()
     gpio.setmode(gpio.BCM)
 
-    system = System.create_from_settings(analog_reader, gpio)
+    system = SimulatedSystem.create_from_settings(analog_reader, gpio)
     system.watch_for_start()
     system.run_simulation()
     LOGGER.info("Brewery initialized.")
