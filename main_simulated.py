@@ -30,8 +30,6 @@ def main():
 
     system = SimulatedSystem.create_from_settings(analog_reader, gpio)
     system.watch_for_start()
-    system.run_simulation()
-    LOGGER.info("Brewery initialized.")
     ioloop.IOLoop.instance().start()
 
 

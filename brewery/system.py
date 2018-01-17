@@ -60,12 +60,10 @@ class System(object):
 
         repo = Repo(os.getcwd())
         update_manager = GitUpdateManager(repo, http_client, brewhouse_id)
-        system = System(http_client, ws_client, start_stop_client, brewhouse_id,
-                        analog_reader, gpio, update_manager)
-        system.watch_for_start()
+        system = cls(http_client, ws_client, start_stop_client, brewhouse_id,
+                     analog_reader, gpio, update_manager)
         LOGGER.info("Brewery initialized.")
-
-        ioloop.IOLoop.instance().start()
+        return system
 
     def create_brewhouse(self, recipe_instance_pk):
         """Creates a new brewhouse instance when starting a new recipe."""
@@ -91,37 +89,14 @@ class System(object):
         Once the request completes, the internal method
         handle_start_request is executed.
         """
-
-        def handle_start_request(response):
-            """Handles the return from the long-poll request. If the
-            request had an error (like timeout), it launches a new
-            request. If the request succeeds, it fires the startup
-            logic for this Brewhouse
-            """
-            if response.error:
-                if response.code == HTTP_TIMEOUT:
-                    LOGGER.warning("Lost connection to server. Retrying...")
-                    self.watch_for_start()
-                else:
-                    LOGGER.error(response)
-                    response.rethrow()
-            else:
-                LOGGER.info("Got command to start brewing session.")
-                response = json_decode(response.body)
-                recipe_instance = response['recipe_instance']
-                # Cancel checking for updates when starting a brew session.
-                self.update_manager.stop()
-                self.create_brewhouse(recipe_instance)
-                self.start_brewing()
-                self.watch_for_end()
-
         LOGGER.info("Watching for recipe instance start on brewhouse %s.",
                     self.brewhouse_id)
         post_data = {'brewhouse': self.brewhouse_id}
         uri = "{}://{}/live/recipeInstance/start/".format(
             settings.HTTP_PREFIX, settings.HOST)
         self.start_stop_client.fetch(
-            uri, handle_start_request, method="POST", body=urlencode(post_data),
+            uri, self._handle_start_request, method="POST",
+            body=urlencode(post_data),
             headers={'Authorization': 'Token {}'.format(settings.AUTHTOKEN)})
 
     def watch_for_end(self):
@@ -131,37 +106,60 @@ class System(object):
         Once the request completes, the internal method
         handle_end_request is executed.
         """
-
-        def handle_end_request(response):
-            """Handles the return from the long-poll request. If the
-            request had an error (like timeout), it launches a new
-            request. If the request succeeds, it fires the termination
-            logic for this Brewhouse
-            """
-            if response.error:
-                if response.code == HTTP_TIMEOUT:
-                    LOGGER.warning("Lost connection to server. Retrying...")
-                    self.watch_for_end()
-                else:
-                    LOGGER.error(response)
-                    response.rethrow()
-            else:
-                LOGGER.info("Got command to end brewing session.")
-                self.end_brewing()
-
-                # Check for updates while not running a brew session.
-                self.update_manager.watch()
-
-                self.watch_for_start()
-
         LOGGER.info("Watching for recipe instance end on brewhouse %s.",
                     self.brewhouse_id)
         post_data = {'brewhouse': self.brewhouse_id}
         uri = "{}://{}/live/recipeInstance/end/".format(
             settings.HTTP_PREFIX, settings.HOST)
         self.start_stop_client.fetch(
-            uri, handle_end_request, method="POST", body=urlencode(post_data),
+            uri, self._handle_end_request, method="POST",
+            body=urlencode(post_data),
             headers={'Authorization': 'Token {}'.format(settings.AUTHTOKEN)})
+
+    def _handle_start_request(self, response):
+        """Handles the return from the long-poll request. If the
+        request had an error (like timeout), it launches a new
+        request. If the request succeeds, it fires the startup
+        logic for this Brewhouse
+        """
+        if response.error:
+            if response.code == HTTP_TIMEOUT:
+                LOGGER.warning("Lost connection to server. Retrying...")
+                self.watch_for_start()
+            else:
+                LOGGER.error(response)
+                response.rethrow()
+        else:
+            LOGGER.info("Got command to start brewing session.")
+            response = json_decode(response.body)
+            recipe_instance = response['recipe_instance']
+            # Cancel checking for updates when starting a brew session.
+            self.update_manager.stop()
+            self.create_brewhouse(recipe_instance)
+            self.start_brewing()
+            self.watch_for_end()
+
+    def _handle_end_request(self, response):
+        """Handles the return from the long-poll request. If the
+        request had an error (like timeout), it launches a new
+        request. If the request succeeds, it fires the termination
+        logic for this Brewhouse
+        """
+        if response.error:
+            if response.code == HTTP_TIMEOUT:
+                LOGGER.warning("Lost connection to server. Retrying...")
+                self.watch_for_end()
+            else:
+                LOGGER.error(response)
+                response.rethrow()
+        else:
+            LOGGER.info("Got command to end brewing session.")
+            self.end_brewing()
+
+            # Check for updates while not running a brew session.
+            self.update_manager.watch()
+
+            self.watch_for_start()
 
     def start_brewing(self):
         """Kicks brewhouse off to start brewing."""
@@ -239,3 +237,17 @@ class SimulatedSystem(System):
             self.mash_tun_temperature)
         self.analog_reader.write_read_voltage(
             temperature_sensor.analog_in_pin, voltage)
+
+    def _handle_start_request(self, response):
+        super(SimulatedSystem, self)._handle_start_request(response)
+        if not response.error:
+            self.run_simulation()
+
+    def _handle_end_request(self, response):
+        """Handles the return from the long-poll request. If the
+        request had an error (like timeout), it launches a new
+        request. If the request succeeds, it fires the termination
+        logic for this Brewhouse
+        """
+        if not response.error:
+            self.end_simulation()
