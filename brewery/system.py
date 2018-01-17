@@ -197,10 +197,12 @@ class SimulatedSystem(System):
 
     def run_simulation(self):
         """Starts the periodic simulation solver timers."""
+        LOGGER.info("Starting simulation mode for simulated brewery.")
         self.simulation_timer.start()
 
     def end_simulation(self):
         """Stops the periodic simulation solver timers."""
+        LOGGER.info("Ending simulation mode for simulated brewery.")
         self.simulation_timer.stop()
 
     def start_brewing(self):
