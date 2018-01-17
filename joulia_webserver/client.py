@@ -269,7 +269,7 @@ class JouliaHTTPClient(JouliaWebserverClientBase):
                 'id' set on it.
         """
         brewhouse_url = self._get_brewhouse_url(brewhouse['id'])
-        response = self._put(brewhouse_url, data=brewhouse)
+        response = self._put(brewhouse_url, json=brewhouse)
         return response.json()
 
     def save_brewhouse_software_version(self, brewhouse_pk, software_pk):
