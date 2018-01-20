@@ -222,9 +222,13 @@ class SimulatedSystem(System):
         """Solves the boil kettle temperature for the brewhouse."""
         ramp = self.brewhouse.boil_kettle.temperature_ramp
         self.boil_kettle_temperature += ramp * delta_time
+        LOGGER.debug("Setting boil temperature to %s.",
+                     self.boil_kettle_temperature)
         temperature_sensor = self.brewhouse.boil_kettle.temperature_sensor
         voltage = temperature_sensor.reverse_temperature(
             self.boil_kettle_temperature)
+        LOGGER.debug("Setting boil temperature voltage to %s.",
+                     voltage)
         self.analog_reader.write_read_voltage(
             temperature_sensor.analog_in_pin, voltage)
 
@@ -232,9 +236,13 @@ class SimulatedSystem(System):
         """Solves the mash tun temperature for the brewhouse."""
         self.mash_tun_temperature += (
             self.brewhouse.mash_tun.temperature_ramp * delta_time)
+        LOGGER.debug("Setting mash temperature to %s.",
+                     self.mash_tun_temperature)
         temperature_sensor = self.brewhouse.mash_tun.temperature_sensor
         voltage = temperature_sensor.reverse_temperature(
             self.mash_tun_temperature)
+        LOGGER.debug("Setting mash temperature voltage to %s.",
+                     voltage)
         self.analog_reader.write_read_voltage(
             temperature_sensor.analog_in_pin, voltage)
 
