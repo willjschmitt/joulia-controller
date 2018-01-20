@@ -1,5 +1,6 @@
 """RTD Sensor module for resistance temperature devices"""
 
+import logging
 import time
 
 from dsp.dsp import FirstOrderLag
@@ -7,6 +8,9 @@ from measurement.circuits import VariableResistanceVoltageDivider
 from measurement.circuits import VoltageDivider
 from measurement.op_amp import DifferentialAmplifier
 from measurement.op_amp import VoltageFollower
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class RtdSensor(object):
@@ -173,6 +177,9 @@ class RtdSensor(object):
         voltage_measured = self.amplifier.v_out(
             self.offset_divider.v_out(self.vcc) - voltage_rtd)
 
+        LOGGER.debug(
+            "resistance_rtd: %s; voltage_rtd: %s, voltage_measured: %s",
+            resistance_rtd, voltage_rtd, voltage_measured)
         return voltage_measured
 
     def _resistance_to_temperature(self, resistance):
