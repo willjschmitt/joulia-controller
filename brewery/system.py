@@ -257,5 +257,6 @@ class SimulatedSystem(System):
         request. If the request succeeds, it fires the termination
         logic for this Brewhouse
         """
+        super(SimulatedSystem, self)._handle_end_request(response)
         if not response.error:
             self.end_simulation()
