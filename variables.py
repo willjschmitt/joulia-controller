@@ -219,6 +219,14 @@ class SubscribableVariable(WebsocketVariable):
             client = self.clients[instance]
             client.subscribe(recipe_instance, sensor)
 
+    @staticmethod
+    def deserialize(headers, serialized):
+        assert len(headers) == len(serialized)
+        result = {}
+        for i in range(len(headers)):
+            result[headers[i]] = serialized[i]
+        return result
+
     def on_message(self, response):
         """A generic callback to handle the response from a websocket
         communication back, which will receive the data and set it
@@ -227,16 +235,23 @@ class SubscribableVariable(WebsocketVariable):
             response: The websocket response
         """
         response_data = json.loads(response)
-        sensor = response_data['sensor']
-        variable_type = response_data.get('variable_type', VALUE_VARIABLE_TYPE)
-        recipe_instance = response_data['recipe_instance']
+        headers = response_data['headers']
+        for serialized in response_data['data']:
+            self._handle_new_data(headers, serialized)
+
+    def _handle_new_data(self, headers, serialized):
+        data = self.deserialize(headers, serialized)
+
+        sensor = data['sensor']
+        variable_type = data.get('variable_type', VALUE_VARIABLE_TYPE)
+        recipe_instance = data['recipe_instance']
         subscriber_key = (sensor, variable_type, recipe_instance)
 
         # TODO(willjschmitt): Handle subscribers in client.
         if subscriber_key not in self.subscribers:
             return
 
-        response_value = response_data['value']
+        response_value = data['value']
 
         LOGGER.debug("Received updated value %s for sensor %s(%s),"
                      " variable_type %s, recipe_instance %s.", response_value,
@@ -302,10 +317,23 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
         super(OverridableVariable, self).__set__(obj, value)
 
     def on_message(self, response):
+        """A generic callback to handle the response from a websocket
+        communication back, which will receive the data and set it
+
+        Args:
+            response: The websocket response
+        """
         response_data = json.loads(response)
-        sensor = response_data['sensor']
+        headers = response_data['headers']
+        for serialized in response_data['data']:
+            self._handle_new_data(headers, serialized)
+
+    def _handle_new_data(self, headers, serialized):
+        data = self.deserialize(headers, serialized)
+
+        sensor = data['sensor']
         variable_type = self.variable_types.get(sensor, VALUE_VARIABLE_TYPE)
-        recipe_instance = response_data['recipe_instance']
+        recipe_instance = data['recipe_instance']
         subscriber_key = (sensor, variable_type, recipe_instance)
 
         # TODO(willjschmitt): Handle subscribers in client.
@@ -317,7 +345,7 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
                      variable_type, recipe_instance)
         subscriber = self.subscribers[subscriber_key]
 
-        response_value = response_data['value']
+        response_value = data['value']
 
         instance = subscriber['instance']
 
@@ -325,7 +353,8 @@ class OverridableVariable(StreamingVariable, SubscribableVariable):
             self.overridden[instance] = bool(response_value)
             return
         else:
-            return super(OverridableVariable, self).on_message(response)
+            return super(OverridableVariable, self)._handle_new_data(
+                headers, serialized)
 
 
 class DataStreamer(object):

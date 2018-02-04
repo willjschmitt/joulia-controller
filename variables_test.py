@@ -256,7 +256,10 @@ class TestSubscribableVariable(unittest.TestCase):
 
         TestClass.foo.register(self.ws_client, instance, recipe_instance)
 
-        message = '{"sensor":11,"recipe_instance":1,"value":2}'
+        message = ('{'
+                   '"headers":["sensor","recipe_instance","value"],'
+                   '"data":[[11,1,2]]'
+                   '}')
         TestClass.foo.on_message(message)
 
         self.assertEquals(instance.foo, 2)
@@ -273,7 +276,10 @@ class TestSubscribableVariable(unittest.TestCase):
 
         instance.foo = 3
 
-        message = '{"sensor":11,"recipe_instance":1,"value":2.0}'
+        message = ('{'
+                   '"headers":["sensor","recipe_instance","value"],'
+                   '"data":[[11,1,2.0]]'
+                   '}')
         TestClass.foo.on_message(message)
 
         self.assertIsInstance(instance.foo, int)
@@ -291,7 +297,10 @@ class TestSubscribableVariable(unittest.TestCase):
 
         instance.foo = True
 
-        message = '{"sensor":11,"recipe_instance":1,"value":0}'
+        message = ('{'
+                   '"headers":["sensor","recipe_instance","value"],'
+                   '"data":[[11,1,0]]'
+                   '}')
         TestClass.foo.on_message(message)
 
         self.assertIsInstance(instance.foo, bool)
@@ -313,7 +322,10 @@ class TestSubscribableVariable(unittest.TestCase):
         TestClass.foo.register(self.ws_client, instance, recipe_instance,
                                callback=bar)
 
-        message = '{"sensor":11,"recipe_instance":1,"value":0}'
+        message = ('{'
+                   '"headers":["sensor","recipe_instance","value"],'
+                   '"data":[[11,1,0]]'
+                   '}')
         TestClass.foo.on_message(message)
 
         self.assertEquals(counters["bar"], 1)
@@ -408,7 +420,10 @@ class TestOverridableVariable(unittest.TestCase):
         TestClass.foo.register(self.ws_client, instance, recipe_instance)
 
         self.assertFalse(TestClass.foo.overridden[instance])
-        message = '{"sensor":%s,"recipe_instance":1,"value":1}' % override_id
+        message = ('{'
+                   '"headers":["sensor","recipe_instance","value"],'
+                   '"data":[[%s,1,2]]'
+                   '}') % override_id
         TestClass.foo.on_message(message)
         self.assertTrue(TestClass.foo.overridden[instance])
 
@@ -423,7 +438,10 @@ class TestOverridableVariable(unittest.TestCase):
         TestClass.foo.register(self.ws_client, instance, recipe_instance)
 
         self.assertFalse(TestClass.foo.overridden[instance])
-        message = '{"sensor":11,"recipe_instance":1,"value":2}'
+        message = ('{'
+                   '"headers":["sensor","recipe_instance","value"],'
+                   '"data":[[11,1,2]]'
+                   '}')
         TestClass.foo.on_message(message)
         self.assertFalse(TestClass.foo.overridden[instance])
         self.assertEquals(instance.foo, 2)
@@ -439,7 +457,10 @@ class TestOverridableVariable(unittest.TestCase):
         TestClass.foo.register(self.ws_client, instance, recipe_instance)
 
         self.assertFalse(TestClass.foo.overridden[instance])
-        message = '{"sensor":11,"recipe_instance":1,"value":2}'
+        message = ('{'
+                   '"headers":["sensor","recipe_instance","value"],'
+                   '"data":[[11,1,2]]'
+                   '}')
         TestClass.foo.on_message(message)
         self.assertFalse(TestClass.foo.overridden[instance])
         self.assertEquals(instance.foo, 2)
@@ -482,8 +503,10 @@ class TestBidirectionalVariable(unittest.TestCase):
 
         TestClass.foo.register(self.ws_client, instance, recipe_instance)
 
-        message = ('{"sensor":11,"recipe_instance":1,"value":1,'
-                   '"variable_type":"override"}')
+        message = ('{'
+                   '"headers":["sensor","recipe_instance","value","variable_type"],'
+                   '"data":[[11,1,2,"override"]]'
+                   '}')
         TestClass.foo.on_message(message)
 
     def test_on_message(self):
@@ -496,7 +519,10 @@ class TestBidirectionalVariable(unittest.TestCase):
 
         TestClass.foo.register(self.ws_client, instance, recipe_instance)
 
-        message = '{"sensor":11,"recipe_instance":1,"value":2}'
+        message = ('{'
+                   '"headers":["sensor","recipe_instance","value"],'
+                   '"data":[[11,1,2]]'
+                   '}')
         TestClass.foo.on_message(message)
         self.assertEquals(instance.foo, 2)
 
@@ -510,7 +536,10 @@ class TestBidirectionalVariable(unittest.TestCase):
 
         TestClass.foo.register(self.ws_client, instance, recipe_instance)
 
-        message = ('{"sensor":11,"recipe_instance":1,"value":2}')
+        message = ('{'
+                   '"headers":["sensor","recipe_instance","value"],'
+                   '"data":[[11,1,2]]'
+                   '}')
         TestClass.foo.on_message(message)
         self.assertEquals(instance.foo, 2)
 
