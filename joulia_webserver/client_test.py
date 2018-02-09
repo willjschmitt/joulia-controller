@@ -270,7 +270,8 @@ class TestJouliaWebsocketClient(unittest.TestCase):
             sensor_name, recipe_instance, client.OVERRIDE_VARIABLE_TYPE)
         self.assertEqual(sensor_id, 11)
 
-    def check_subscription(self, message_index, recipe_instance, sensor):
+    def check_subscription(self, message_index, recipe_instance, sensor,
+                           history_time=None):
         """Checks that a subscription request was sent to websocket.
 
         Args:
@@ -278,12 +279,17 @@ class TestJouliaWebsocketClient(unittest.TestCase):
             recipe_instance: The recipe instance that should have been
                 subscribed.
             sensor: the sensor in the recipe_instance to subscribe to.
+            history_time: the history_time to filter on.
         """
         got = self.client.websocket.written_messages[message_index]
         parsed = json.loads(got)
         self.assertEquals(parsed['recipe_instance'], recipe_instance)
         self.assertEquals(parsed['sensor'], sensor)
         self.assertEquals(parsed['subscribe'], True)
+        if history_time is not None:
+            self.assertEquals(parsed['history_time'], history_time)
+        else:
+            self.assertNotIn('history_time', parsed)
 
     def test_subscribe(self):
         recipe_instance = 1
@@ -345,4 +351,6 @@ class TestJouliaWebsocketClient(unittest.TestCase):
         # Subscriptions should be re-performed on close. The client is a new one
         # so the index has reset.
         resubscribe_index = 0
-        self.check_subscription(resubscribe_index, recipe_instance, sensor)
+        history_time = 0
+        self.check_subscription(resubscribe_index, recipe_instance, sensor,
+                                history_time)

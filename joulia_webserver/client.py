@@ -349,7 +349,8 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
         LOGGER.info("Reconnecting to websocket and re-subscribing.")
         IOLoop.current().run_sync(self._connect)
         for subscription in self._subscriptions:
-            self.subscribe(subscription.recipe_instance, subscription.sensor)
+            self.subscribe(subscription.recipe_instance, subscription.sensor,
+                           history_time=0)
 
     @gen.coroutine
     def _websocket_connect(self, url, on_message_callback=None):
@@ -384,14 +385,19 @@ class JouliaWebsocketClient(JouliaWebserverClientBase):
         return self.http_client.identify(
             sensor_name, recipe_instance, variable_type)
 
-    def subscribe(self, recipe_instance, sensor):
+    def subscribe(self, recipe_instance, sensor, history_time=None):
         LOGGER.info("Subscribing to sensor %s, recipe instance %s.", sensor,
                     recipe_instance)
         self._subscriptions.add(self.Subscription(
             recipe_instance=recipe_instance, sensor=sensor))
-        msg_string = json.dumps({'recipe_instance': recipe_instance,
-                                 'sensor': sensor,
-                                 'subscribe': True})
+        data = {
+            'recipe_instance': recipe_instance,
+            'sensor': sensor,
+            'subscribe': True,
+        }
+        if history_time is not None:
+            data['history_time'] = history_time
+        msg_string = json.dumps(data)
         self.websocket.write_message(msg_string)
 
     def register_callback(self, callback):
