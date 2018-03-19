@@ -342,7 +342,6 @@ class StateMash(State):
         mash_temperature = mash_profile.temperature_at_time(
             brewhouse.working_time - brewhouse.state_t0)
         brewhouse.mash_tun.set_temperature(mash_temperature)
-        brewhouse.boil_kettle.set_temperature(brewhouse.boil_kettle.temperature)
 
 
 class StateMashoutRamp(State):

@@ -155,8 +155,9 @@ class TestBrewhouse(unittest.TestCase):
         self.assertTrue(self.brewhouse.request_permission)
 
     def test_state_mash(self):
+        set_point = 155.0
         self.brewhouse.recipe.mash_temperature_profile = MashProfile([
-            MashStep(15.0, 155.0),
+            MashStep(15.0, set_point),
         ])
         self.brewhouse.working_time = 0
         self.brewhouse.state.set_state_by_name("StateMash")
@@ -165,6 +166,12 @@ class TestBrewhouse(unittest.TestCase):
         self.assertTrue(self.brewhouse.main_pump.pump_status)
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
         self.assertTrue(self.brewhouse.mash_tun.enabled)
+        self.assertEquals(
+            self.brewhouse.mash_tun.temperature_set_point, set_point)
+        # TODO(willjschmitt): This should be set by the state machine instead of
+        # by the parent, but leaving this as is for now.
+        self.assertEquals(
+            self.brewhouse.boil_kettle.temperature_set_point, 0.0)
 
     def test_state_mash_no_profile(self):
         self.brewhouse.recipe.mash_temperature_profile = MashProfile([])
