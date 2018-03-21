@@ -166,11 +166,11 @@ class TestBrewhouse(unittest.TestCase):
         self.assertTrue(self.brewhouse.main_pump.pump_status)
         self.assertTrue(self.brewhouse.boil_kettle.element_status)
         self.assertTrue(self.brewhouse.mash_tun.enabled)
-        self.assertEquals(
+        self.assertEqual(
             self.brewhouse.mash_tun.temperature_set_point, set_point)
         # TODO(willjschmitt): This should be set by the state machine instead of
         # by the parent, but leaving this as is for now.
-        self.assertEquals(
+        self.assertEqual(
             self.brewhouse.boil_kettle.temperature_set_point, 0.0)
 
     def test_state_mash_no_profile(self):
