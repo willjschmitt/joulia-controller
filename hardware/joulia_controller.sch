@@ -11604,7 +11604,7 @@ Source: Comchip CGRM4001-G.pdf</description>
 <instance part="P+2" gate="1" x="256.54" y="93.98"/>
 <instance part="SUPPLY17" gate="GND" x="358.14" y="109.22"/>
 <instance part="SUPPLY18" gate="GND" x="358.14" y="53.34"/>
-<instance part="SUPPLY19" gate="GND" x="322.58" y="109.22"/>
+<instance part="SUPPLY19" gate="GND" x="322.58" y="53.34"/>
 <instance part="R17" gate="G$1" x="243.84" y="111.76" rot="R90"/>
 <instance part="HELED" gate="G$1" x="185.42" y="88.9"/>
 <instance part="PPLED" gate="G$1" x="185.42" y="40.64"/>
@@ -11765,8 +11765,8 @@ Source: Comchip CGRM4001-G.pdf</description>
 </segment>
 <segment>
 <pinref part="SUPPLY19" gate="GND" pin="GND"/>
-<wire x1="327.66" y1="111.76" x2="322.58" y2="111.76" width="0.1524" layer="91"/>
-<pinref part="U$6" gate="G$1" pin="P$2"/>
+<pinref part="U$4" gate="G$1" pin="P$2"/>
+<wire x1="322.58" y1="55.88" x2="327.66" y2="55.88" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="HELED" gate="G$1" pin="C"/>
@@ -12133,11 +12133,11 @@ Source: Comchip CGRM4001-G.pdf</description>
 </net>
 <net name="120H" class="1">
 <segment>
-<wire x1="327.66" y1="55.88" x2="294.64" y2="55.88" width="0.1524" layer="91"/>
-<wire x1="294.64" y1="55.88" x2="294.64" y2="73.66" width="0.1524" layer="91"/>
+<wire x1="294.64" y1="50.8" x2="294.64" y2="73.66" width="0.1524" layer="91"/>
 <pinref part="U$3" gate="G$1" pin="P$4"/>
 <wire x1="276.86" y1="73.66" x2="294.64" y2="73.66" width="0.1524" layer="91"/>
-<pinref part="U$4" gate="G$1" pin="P$2"/>
+<pinref part="U$4" gate="G$1" pin="P$3"/>
+<wire x1="294.64" y1="50.8" x2="327.66" y2="50.8" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$13" class="0">
