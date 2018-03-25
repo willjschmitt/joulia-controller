@@ -11472,7 +11472,6 @@ Source: Comchip CGRM4001-G.pdf</description>
 <part name="V120" library="digikey" deviceset="PC1720589" device=""/>
 <part name="SUPPLY19" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="GND" device=""/>
 <part name="R17" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-US_" device="R1206" value="330"/>
-<part name="R18" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-US_" device="R1206" value="330"/>
 <part name="HELED" library="eagle-ltspice" library_urn="urn:adsk.eagle:library:217" deviceset="LED_E" device="SML0603"/>
 <part name="PPLED" library="eagle-ltspice" library_urn="urn:adsk.eagle:library:217" deviceset="LED_E" device="SML0603"/>
 <part name="R19" library="rcl" library_urn="urn:adsk.eagle:library:334" deviceset="R-US_" device="R0402" value="220"/>
@@ -11566,7 +11565,6 @@ Source: Comchip CGRM4001-G.pdf</description>
 <instance part="V120" gate="G$1" x="332.74" y="55.88" rot="MR180"/>
 <instance part="SUPPLY19" gate="GND" x="322.58" y="101.6"/>
 <instance part="R17" gate="G$1" x="243.84" y="111.76" rot="R90"/>
-<instance part="R18" gate="G$1" x="243.84" y="63.5" rot="R90"/>
 <instance part="HELED" gate="G$1" x="185.42" y="88.9"/>
 <instance part="PPLED" gate="G$1" x="185.42" y="40.64"/>
 <instance part="R19" gate="G$1" x="185.42" y="96.52" rot="R270"/>
@@ -12112,21 +12110,14 @@ Source: Comchip CGRM4001-G.pdf</description>
 <pinref part="R17" gate="G$1" pin="2"/>
 </segment>
 </net>
-<net name="N$17" class="0">
-<segment>
-<wire x1="243.84" y1="68.58" x2="243.84" y2="73.66" width="0.1524" layer="91"/>
-<wire x1="243.84" y1="73.66" x2="256.54" y2="73.66" width="0.1524" layer="91"/>
-<pinref part="R18" gate="G$1" pin="2"/>
-<pinref part="U$3" gate="G$1" pin="P$2"/>
-<pinref part="D1" gate="G$1" pin="A"/>
-<wire x1="243.84" y1="73.66" x2="243.84" y2="78.74" width="0.1524" layer="91"/>
-</segment>
-</net>
 <net name="N$18" class="0">
 <segment>
 <pinref part="U2" gate="A" pin="C"/>
-<wire x1="243.84" y1="55.88" x2="243.84" y2="58.42" width="0.1524" layer="91"/>
-<pinref part="R18" gate="G$1" pin="1"/>
+<wire x1="243.84" y1="73.66" x2="256.54" y2="73.66" width="0.1524" layer="91"/>
+<pinref part="U$3" gate="G$1" pin="P$2"/>
+<pinref part="D1" gate="G$1" pin="A"/>
+<wire x1="243.84" y1="73.66" x2="243.84" y2="78.74" width="0.1524" layer="91"/>
+<wire x1="243.84" y1="55.88" x2="243.84" y2="73.66" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="-120" class="2">
