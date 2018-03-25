@@ -9996,6 +9996,25 @@ Source: AVX .. aphvc.pdf</description>
 <wire x1="30" y1="-3" x2="47.7" y2="-3" width="0.127" layer="21"/>
 <wire x1="30" y1="-3" x2="30" y2="0" width="0.127" layer="21"/>
 </package>
+<package name="PC-MKKDS1.5/3-5.08">
+<wire x1="2.54" y1="0" x2="17.78" y2="0" width="0.127" layer="21"/>
+<wire x1="17.78" y1="0" x2="17.78" y2="10.7" width="0.127" layer="21"/>
+<wire x1="17.78" y1="10.7" x2="15.24" y2="10.7" width="0.127" layer="21"/>
+<wire x1="15.24" y1="10.7" x2="15.24" y2="21.4" width="0.127" layer="21"/>
+<wire x1="15.24" y1="21.4" x2="0" y2="21.4" width="0.127" layer="21"/>
+<wire x1="0" y1="21.4" x2="0" y2="10.7" width="0.127" layer="21"/>
+<wire x1="0" y1="10.7" x2="2.54" y2="10.7" width="0.127" layer="21"/>
+<wire x1="2.54" y1="10.7" x2="2.54" y2="0" width="0.127" layer="21"/>
+<wire x1="2.54" y1="10.7" x2="15.24" y2="10.7" width="0.127" layer="21"/>
+<pad name="P$1" x="5.08" y="4.65" drill="1.3" shape="octagon"/>
+<pad name="P$2" x="10.16" y="4.65" drill="1.3" shape="octagon"/>
+<pad name="P$3" x="15.24" y="4.65" drill="1.3" shape="octagon"/>
+<pad name="P$4" x="2.54" y="19.89" drill="1.3" shape="octagon"/>
+<pad name="P$5" x="7.64" y="19.89" drill="1.3" shape="octagon"/>
+<pad name="P$6" x="12.72" y="19.89" drill="1.3" shape="octagon"/>
+<text x="1" y="12" size="1.27" layer="21">UPPER</text>
+<text x="4" y="8" size="1.27" layer="21">LOWER</text>
+</package>
 </packages>
 <symbols>
 <symbol name="MCP3004-I/SL">
@@ -10132,6 +10151,23 @@ Source: AVX .. aphvc.pdf</description>
 <pin name="P$2" x="-7.62" y="-7.62" length="middle"/>
 <pin name="P$3" x="12.7" y="5.08" length="middle" rot="R180"/>
 <pin name="P$4" x="12.7" y="-7.62" length="middle" rot="R180"/>
+</symbol>
+<symbol name="3PIN-2LEVEL_CONNECTOR">
+<wire x1="0" y1="7.62" x2="7.62" y2="7.62" width="0.254" layer="94"/>
+<wire x1="7.62" y1="7.62" x2="7.62" y2="-7.62" width="0.254" layer="94"/>
+<wire x1="7.62" y1="-7.62" x2="0" y2="-7.62" width="0.254" layer="94"/>
+<wire x1="0" y1="-7.62" x2="-7.62" y2="-7.62" width="0.254" layer="94"/>
+<wire x1="-7.62" y1="-7.62" x2="-7.62" y2="7.62" width="0.254" layer="94"/>
+<wire x1="-7.62" y1="7.62" x2="0" y2="7.62" width="0.254" layer="94"/>
+<wire x1="0" y1="7.62" x2="0" y2="-7.62" width="0.254" layer="94"/>
+<text x="2.54" y="-5.08" size="1.27" layer="94" rot="R90">UPPER</text>
+<text x="-2.54" y="-5.08" size="1.27" layer="94" rot="R90">LOWER</text>
+<pin name="P$1" x="-12.7" y="5.08" length="middle"/>
+<pin name="P$2" x="-12.7" y="0" length="middle"/>
+<pin name="P$3" x="-12.7" y="-5.08" length="middle"/>
+<pin name="P$4" x="12.7" y="5.08" length="middle" rot="R180"/>
+<pin name="P$5" x="12.7" y="0" length="middle" rot="R180"/>
+<pin name="P$6" x="12.7" y="-5.08" length="middle" rot="R180"/>
 </symbol>
 </symbols>
 <devicesets>
@@ -10372,6 +10408,26 @@ Source: AVX .. aphvc.pdf</description>
 <connect gate="G$1" pin="P$2" pad="P$2"/>
 <connect gate="G$1" pin="P$3" pad="P$3"/>
 <connect gate="G$1" pin="P$4" pad="P$1"/>
+</connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+</devices>
+</deviceset>
+<deviceset name="PC1725041">
+<gates>
+<gate name="G$1" symbol="3PIN-2LEVEL_CONNECTOR" x="0" y="0"/>
+</gates>
+<devices>
+<device name="" package="PC-MKKDS1.5/3-5.08">
+<connects>
+<connect gate="G$1" pin="P$1" pad="P$1"/>
+<connect gate="G$1" pin="P$2" pad="P$2"/>
+<connect gate="G$1" pin="P$3" pad="P$3"/>
+<connect gate="G$1" pin="P$4" pad="P$4"/>
+<connect gate="G$1" pin="P$5" pad="P$5"/>
+<connect gate="G$1" pin="P$6" pad="P$6"/>
 </connects>
 <technologies>
 <technology name=""/>
@@ -11465,11 +11521,9 @@ Source: Comchip CGRM4001-G.pdf</description>
 <part name="P+1" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="+5V" device=""/>
 <part name="P+2" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="+5V" device=""/>
 <part name="HEAT" library="digikey" deviceset="PC1720589" device=""/>
-<part name="PUMP" library="digikey" deviceset="PC1720589" device=""/>
 <part name="SUPPLY17" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="GND" device=""/>
 <part name="SUPPLY18" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="GND" device=""/>
 <part name="V240" library="digikey" deviceset="PC1720589" device=""/>
-<part name="V120" library="digikey" deviceset="PC1720589" device=""/>
 <part name="SUPPLY19" library="supply2" library_urn="urn:adsk.eagle:library:372" deviceset="GND" device=""/>
 <part name="R17" library="resistor" library_urn="urn:adsk.eagle:library:348" deviceset="R-US_" device="R1206" value="330"/>
 <part name="HELED" library="eagle-ltspice" library_urn="urn:adsk.eagle:library:217" deviceset="LED_E" device="SML0603"/>
@@ -11484,6 +11538,7 @@ Source: Comchip CGRM4001-G.pdf</description>
 <part name="U$3" library="digikey" deviceset="G5LE-1A4_DC5" device=""/>
 <part name="U$2" library="digikey" deviceset="VM1-038-1AE" device="HORIZONTAL"/>
 <part name="D1" library="diode" library_urn="urn:adsk.eagle:library:210" deviceset="CGRM400*-G" device="" technology="1"/>
+<part name="U$4" library="digikey" deviceset="PC1725041" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -11558,11 +11613,9 @@ Source: Comchip CGRM4001-G.pdf</description>
 <instance part="P+1" gate="1" x="243.84" y="132.08"/>
 <instance part="P+2" gate="1" x="256.54" y="93.98"/>
 <instance part="HEAT" gate="G$1" x="332.74" y="124.46" rot="MR180"/>
-<instance part="PUMP" gate="G$1" x="332.74" y="76.2" rot="MR180"/>
 <instance part="SUPPLY17" gate="GND" x="322.58" y="119.38"/>
-<instance part="SUPPLY18" gate="GND" x="322.58" y="71.12"/>
+<instance part="SUPPLY18" gate="GND" x="358.14" y="53.34"/>
 <instance part="V240" gate="G$1" x="332.74" y="106.68" rot="MR180"/>
-<instance part="V120" gate="G$1" x="332.74" y="55.88" rot="MR180"/>
 <instance part="SUPPLY19" gate="GND" x="322.58" y="101.6"/>
 <instance part="R17" gate="G$1" x="243.84" y="111.76" rot="R90"/>
 <instance part="HELED" gate="G$1" x="185.42" y="88.9"/>
@@ -11577,6 +11630,7 @@ Source: Comchip CGRM4001-G.pdf</description>
 <instance part="U$3" gate="G$1" x="264.16" y="81.28"/>
 <instance part="U$2" gate="G$1" x="309.88" y="124.46"/>
 <instance part="D1" gate="G$1" x="243.84" y="81.28" rot="R90"/>
+<instance part="U$4" gate="G$1" x="340.36" y="55.88"/>
 </instances>
 <busses>
 </busses>
@@ -11717,10 +11771,9 @@ Source: Comchip CGRM4001-G.pdf</description>
 <pinref part="SUPPLY17" gate="GND" pin="GND"/>
 </segment>
 <segment>
-<pinref part="PUMP" gate="G$1" pin="P$2"/>
-<wire x1="327.66" y1="76.2" x2="322.58" y2="76.2" width="0.1524" layer="91"/>
-<wire x1="322.58" y1="76.2" x2="322.58" y2="73.66" width="0.1524" layer="91"/>
+<wire x1="353.06" y1="55.88" x2="358.14" y2="55.88" width="0.1524" layer="91"/>
 <pinref part="SUPPLY18" gate="GND" pin="GND"/>
+<pinref part="U$4" gate="G$1" pin="P$5"/>
 </segment>
 <segment>
 <pinref part="V240" gate="G$1" pin="P$1"/>
@@ -12081,19 +12134,20 @@ Source: Comchip CGRM4001-G.pdf</description>
 </net>
 <net name="N$24" class="1">
 <segment>
-<pinref part="PUMP" gate="G$1" pin="P$3"/>
-<wire x1="327.66" y1="78.74" x2="327.66" y2="86.36" width="0.1524" layer="91"/>
-<wire x1="327.66" y1="86.36" x2="276.86" y2="86.36" width="0.1524" layer="91"/>
+<wire x1="360.68" y1="86.36" x2="276.86" y2="86.36" width="0.1524" layer="91"/>
 <pinref part="U$3" gate="G$1" pin="P$3"/>
+<wire x1="360.68" y1="86.36" x2="360.68" y2="50.8" width="0.1524" layer="91"/>
+<pinref part="U$4" gate="G$1" pin="P$6"/>
+<wire x1="360.68" y1="50.8" x2="353.06" y2="50.8" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="120H" class="1">
 <segment>
-<pinref part="V120" gate="G$1" pin="P$2"/>
 <wire x1="327.66" y1="55.88" x2="294.64" y2="55.88" width="0.1524" layer="91"/>
 <wire x1="294.64" y1="55.88" x2="294.64" y2="73.66" width="0.1524" layer="91"/>
 <pinref part="U$3" gate="G$1" pin="P$4"/>
 <wire x1="276.86" y1="73.66" x2="294.64" y2="73.66" width="0.1524" layer="91"/>
+<pinref part="U$4" gate="G$1" pin="P$2"/>
 </segment>
 </net>
 <net name="N$13" class="0">
@@ -12137,9 +12191,11 @@ Source: Comchip CGRM4001-G.pdf</description>
 </net>
 <net name="120N" class="1">
 <segment>
-<pinref part="PUMP" gate="G$1" pin="P$1"/>
-<pinref part="V120" gate="G$1" pin="P$3"/>
-<wire x1="327.66" y1="73.66" x2="327.66" y2="58.42" width="0.1524" layer="91"/>
+<wire x1="327.66" y1="66.04" x2="327.66" y2="60.96" width="0.1524" layer="91"/>
+<pinref part="U$4" gate="G$1" pin="P$1"/>
+<wire x1="327.66" y1="66.04" x2="353.06" y2="66.04" width="0.1524" layer="91"/>
+<wire x1="353.06" y1="66.04" x2="353.06" y2="60.96" width="0.1524" layer="91"/>
+<pinref part="U$4" gate="G$1" pin="P$4"/>
 </segment>
 </net>
 <net name="N$25" class="0">
