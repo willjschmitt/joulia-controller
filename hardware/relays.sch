@@ -7973,7 +7973,7 @@ Source: http://ecommas.tycoelectronics.com .. ENG_CD_640456_W.pdf</description>
 <part name="D1" library="diode" library_urn="urn:adsk.eagle:library:210" deviceset="CGRM400*-G" device="" technology="1"/>
 <part name="U$4" library="digikey" deviceset="PC1725041" device=""/>
 <part name="U$6" library="digikey" deviceset="PC1719028" device=""/>
-<part name="IN" library="con-amp" library_urn="urn:adsk.eagle:library:127" deviceset="MTA04-100" device=""/>
+<part name="IO" library="con-amp" library_urn="urn:adsk.eagle:library:127" deviceset="MTA04-100" device=""/>
 <part name="P+3" library="supply1" library_urn="urn:adsk.eagle:library:371" deviceset="+5V" device=""/>
 <part name="SUPPLY1" library="supply2" deviceset="GND" device=""/>
 <part name="FAN" library="con-amp" library_urn="urn:adsk.eagle:library:127" deviceset="MTA03-100" device=""/>
@@ -8011,7 +8011,7 @@ Source: http://ecommas.tycoelectronics.com .. ENG_CD_640456_W.pdf</description>
 <instance part="D1" gate="G$1" x="243.84" y="81.28" rot="R90"/>
 <instance part="U$4" gate="G$1" x="340.36" y="55.88"/>
 <instance part="U$6" gate="G$1" x="340.36" y="111.76"/>
-<instance part="IN" gate="G$1" x="154.94" y="76.2" rot="R90"/>
+<instance part="IO" gate="G$1" x="154.94" y="76.2" rot="R90"/>
 <instance part="P+3" gate="1" x="160.02" y="88.9"/>
 <instance part="SUPPLY1" gate="GND" x="160.02" y="68.58"/>
 <instance part="FAN" gate="G$1" x="165.1" y="129.54" rot="R90"/>
@@ -8051,7 +8051,7 @@ Source: http://ecommas.tycoelectronics.com .. ENG_CD_640456_W.pdf</description>
 <pinref part="SUPPLY21" gate="GND" pin="GND"/>
 </segment>
 <segment>
-<pinref part="IN" gate="G$1" pin="1"/>
+<pinref part="IO" gate="G$1" pin="1"/>
 <pinref part="SUPPLY1" gate="GND" pin="GND"/>
 <wire x1="157.48" y1="73.66" x2="160.02" y2="73.66" width="0.1524" layer="91"/>
 <wire x1="160.02" y1="73.66" x2="160.02" y2="71.12" width="0.1524" layer="91"/>
@@ -8084,7 +8084,7 @@ Source: http://ecommas.tycoelectronics.com .. ENG_CD_640456_W.pdf</description>
 </segment>
 <segment>
 <pinref part="P+3" gate="1" pin="+5V"/>
-<pinref part="IN" gate="G$1" pin="4"/>
+<pinref part="IO" gate="G$1" pin="4"/>
 <wire x1="160.02" y1="86.36" x2="160.02" y2="81.28" width="0.1524" layer="91"/>
 <wire x1="160.02" y1="81.28" x2="157.48" y2="81.28" width="0.1524" layer="91"/>
 </segment>
@@ -8101,7 +8101,7 @@ Source: http://ecommas.tycoelectronics.com .. ENG_CD_640456_W.pdf</description>
 <label x="180.34" y="104.14" size="1.778" layer="95"/>
 <pinref part="R19" gate="G$1" pin="1"/>
 <wire x1="185.42" y1="101.6" x2="185.42" y2="104.14" width="0.1524" layer="91"/>
-<pinref part="IN" gate="G$1" pin="3"/>
+<pinref part="IO" gate="G$1" pin="3"/>
 <wire x1="157.48" y1="78.74" x2="172.72" y2="78.74" width="0.1524" layer="91"/>
 <wire x1="172.72" y1="78.74" x2="172.72" y2="104.14" width="0.1524" layer="91"/>
 <wire x1="172.72" y1="104.14" x2="185.42" y2="104.14" width="0.1524" layer="91"/>
@@ -8113,7 +8113,7 @@ Source: http://ecommas.tycoelectronics.com .. ENG_CD_640456_W.pdf</description>
 <label x="180.34" y="55.88" size="1.778" layer="95"/>
 <pinref part="R20" gate="G$1" pin="1"/>
 <wire x1="185.42" y1="53.34" x2="185.42" y2="55.88" width="0.1524" layer="91"/>
-<pinref part="IN" gate="G$1" pin="2"/>
+<pinref part="IO" gate="G$1" pin="2"/>
 <wire x1="157.48" y1="76.2" x2="172.72" y2="76.2" width="0.1524" layer="91"/>
 <wire x1="172.72" y1="76.2" x2="172.72" y2="55.88" width="0.1524" layer="91"/>
 <wire x1="172.72" y1="55.88" x2="185.42" y2="55.88" width="0.1524" layer="91"/>

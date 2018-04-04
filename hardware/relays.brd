@@ -140,10 +140,10 @@
 </layers>
 <board>
 <plain>
-<wire x1="0.1" y1="0" x2="114.5" y2="-0.1" width="0" layer="20"/>
-<wire x1="114.5" y1="-0.1" x2="114.5" y2="51.5" width="0" layer="20"/>
-<wire x1="114.5" y1="51.5" x2="0" y2="51.4" width="0" layer="20"/>
-<wire x1="0" y1="51.4" x2="0.1" y2="0" width="0" layer="20"/>
+<wire x1="0" y1="0" x2="114.5" y2="0" width="0" layer="20"/>
+<wire x1="114.5" y1="0" x2="114.5" y2="51.5" width="0" layer="20"/>
+<wire x1="114.5" y1="51.5" x2="0" y2="51.5" width="0" layer="20"/>
+<wire x1="0" y1="51.5" x2="0" y2="0" width="0" layer="20"/>
 <hole x="3" y="49" drill="2.8"/>
 <hole x="42" y="49" drill="2.8"/>
 <hole x="3" y="3" drill="2.8"/>
@@ -2844,7 +2844,7 @@ design rules under a new name.</description>
 </element>
 <element name="U$4" library="digikey" package="PC-MKKDS1.5/3-5.08" value="PC1725041" x="112" y="0.8" rot="R90"/>
 <element name="U$6" library="digikey" package="PC-MKKDS5/3-9.5" value="PC1719028" x="113.9" y="17.4" rot="R90"/>
-<element name="IN" library="con-amp" library_urn="urn:adsk.eagle:library:127" package="10X04MTA" value="" x="3.7" y="38.9" smashed="yes" rot="R270">
+<element name="IO" library="con-amp" library_urn="urn:adsk.eagle:library:127" package="10X04MTA" value="" x="3.7" y="38.9" smashed="yes" rot="R270">
 <attribute name="NAME" x="6.0488" y="44.0512" size="1.27" layer="25" rot="R270"/>
 <attribute name="VALUE" x="5.8509" y="43.8761" size="1.27" layer="27" rot="R270"/>
 </element>
@@ -2861,7 +2861,7 @@ design rules under a new name.</description>
 <contactref element="PPLED" pad="C"/>
 <contactref element="U$4" pad="P$5"/>
 <contactref element="U$4" pad="P$2"/>
-<contactref element="IN" pad="1"/>
+<contactref element="IO" pad="1"/>
 <contactref element="FAN" pad="3"/>
 <contactref element="U$6" pad="P$6"/>
 <wire x1="3.6723" y1="34.9758" x2="3.6723" y2="31.5468" width="0.254" layer="1"/>
@@ -2915,7 +2915,7 @@ design rules under a new name.</description>
 <contactref element="U$5" pad="P$6"/>
 <contactref element="U$3" pad="P$4"/>
 <contactref element="D1" pad="C"/>
-<contactref element="IN" pad="4"/>
+<contactref element="IO" pad="4"/>
 <contactref element="FAN" pad="2"/>
 <wire x1="3.6723" y1="29.2608" x2="3.6723" y2="29.0322" width="0.254" layer="16"/>
 <wire x1="1.8435" y1="31.0896" x2="3.6723" y2="29.2608" width="0.254" layer="16"/>
@@ -2940,7 +2940,7 @@ design rules under a new name.</description>
 <signal name="HEOUT">
 <contactref element="R9" pad="2"/>
 <contactref element="R19" pad="1"/>
-<contactref element="IN" pad="3"/>
+<contactref element="IO" pad="3"/>
 <wire x1="6.987" y1="45.72" x2="6.987" y2="47.2059" width="0.254" layer="1"/>
 <wire x1="6.987" y1="47.2059" x2="6.95" y2="47.3" width="0.254" layer="1"/>
 <wire x1="6.987" y1="45.72" x2="6.98" y2="45.65" width="0.254" layer="1"/>
@@ -2952,7 +2952,7 @@ design rules under a new name.</description>
 <signal name="PPOUT">
 <contactref element="R16" pad="2"/>
 <contactref element="R20" pad="1"/>
-<contactref element="IN" pad="2"/>
+<contactref element="IO" pad="2"/>
 <wire x1="10.0731" y1="27.2034" x2="10.0731" y2="28.9179" width="0.254" layer="1"/>
 <wire x1="10.0731" y1="28.9179" x2="10.05" y2="29" width="0.254" layer="1"/>
 <wire x1="10.0731" y1="27.2034" x2="10.08" y2="27.2" width="0.254" layer="1"/>
