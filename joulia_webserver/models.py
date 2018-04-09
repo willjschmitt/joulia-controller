@@ -52,11 +52,18 @@ class Recipe(object):
             boil is complete. Units: degrees Fahrenheit.
         mash_temperature_profile: Mash points as an array of (duration,
             temperature) pairs.
+        volume: Amount of beer to be brewed. Units: gallons.
+        pre_boil_volume_gallons: Amount of wort expected to enter into the boil
+            kettle.
+        post_boil_volume_gallons: Amount of wort expected to exit the boil
+            kettle and enter fermenter. This - `pre_boil_volume_gallons`
+            influences the boil off power during boil.
     """
 
     def __init__(self, pk, strike_temperature, mashout_temperature,
                  mashout_time, boil_time, cool_temperature,
-                 mash_temperature_profile):
+                 mash_temperature_profile, volume, pre_boil_volume_gallons,
+                 post_boil_volume_gallons):
         self.pk = pk
         self.strike_temperature = strike_temperature
         self.mashout_temperature = mashout_temperature
@@ -65,6 +72,10 @@ class Recipe(object):
         self.boil_temperature = 217.0
         self.cool_temperature = cool_temperature
         self.mash_temperature_profile = mash_temperature_profile
+
+        self.volume = volume
+        self.pre_boil_volume_gallons = pre_boil_volume_gallons
+        self.post_boil_volume_gallons = post_boil_volume_gallons
 
     @classmethod
     def from_joulia_webserver(cls, recipe_response, mash_temperature_profile):
@@ -83,8 +94,13 @@ class Recipe(object):
         mashout_time = recipe_response["mashout_time"]
         boil_time = recipe_response["boil_time"]
         cool_temperature = recipe_response["cool_temperature"]
+
+        volume = recipe_response["volume"]
+        pre_boil_volume_gallons = recipe_response["pre_boil_volume_gallons"]
+        post_boil_volume_gallons = recipe_response["post_boil_volume_gallons"]
         return cls(pk, strike_temperature, mashout_temperature, mashout_time,
-                   boil_time, cool_temperature, mash_temperature_profile)
+                   boil_time, cool_temperature, mash_temperature_profile,
+                   volume, pre_boil_volume_gallons, post_boil_volume_gallons)
 
 
 class MashProfile(object):

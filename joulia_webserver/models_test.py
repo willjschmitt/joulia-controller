@@ -18,16 +18,25 @@ class TestRecipe(unittest.TestCase):
         boil_time = 60 * 60
         cool_temperature = 70.0
         mash_temperature_profile = []
+        volume = 5.0
+        pre_boil_volume_gallons = 6.0
+        post_boil_volume_gallons = 5.1
         recipe = Recipe(
             pk, strike_temperature, mashout_temperature, mashout_time,
-            boil_time, cool_temperature, mash_temperature_profile)
+            boil_time, cool_temperature, mash_temperature_profile, volume,
+            pre_boil_volume_gallons, post_boil_volume_gallons)
         self.assertEquals(recipe.pk, pk)
         self.assertEquals(recipe.strike_temperature, strike_temperature)
         self.assertEquals(recipe.mashout_temperature, mashout_temperature)
         self.assertEquals(recipe.boil_time, boil_time)
         self.assertEquals(recipe.cool_temperature, cool_temperature)
-        self.assertEquals(recipe.mash_temperature_profile,
-                          mash_temperature_profile)
+        self.assertEquals(
+            recipe.mash_temperature_profile, mash_temperature_profile)
+        self.assertEquals(recipe.volume, volume)
+        self.assertEquals(
+            recipe.pre_boil_volume_gallons, pre_boil_volume_gallons)
+        self.assertEquals(
+            recipe.post_boil_volume_gallons, post_boil_volume_gallons)
 
 
 class TestRecipeInstance(unittest.TestCase):

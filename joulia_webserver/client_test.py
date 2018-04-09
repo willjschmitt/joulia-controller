@@ -185,7 +185,10 @@ class TestJouliaHttpClient(unittest.TestCase):
                 '"mashout_temperature":170.0,'
                 '"mashout_time":15,'
                 '"boil_time":60,'
-                '"cool_temperature":70.0'
+                '"cool_temperature":70.0,'
+                '"volume":5.0,'
+                '"pre_boil_volume_gallons":6.0,'
+                '"post_boil_volume_gallons":5.1'
             '}')
         recipe = self.client.get_recipe(10)
         self.assertEquals(recipe.pk, 10)
@@ -194,6 +197,10 @@ class TestJouliaHttpClient(unittest.TestCase):
         self.assertEquals(recipe.mashout_time, 15)
         self.assertEquals(recipe.boil_time, 60)
         self.assertEquals(recipe.cool_temperature, 70.0)
+
+        self.assertEquals(recipe.volume, 5.0)
+        self.assertEquals(recipe.pre_boil_volume_gallons, 6.0)
+        self.assertEquals(recipe.post_boil_volume_gallons, 5.1)
 
     def test_get_latest_joulia_controller_release(self):
         self.client._requests_service.response_map[

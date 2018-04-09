@@ -55,9 +55,14 @@ class TestBrewhouse(unittest.TestCase):
         boil_time = 60.0 * 60.0
         cool_temperature = 70.0
         mash_temperature_profile = MashProfile([])
+        volume = 5.0
+        pre_boil_volume_gallons = 6.0
+        post_boil_volume_gallons = 5.1
         self.recipe = Recipe(
-            recipe_pk, strike_temperature, mashout_temperature, mashout_time,
-            boil_time, cool_temperature, mash_temperature_profile)
+            recipe_pk, strike_temperature, mashout_temperature,
+            mashout_time,
+            boil_time, cool_temperature, mash_temperature_profile, volume,
+            pre_boil_volume_gallons, post_boil_volume_gallons)
 
         self.brewhouse = Brewhouse(
             self.ws_client, self.recipe_instance, self.boil_kettle,
