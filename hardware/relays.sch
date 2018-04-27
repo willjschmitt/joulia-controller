@@ -7124,10 +7124,10 @@ Source: http://www.murata.com .. GRM43DR72E224KW01.pdf</description>
 <wire x1="16.5" y1="0" x2="16.5" y2="-22.5" width="0.127" layer="21"/>
 <wire x1="16.5" y1="-22.5" x2="0" y2="-22.5" width="0.127" layer="21"/>
 <wire x1="0" y1="-22.5" x2="0" y2="0" width="0.127" layer="21"/>
-<pad name="P$1" x="14.25" y="-15.85" drill="0.6" diameter="1.4224"/>
-<pad name="P$2" x="2.25" y="-4.55" drill="0.6" diameter="1.4224"/>
-<pad name="P$3" x="8.25" y="-2.55" drill="0.6" diameter="1.4224"/>
-<pad name="P$4" x="14.25" y="-4.5" drill="0.6" diameter="1.4224"/>
+<pad name="P$1" x="2.25" y="-15.85" drill="1.4" diameter="2.4"/>
+<pad name="P$2" x="2.25" y="-4.55" drill="1.4" diameter="2.4"/>
+<pad name="P$3" x="8.25" y="-2.55" drill="1.4" diameter="2.4"/>
+<pad name="P$4" x="14.25" y="-4.55" drill="1.4" diameter="2.4"/>
 </package>
 <package name="VM2-038-1AE">
 <wire x1="0" y1="0" x2="12.3" y2="0" width="0.127" layer="21"/>
@@ -7143,13 +7143,13 @@ Source: http://www.murata.com .. GRM43DR72E224KW01.pdf</description>
 <pad name="P$2" x="49.8" y="-36.6" drill="2.67" shape="square"/>
 <pad name="P$3" x="49.8" y="-2" drill="2.67" shape="square"/>
 <pad name="P$4" x="10.2" y="-2" drill="2.67" shape="square"/>
-<wire x1="12.3" y1="-38.6" x2="12.3" y2="-3" width="0.127" layer="21"/>
-<wire x1="12.3" y1="-3" x2="12.3" y2="0" width="0.127" layer="21"/>
-<wire x1="47.7" y1="-38.6" x2="47.7" y2="-3" width="0.127" layer="21"/>
-<wire x1="47.7" y1="-3" x2="47.7" y2="0" width="0.127" layer="21"/>
-<wire x1="12.3" y1="-3" x2="30" y2="-3" width="0.127" layer="21"/>
-<wire x1="30" y1="-3" x2="47.7" y2="-3" width="0.127" layer="21"/>
-<wire x1="30" y1="-3" x2="30" y2="0" width="0.127" layer="21"/>
+<wire x1="12.3" y1="-38.6" x2="12.3" y2="-6.75" width="0.127" layer="21"/>
+<wire x1="12.3" y1="-6.75" x2="12.3" y2="0" width="0.127" layer="21"/>
+<wire x1="47.7" y1="-38.6" x2="47.7" y2="-6.75" width="0.127" layer="21"/>
+<wire x1="47.7" y1="-6.75" x2="47.7" y2="0" width="0.127" layer="21"/>
+<wire x1="12.3" y1="-6.75" x2="30" y2="-6.75" width="0.127" layer="21"/>
+<wire x1="30" y1="-6.75" x2="47.7" y2="-6.75" width="0.127" layer="21"/>
+<wire x1="30" y1="-6.75" x2="30" y2="0" width="0.127" layer="21"/>
 </package>
 <package name="PC-MKKDS1.5/3-5.08">
 <wire x1="2.54" y1="0" x2="17.78" y2="0" width="0.127" layer="21"/>
@@ -7995,17 +7995,17 @@ Source: http://ecommas.tycoelectronics.com .. ENG_CD_640456_W.pdf</description>
 <instance part="U$5" gate="G$1" x="256.54" y="121.92"/>
 <instance part="R1" gate="G$1" x="276.86" y="127"/>
 <instance part="P+1" gate="1" x="243.84" y="132.08"/>
-<instance part="P+2" gate="1" x="256.54" y="93.98"/>
+<instance part="P+2" gate="1" x="254" y="93.98"/>
 <instance part="SUPPLY17" gate="GND" x="355.6" y="101.6"/>
 <instance part="SUPPLY18" gate="GND" x="358.14" y="53.34"/>
 <instance part="SUPPLY19" gate="GND" x="322.58" y="53.34"/>
 <instance part="R17" gate="G$1" x="243.84" y="111.76" rot="R90"/>
-<instance part="HELED" gate="G$1" x="185.42" y="88.9"/>
-<instance part="PPLED" gate="G$1" x="185.42" y="40.64"/>
-<instance part="R19" gate="G$1" x="185.42" y="96.52" rot="R270"/>
-<instance part="SUPPLY20" gate="GND" x="185.42" y="81.28"/>
-<instance part="SUPPLY21" gate="GND" x="185.42" y="33.02"/>
-<instance part="R20" gate="G$1" x="185.42" y="48.26" rot="R270"/>
+<instance part="HELED" gate="G$1" x="182.88" y="86.36"/>
+<instance part="PPLED" gate="G$1" x="182.88" y="38.1"/>
+<instance part="R19" gate="G$1" x="182.88" y="96.52" rot="R270"/>
+<instance part="SUPPLY20" gate="GND" x="182.88" y="76.2"/>
+<instance part="SUPPLY21" gate="GND" x="182.88" y="27.94"/>
+<instance part="R20" gate="G$1" x="182.88" y="48.26" rot="R270"/>
 <instance part="U$3" gate="G$1" x="264.16" y="81.28"/>
 <instance part="U$2" gate="G$1" x="309.88" y="124.46"/>
 <instance part="D1" gate="G$1" x="243.84" y="81.28" rot="R90"/>
@@ -8045,10 +8045,12 @@ Source: http://ecommas.tycoelectronics.com .. ENG_CD_640456_W.pdf</description>
 <segment>
 <pinref part="HELED" gate="G$1" pin="C"/>
 <pinref part="SUPPLY20" gate="GND" pin="GND"/>
+<wire x1="182.88" y1="78.74" x2="182.88" y2="81.28" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="PPLED" gate="G$1" pin="C"/>
 <pinref part="SUPPLY21" gate="GND" pin="GND"/>
+<wire x1="182.88" y1="30.48" x2="182.88" y2="33.02" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="IO" gate="G$1" pin="1"/>
@@ -8070,14 +8072,6 @@ Source: http://ecommas.tycoelectronics.com .. ENG_CD_640456_W.pdf</description>
 </net>
 <net name="+5V" class="0">
 <segment>
-<pinref part="P+2" gate="1" pin="+5V"/>
-<wire x1="256.54" y1="86.36" x2="256.54" y2="91.44" width="0.1524" layer="91"/>
-<pinref part="U$3" gate="G$1" pin="P$1"/>
-<pinref part="D1" gate="G$1" pin="C"/>
-<wire x1="243.84" y1="83.82" x2="243.84" y2="86.36" width="0.1524" layer="91"/>
-<wire x1="243.84" y1="86.36" x2="256.54" y2="86.36" width="0.1524" layer="91"/>
-</segment>
-<segment>
 <pinref part="P+1" gate="1" pin="+5V"/>
 <pinref part="U$5" gate="G$1" pin="ANODE"/>
 <wire x1="243.84" y1="129.54" x2="243.84" y2="127" width="0.1524" layer="91"/>
@@ -8094,29 +8088,43 @@ Source: http://ecommas.tycoelectronics.com .. ENG_CD_640456_W.pdf</description>
 <wire x1="167.64" y1="129.54" x2="160.02" y2="129.54" width="0.1524" layer="91"/>
 <wire x1="160.02" y1="129.54" x2="160.02" y2="132.08" width="0.1524" layer="91"/>
 </segment>
+<segment>
+<pinref part="U$3" gate="G$1" pin="P$1"/>
+<pinref part="D1" gate="G$1" pin="C"/>
+<wire x1="243.84" y1="83.82" x2="243.84" y2="86.36" width="0.1524" layer="91"/>
+<wire x1="243.84" y1="86.36" x2="254" y2="86.36" width="0.1524" layer="91"/>
+<pinref part="P+2" gate="1" pin="+5V"/>
+<wire x1="254" y1="86.36" x2="256.54" y2="86.36" width="0.1524" layer="91"/>
+<wire x1="254" y1="91.44" x2="254" y2="86.36" width="0.1524" layer="91"/>
+<junction x="254" y="86.36"/>
+</segment>
 </net>
 <net name="HEOUT" class="0">
 <segment>
 <pinref part="R9" gate="G$1" pin="2"/>
 <label x="180.34" y="104.14" size="1.778" layer="95"/>
-<pinref part="R19" gate="G$1" pin="1"/>
-<wire x1="185.42" y1="101.6" x2="185.42" y2="104.14" width="0.1524" layer="91"/>
 <pinref part="IO" gate="G$1" pin="3"/>
 <wire x1="157.48" y1="78.74" x2="172.72" y2="78.74" width="0.1524" layer="91"/>
 <wire x1="172.72" y1="78.74" x2="172.72" y2="104.14" width="0.1524" layer="91"/>
-<wire x1="172.72" y1="104.14" x2="185.42" y2="104.14" width="0.1524" layer="91"/>
+<wire x1="172.72" y1="104.14" x2="182.88" y2="104.14" width="0.1524" layer="91"/>
+<pinref part="R19" gate="G$1" pin="1"/>
+<wire x1="182.88" y1="104.14" x2="185.42" y2="104.14" width="0.1524" layer="91"/>
+<wire x1="182.88" y1="101.6" x2="182.88" y2="104.14" width="0.1524" layer="91"/>
+<junction x="182.88" y="104.14"/>
 </segment>
 </net>
 <net name="PPOUT" class="0">
 <segment>
 <pinref part="R16" gate="G$1" pin="2"/>
 <label x="180.34" y="55.88" size="1.778" layer="95"/>
-<pinref part="R20" gate="G$1" pin="1"/>
-<wire x1="185.42" y1="53.34" x2="185.42" y2="55.88" width="0.1524" layer="91"/>
 <pinref part="IO" gate="G$1" pin="2"/>
 <wire x1="157.48" y1="76.2" x2="172.72" y2="76.2" width="0.1524" layer="91"/>
 <wire x1="172.72" y1="76.2" x2="172.72" y2="55.88" width="0.1524" layer="91"/>
-<wire x1="172.72" y1="55.88" x2="185.42" y2="55.88" width="0.1524" layer="91"/>
+<wire x1="172.72" y1="55.88" x2="182.88" y2="55.88" width="0.1524" layer="91"/>
+<pinref part="R20" gate="G$1" pin="1"/>
+<wire x1="182.88" y1="55.88" x2="185.42" y2="55.88" width="0.1524" layer="91"/>
+<wire x1="182.88" y1="53.34" x2="182.88" y2="55.88" width="0.1524" layer="91"/>
+<junction x="182.88" y="55.88"/>
 </segment>
 </net>
 <net name="N$15" class="0">
@@ -8200,6 +8208,7 @@ Source: http://ecommas.tycoelectronics.com .. ENG_CD_640456_W.pdf</description>
 <pinref part="D1" gate="G$1" pin="A"/>
 <wire x1="243.84" y1="73.66" x2="243.84" y2="78.74" width="0.1524" layer="91"/>
 <wire x1="243.84" y1="55.88" x2="243.84" y2="73.66" width="0.1524" layer="91"/>
+<junction x="243.84" y="73.66"/>
 </segment>
 </net>
 <net name="-120" class="2">
@@ -8232,26 +8241,19 @@ Source: http://ecommas.tycoelectronics.com .. ENG_CD_640456_W.pdf</description>
 <segment>
 <pinref part="HELED" gate="G$1" pin="A"/>
 <pinref part="R19" gate="G$1" pin="2"/>
+<wire x1="182.88" y1="91.44" x2="182.88" y2="88.9" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$26" class="0">
 <segment>
 <pinref part="R20" gate="G$1" pin="2"/>
 <pinref part="PPLED" gate="G$1" pin="A"/>
+<wire x1="182.88" y1="43.18" x2="182.88" y2="40.64" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
 </sheet>
 </sheets>
-<errors>
-<approved hash="104,1,-30.48,93.98,IC1P,V+,+5V,,,"/>
-<approved hash="104,1,-30.48,78.74,IC1P,V-,GND,,,"/>
-<approved hash="104,1,-30.48,30.48,IC2P,V+,+5V,,,"/>
-<approved hash="104,1,-30.48,15.24,IC2P,V-,GND,,,"/>
-<approved hash="113,1,-74.9723,83.9512,PI,,,,,"/>
-<approved hash="113,1,-23.0971,118.241,HLT,,,,,"/>
-<approved hash="113,1,-18.0171,54.7412,MASH,,,,,"/>
-</errors>
 </schematic>
 </drawing>
 <compatibility>
